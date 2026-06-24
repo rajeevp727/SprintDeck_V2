@@ -75,10 +75,12 @@ function createSession(name, moderatorName) {
     code,
     name: (name || '').trim() || 'Planning Poker',
     moderatorId: pid,
-    story: '',
+    story: '', // title of the story currently being estimated
     status: 'waiting', // 'waiting' | 'voting' | 'revealed'
     deck: DECK,
     participants: {},
+    queue: [], // upcoming stories: [{ id, title }]
+    history: [], // completed estimates: [{ id, title, average, median, min, max, consensus, votes, at }]
     createdAt: now,
     lastActivity: now,
   };
@@ -121,6 +123,75 @@ function isModerator(session, participantId) {
   return session.moderatorId === participantId;
 }
 
+// --- Story queue & history -------------------------------------------------
+
+// Add one or more story titles to the end of the queue.
+function addToQueue(session, titles) {
+  for (const t of titles) {
+    const title = String(t || '').trim();
+    if (title) session.queue.push({ id: genId(), title });
+  }
+  touch(session);
+}
+
+function removeFromQueue(session, id) {
+  session.queue = session.queue.filter((s) => s.id !== id);
+  touch(session);
+}
+
+// Start estimating a story: an explicit title if given, else the next queued
+// one. Clears votes and opens voting. Returns false if there's nothing to start.
+function startStory(session, explicitTitle) {
+  let title = String(explicitTitle || '').trim();
+  if (!title && session.queue.length > 0) title = session.queue.shift().title;
+  if (!title) return false;
+  session.story = title;
+  for (const p of Object.values(session.participants)) p.vote = null;
+  session.status = 'voting';
+  touch(session);
+  return true;
+}
+
+// Snapshot the current revealed result into history, then advance to the next
+// queued story (or back to 'waiting' if the queue is empty).
+function saveAndAdvance(session) {
+  if (session.story) {
+    const stats = voteStats(session);
+    session.history.push({ id: genId(), title: session.story, ...stats, at: Date.now() });
+  }
+  if (!startStory(session)) {
+    session.story = '';
+    session.status = 'waiting';
+    touch(session);
+  }
+}
+
+// Numeric stats over the current votes (ignores non-numeric like ? / ☕).
+function voteStats(session) {
+  const votes = Object.values(session.participants)
+    .filter((p) => p.vote !== null)
+    .map((p) => ({ name: p.name, vote: p.vote }));
+  const nums = votes
+    .map((v) => Number(v.vote))
+    .filter((n) => Number.isFinite(n))
+    .sort((a, b) => a - b);
+
+  let average = null;
+  let median = null;
+  let min = null;
+  let max = null;
+  let consensus = false;
+  if (nums.length > 0) {
+    average = Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 100) / 100;
+    const mid = Math.floor(nums.length / 2);
+    median = nums.length % 2 ? nums[mid] : Math.round(((nums[mid - 1] + nums[mid]) / 2) * 100) / 100;
+    min = nums[0];
+    max = nums[nums.length - 1];
+    consensus = nums.every((n) => n === nums[0]);
+  }
+  return { votes, average, median, min, max, consensus };
+}
+
 // Build a client-safe view. Votes stay hidden until 'revealed'; the requester
 // always sees their own selection so the UI can highlight it.
 function publicView(session, requesterId) {
@@ -136,16 +207,16 @@ function publicView(session, requesterId) {
     }))
     .sort((a, b) => (a.isModerator === b.isModerator ? 0 : a.isModerator ? -1 : 1));
 
-  let average = null;
-  let consensus = false;
-  if (revealed) {
-    const nums = Object.values(session.participants)
-      .map((p) => Number(p.vote))
-      .filter((n) => Number.isFinite(n));
-    if (nums.length > 0) {
-      average = Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 100) / 100;
-      consensus = nums.every((n) => n === nums[0]);
-    }
+  const stats = revealed
+    ? voteStats(session)
+    : { average: null, median: null, min: null, max: null, consensus: false };
+
+  // Highest/lowest voters surface who to discuss with (only when revealed).
+  let lowVoters = [];
+  let highVoters = [];
+  if (revealed && stats.min !== null && stats.max !== stats.min) {
+    lowVoters = stats.votes.filter((v) => Number(v.vote) === stats.min).map((v) => v.name);
+    highVoters = stats.votes.filter((v) => Number(v.vote) === stats.max).map((v) => v.name);
   }
 
   return {
@@ -156,8 +227,15 @@ function publicView(session, requesterId) {
     deck: session.deck,
     moderatorId: session.moderatorId,
     participants,
-    average,
-    consensus,
+    queue: session.queue,
+    history: session.history,
+    average: stats.average,
+    median: stats.median,
+    min: stats.min,
+    max: stats.max,
+    consensus: stats.consensus,
+    lowVoters,
+    highVoters,
   };
 }
 
@@ -170,5 +248,9 @@ module.exports = {
   getSession,
   isModerator,
   publicView,
+  addToQueue,
+  removeFromQueue,
+  startStory,
+  saveAndAdvance,
   touch,
 };

@@ -8,6 +8,28 @@ export interface Participant {
   vote: string | null; // null unless revealed (or it's your own vote)
 }
 
+export interface QueueItem {
+  id: string;
+  title: string;
+}
+
+export interface HistoryVote {
+  name: string;
+  vote: string;
+}
+
+export interface HistoryEntry {
+  id: string;
+  title: string;
+  average: number | null;
+  median: number | null;
+  min: number | null;
+  max: number | null;
+  consensus: boolean;
+  votes: HistoryVote[];
+  at: number;
+}
+
 export interface Session {
   code: string;
   name: string;
@@ -16,8 +38,15 @@ export interface Session {
   deck: string[];
   moderatorId: string;
   participants: Participant[];
+  queue: QueueItem[];
+  history: HistoryEntry[];
   average: number | null;
+  median: number | null;
+  min: number | null;
+  max: number | null;
   consensus: boolean;
+  lowVoters: string[];
+  highVoters: string[];
 }
 
 export interface JoinResult {

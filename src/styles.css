@@ -274,27 +274,211 @@ input:focus {
 /* Result */
 .result {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
+  gap: 0.75rem;
   margin: 1rem 0 2rem;
 }
-.result-avg {
+.result-stats {
   display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 0.6rem 1.2rem;
+  padding: 0.5rem 1.1rem;
+  min-width: 84px;
 }
-.result-avg strong {
-  font-size: 1.8rem;
+.stat strong {
+  font-size: 1.6rem;
   color: var(--accent);
 }
 .consensus {
   color: var(--green);
   font-weight: 600;
+}
+.discuss {
+  color: var(--text);
+  font-size: 0.95rem;
+}
+.discuss b {
+  color: var(--accent);
+}
+.waiting-on {
+  text-align: center;
+  color: var(--text);
+  font-size: 0.9rem;
+  margin: 0.25rem 0 0;
+}
+
+/* Results button badge */
+.badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  padding: 0.05rem 0.4rem;
+  font-weight: 700;
+}
+
+/* Story queue */
+.queue-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+.queue-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+.queue-title {
+  font-weight: 600;
+}
+.queue-list {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.queue-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+}
+.q-num {
+  color: var(--muted);
+  font-size: 0.8rem;
+  min-width: 1.2rem;
+}
+.q-title {
+  flex: 1;
+}
+.q-remove {
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0 0.3rem;
+}
+.queue-add {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+.queue-add textarea {
+  flex: 1;
+  resize: vertical;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+/* Results modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 50;
+}
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  width: min(760px, 100%);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow);
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+.modal-header h3 {
+  margin: 0;
+}
+.modal-close {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.6rem;
+  line-height: 1;
+}
+.modal-empty {
+  padding: 2rem 1.25rem;
+  text-align: center;
+}
+.table-scroll {
+  overflow: auto;
+  padding: 0.5rem 1.25rem;
+}
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.results-table th,
+.results-table td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.results-table th {
+  color: var(--muted);
+  font-weight: 600;
+}
+.story-cell {
+  white-space: normal;
+}
+.mini-consensus {
+  color: var(--green);
+}
+.votes-cell {
+  color: var(--muted);
+  white-space: normal;
+}
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid var(--line);
+}
+.export-buttons {
+  display: flex;
+  gap: 0.5rem;
 }
 
 /* Moderator panel */

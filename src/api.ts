@@ -49,4 +49,16 @@ export const api = {
 
   setStory: (code: string, participantId: string, story: string) =>
     request<{ session: Session }>(`/api/session/${code}/story`, 'POST', { participantId, story }),
+
+  addToQueue: (code: string, participantId: string, stories: string[]) =>
+    request<{ session: Session }>(`/api/session/${code}/queue`, 'POST', { participantId, stories }),
+
+  removeFromQueue: (code: string, participantId: string, storyId: string) =>
+    request<{ session: Session }>(
+      `/api/session/${code}/queue/${storyId}?participantId=${encodeURIComponent(participantId)}`,
+      'DELETE',
+    ),
+
+  next: (code: string, participantId: string) =>
+    request<{ session: Session }>(`/api/session/${code}/next`, 'POST', { participantId }),
 };

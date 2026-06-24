@@ -119,10 +119,9 @@ app.http('startVoting', {
     const { session, error } = requireModerator(req.params.code, participantId);
     if (error) return error;
 
-    if (typeof story === 'string' && story.trim()) session.story = story.trim();
-    for (const p of Object.values(session.participants)) p.vote = null;
-    session.status = 'voting';
-    store.touch(session);
+    if (!store.startStory(session, story)) {
+      return bad('No story to estimate — type a title or add one to the queue');
+    }
     return ok({ session: store.publicView(session, participantId) });
   },
 });
@@ -172,6 +171,55 @@ app.http('setStory', {
 
     session.story = typeof story === 'string' ? story.trim() : '';
     store.touch(session);
+    return ok({ session: store.publicView(session, participantId) });
+  },
+});
+
+// POST /api/session/{code}/queue  { participantId, stories }   (moderator)
+// `stories` may be an array of titles or a newline-separated string.
+app.http('addToQueue', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'session/{code}/queue',
+  handler: async (req) => {
+    const { participantId, stories } = await readBody(req);
+    const { session, error } = requireModerator(req.params.code, participantId);
+    if (error) return error;
+
+    const titles = Array.isArray(stories) ? stories : String(stories || '').split('\n');
+    store.addToQueue(session, titles);
+    return ok({ session: store.publicView(session, participantId) });
+  },
+});
+
+// DELETE /api/session/{code}/queue/{storyId}   (moderator)
+app.http('removeFromQueue', {
+  methods: ['DELETE'],
+  authLevel: 'anonymous',
+  route: 'session/{code}/queue/{storyId}',
+  handler: async (req) => {
+    const participantId = req.query.get('participantId');
+    const { session, error } = requireModerator(req.params.code, participantId);
+    if (error) return error;
+
+    store.removeFromQueue(session, req.params.storyId);
+    return ok({ session: store.publicView(session, participantId) });
+  },
+});
+
+// POST /api/session/{code}/next  { participantId }   (moderator)
+// Saves the current revealed result to history, then advances to the next
+// queued story (or back to 'waiting' if the queue is empty).
+app.http('nextStory', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'session/{code}/next',
+  handler: async (req) => {
+    const { participantId } = await readBody(req);
+    const { session, error } = requireModerator(req.params.code, participantId);
+    if (error) return error;
+
+    store.saveAndAdvance(session);
     return ok({ session: store.publicView(session, participantId) });
   },
 });

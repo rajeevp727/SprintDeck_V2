@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { clearIdentity, getIdentity } from '../storage';
 import type { Session } from '../types';
+import ResultsModal from './ResultsModal';
 
 const POLL_MS = 1500;
 
@@ -19,7 +20,9 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   const [error, setError] = useState('');
   const [myVote, setMyVote] = useState<string | null>(null);
   const [storyDraft, setStoryDraft] = useState('');
+  const [queueDraft, setQueueDraft] = useState('');
   const [copied, setCopied] = useState(false);
+  const [showResults, setShowResults] = useState(false);
   const storyDirty = useRef(false);
 
   // No identity for this room (e.g. opened an invite link directly) → bounce to join.
@@ -79,6 +82,16 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
     }
   }
 
+  function addQueue() {
+    const titles = queueDraft
+      .split('\n')
+      .map((t) => t.trim())
+      .filter(Boolean);
+    if (titles.length === 0) return;
+    setQueueDraft('');
+    moderatorAction(() => api.addToQueue(code, participantId, titles));
+  }
+
   function leave() {
     clearIdentity(code);
     onLeave();
@@ -106,6 +119,7 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
 
   const voted = session.participants.filter((p) => p.hasVoted).length;
   const total = session.participants.length;
+  const pending = session.participants.filter((p) => !p.hasVoted).map((p) => p.name);
 
   return (
     <div className="room">
@@ -122,6 +136,9 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
             {session.status === 'voting' && `Voting · ${voted}/${total}`}
             {session.status === 'revealed' && 'Revealed 🎉'}
           </span>
+          <button className="ghost" onClick={() => setShowResults(true)}>
+            Results{session.history.length > 0 && <span className="badge">{session.history.length}</span>}
+          </button>
           <button className="ghost" onClick={copyInvite}>
             {copied ? 'Copied!' : 'Invite'}
           </button>
@@ -161,69 +178,142 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
         })}
       </section>
 
+      {session.status === 'voting' && pending.length > 0 && pending.length < total && (
+        <p className="waiting-on">
+          <span className="muted">Waiting on:</span> {pending.join(', ')}
+        </p>
+      )}
+
       {session.status === 'revealed' && (
         <div className="result">
-          <div className="result-avg">
-            <span className="muted">Average</span>
-            <strong>{session.average ?? '—'}</strong>
+          <div className="result-stats">
+            <div className="stat">
+              <span className="muted">Average</span>
+              <strong>{session.average ?? '—'}</strong>
+            </div>
+            <div className="stat">
+              <span className="muted">Median</span>
+              <strong>{session.median ?? '—'}</strong>
+            </div>
+            <div className="stat">
+              <span className="muted">Range</span>
+              <strong>
+                {session.min ?? '—'}–{session.max ?? '—'}
+              </strong>
+            </div>
           </div>
-          {session.consensus && <div className="consensus">Consensus! 🎯</div>}
+          {session.consensus ? (
+            <div className="consensus">Consensus! 🎯</div>
+          ) : (
+            session.highVoters.length > 0 && (
+              <div className="discuss">
+                Discuss: <b>{session.min}</b> ({session.lowVoters.join(', ')}) vs{' '}
+                <b>{session.max}</b> ({session.highVoters.join(', ')})
+              </div>
+            )
+          )}
         </div>
       )}
 
-      {/* Moderator control panel */}
+      {/* Moderator controls */}
       {isModerator && (
-        <div className="panel">
-          <input
-            className="story-input"
-            value={storyDraft}
-            placeholder="Story name or ticket #"
-            maxLength={120}
-            onChange={(e) => {
-              storyDirty.current = true;
-              setStoryDraft(e.target.value);
-            }}
-            onBlur={() => {
-              if (storyDirty.current) {
-                moderatorAction(() => api.setStory(code, participantId, storyDraft));
-              }
-            }}
-          />
-          <div className="panel-buttons">
-            {session.status === 'waiting' && (
-              <button
-                className="primary"
-                onClick={() => moderatorAction(() => api.start(code, participantId, storyDraft))}
-              >
-                Start voting
-              </button>
-            )}
-            {session.status === 'voting' && (
-              <>
+        <>
+          <div className="panel">
+            <input
+              className="story-input"
+              value={storyDraft}
+              placeholder="Story name or ticket # (or pull from the queue below)"
+              maxLength={120}
+              onChange={(e) => {
+                storyDirty.current = true;
+                setStoryDraft(e.target.value);
+              }}
+              onBlur={() => {
+                if (storyDirty.current && session.status !== 'waiting') {
+                  moderatorAction(() => api.setStory(code, participantId, storyDraft));
+                }
+              }}
+            />
+            <div className="panel-buttons">
+              {session.status === 'waiting' && (
                 <button
                   className="primary"
-                  onClick={() => moderatorAction(() => api.reveal(code, participantId))}
+                  onClick={() => moderatorAction(() => api.start(code, participantId, storyDraft))}
                 >
-                  Reveal cards
+                  {storyDraft.trim() ? 'Start voting' : 'Start next story'}
                 </button>
-                <button
-                  className="ghost"
-                  onClick={() => moderatorAction(() => api.reset(code, participantId))}
-                >
-                  Clear votes
-                </button>
-              </>
-            )}
-            {session.status === 'revealed' && (
-              <button
-                className="primary"
-                onClick={() => moderatorAction(() => api.reset(code, participantId))}
-              >
-                Vote again
-              </button>
-            )}
+              )}
+              {session.status === 'voting' && (
+                <>
+                  <button
+                    className="primary"
+                    onClick={() => moderatorAction(() => api.reveal(code, participantId))}
+                  >
+                    Reveal cards
+                  </button>
+                  <button
+                    className="ghost"
+                    onClick={() => moderatorAction(() => api.reset(code, participantId))}
+                  >
+                    Clear votes
+                  </button>
+                </>
+              )}
+              {session.status === 'revealed' && (
+                <>
+                  <button
+                    className="primary"
+                    onClick={() => moderatorAction(() => api.next(code, participantId))}
+                  >
+                    Save &amp; next
+                  </button>
+                  <button
+                    className="ghost"
+                    onClick={() => moderatorAction(() => api.reset(code, participantId))}
+                  >
+                    Vote again
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+
+          {/* Story queue */}
+          <div className="queue-panel">
+            <div className="queue-head">
+              <span className="queue-title">Story queue</span>
+              <span className="muted">{session.queue.length} queued</span>
+            </div>
+            {session.queue.length > 0 && (
+              <ul className="queue-list">
+                {session.queue.map((q, i) => (
+                  <li key={q.id}>
+                    <span className="q-num">{i + 1}</span>
+                    <span className="q-title">{q.title}</span>
+                    <button
+                      className="q-remove"
+                      title="Remove"
+                      onClick={() => moderatorAction(() => api.removeFromQueue(code, participantId, q.id))}
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="queue-add">
+              <textarea
+                value={queueDraft}
+                placeholder="Paste stories — one per line — to add to the queue"
+                rows={2}
+                onChange={(e) => setQueueDraft(e.target.value)}
+              />
+              <button className="ghost" disabled={!queueDraft.trim()} onClick={addQueue}>
+                Add to queue
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       {!isModerator && session.status === 'waiting' && (
@@ -247,6 +337,14 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
       </section>
 
       {error && <p className="error room-error">{error}</p>}
+
+      {showResults && (
+        <ResultsModal
+          sessionName={session.name}
+          history={session.history}
+          onClose={() => setShowResults(false)}
+        />
+      )}
     </div>
   );
 }
