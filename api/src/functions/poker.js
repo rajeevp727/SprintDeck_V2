@@ -33,6 +33,17 @@ function requireModerator(code, participantId) {
   return { session };
 }
 
+// GET /api/health — lightweight warm-keep target for an uptime pinger.
+// Touches no session state; its only job is to be a request that keeps the
+// Functions host from going idle (no-store header ensures it hits the function,
+// not a cached CDN response).
+app.http('health', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'health',
+  handler: async () => ok({ status: 'ok', service: 'sprintdeck' }),
+});
+
 // POST /api/session  { name, moderatorName }
 app.http('createSession', {
   methods: ['POST'],
