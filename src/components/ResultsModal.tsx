@@ -72,7 +72,7 @@ export default function ResultsModal({ sessionName, history, onClose }: Props) {
             <button
               className="ghost"
               disabled={history.length === 0}
-              onClick={() => exportCsv(sessionName, history)}
+              onClick={() => exportCsv(history)}
             >
               Export Excel (.csv)
             </button>

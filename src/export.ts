@@ -12,10 +12,7 @@ function downloadBlob(content: string, filename: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
-function safeName(sessionName: string) {
-  const base = sessionName.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '') || 'sprintdeck';
-  return base.toLowerCase();
-}
+const APP_NAME = 'SprintDeck';
 
 function fmt(n: number | null) {
   return n === null ? '—' : String(n);
@@ -38,11 +35,11 @@ export function exportText(sessionName: string, history: HistoryEntry[]) {
     lines.push('');
   });
   if (history.length === 0) lines.push('(no estimates yet)');
-  downloadBlob(lines.join('\n'), `${safeName(sessionName)}-results.txt`, 'text/plain;charset=utf-8');
+  downloadBlob(lines.join('\n'), `${APP_NAME}.txt`, 'text/plain;charset=utf-8');
 }
 
 // CSV (opens in Excel). One row per story; individual votes joined in a column.
-export function exportCsv(sessionName: string, history: HistoryEntry[]) {
+export function exportCsv(history: HistoryEntry[]) {
   const esc = (val: string | number | null) => {
     const s = val === null ? '' : String(val);
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -64,5 +61,5 @@ export function exportCsv(sessionName: string, history: HistoryEntry[]) {
     );
   });
   // BOM so Excel detects UTF-8 correctly.
-  downloadBlob('﻿' + rows.join('\r\n'), `${safeName(sessionName)}-results.csv`, 'text/csv;charset=utf-8');
+  downloadBlob('﻿' + rows.join('\r\n'), `${APP_NAME}.csv`, 'text/csv;charset=utf-8');
 }
