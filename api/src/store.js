@@ -8,7 +8,7 @@
 /** @type {Map<string, Session>} */
 const sessions = new Map();
 
-// The deck is the Fibonacci series (planning-poker variant: 1, 2, 3, 5, 8…)
+// The deck is the Fibonacci series (estimation variant: 1, 2, 3, 5, 8…)
 // generated up to DECK_MAX — change the max in one place, the deck follows.
 const DECK_MAX = 21;
 

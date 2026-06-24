@@ -1,6 +1,6 @@
-# Planning Poker
+# SprintDeck
 
-Real-time planning poker (scrum estimation) for distributed teams. Create a room,
+Real-time sprint estimation (planning poker) for distributed teams. Create a room,
 share the code/link, everyone picks a card, the moderator reveals — average and
 consensus shown instantly. Built to run **free** on Azure Static Web Apps.
 
@@ -97,7 +97,7 @@ functions inside the same Static Web App, so `/api/*` just works on the same ori
 ## Project layout
 
 ```
-planning-poker/
+sprintdeck/
 ├─ api/                      # Azure Functions (Node v4)
 │  ├─ src/store.js           # in-memory session store (swap this for a DB later)
 │  ├─ src/functions/poker.js # all HTTP endpoints

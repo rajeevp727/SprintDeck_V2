@@ -1,7 +1,7 @@
 {
-  "name": "planning-poker-api",
+  "name": "sprintdeck-api",
   "version": "1.0.0",
-  "description": "Azure Functions API for Planning Poker (in-memory)",
+  "description": "Azure Functions API for SprintDeck (in-memory)",
   "main": "src/functions/*.js",
   "scripts": {
     "start": "func start"
