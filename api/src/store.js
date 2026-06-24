@@ -27,7 +27,9 @@ const DECK = buildFibonacciDeck(DECK_MAX);
 
 // Prune sessions with no activity for this long, and participants not seen recently.
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12h
-const PARTICIPANT_TTL_MS = 30 * 1000; // 30s — covers a couple missed polls
+// 2.5 min — long enough that a backgrounded/throttled tab (Chrome slows hidden
+// tabs to ~1 poll/min) isn't pruned mid-session. Members rarely truly leave.
+const PARTICIPANT_TTL_MS = 150 * 1000;
 
 // Max members per room (moderator included).
 const MAX_PARTICIPANTS = 20;
