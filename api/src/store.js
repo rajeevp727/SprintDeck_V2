@@ -25,10 +25,12 @@ function buildFibonacciDeck(max) {
 
 const DECK = buildFibonacciDeck(DECK_MAX);
 
-// Prune whole sessions with no activity for this long (memory cleanup only).
-// Participants are NEVER removed for being idle — they stay until the session
-// itself expires (or, in future, an explicit leave).
-const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12h
+// Whole-session cleanup limits (memory housekeeping only; participants are
+// NEVER removed for being idle). A session is dropped when EITHER:
+//   - it has had no activity for SESSION_IDLE_MS (60 min idle), or
+//   - its total age exceeds SESSION_MAX_AGE_MS (5h hard cap).
+const SESSION_MAX_AGE_MS = 5 * 60 * 60 * 1000; // 5h
+const SESSION_IDLE_MS = 60 * 60 * 1000; // 60 min
 
 // Max members per room (moderator included).
 const MAX_PARTICIPANTS = 20;
@@ -53,7 +55,9 @@ function genId() {
 function pruneSessions() {
   const now = Date.now();
   for (const [code, s] of sessions) {
-    if (now - s.lastActivity > SESSION_TTL_MS) sessions.delete(code);
+    const idle = now - s.lastActivity > SESSION_IDLE_MS;
+    const tooOld = now - s.createdAt > SESSION_MAX_AGE_MS;
+    if (idle || tooOld) sessions.delete(code);
   }
 }
 
