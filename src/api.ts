@@ -1,0 +1,49 @@
+import type { JoinResult, Session } from './types';
+
+async function request<T>(url: string, method: string, body?: unknown): Promise<T> {
+  const res = await fetch(url, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    let message = `Request failed (${res.status})`;
+    try {
+      const data = await res.json();
+      if (data?.error) message = data.error;
+    } catch {
+      /* keep default */
+    }
+    throw new Error(message);
+  }
+  return res.json() as Promise<T>;
+}
+
+export const api = {
+  createSession: (name: string, moderatorName: string) =>
+    request<JoinResult>('/api/session', 'POST', { name, moderatorName }),
+
+  joinSession: (code: string, name: string) =>
+    request<JoinResult>(`/api/session/${code}/join`, 'POST', { name }),
+
+  getSession: (code: string, participantId: string) =>
+    request<{ session: Session }>(
+      `/api/session/${code}?participantId=${encodeURIComponent(participantId)}`,
+      'GET',
+    ),
+
+  vote: (code: string, participantId: string, vote: string | null) =>
+    request<{ session: Session }>(`/api/session/${code}/vote`, 'POST', { participantId, vote }),
+
+  start: (code: string, participantId: string, story: string) =>
+    request<{ session: Session }>(`/api/session/${code}/start`, 'POST', { participantId, story }),
+
+  reveal: (code: string, participantId: string) =>
+    request<{ session: Session }>(`/api/session/${code}/reveal`, 'POST', { participantId }),
+
+  reset: (code: string, participantId: string) =>
+    request<{ session: Session }>(`/api/session/${code}/reset`, 'POST', { participantId }),
+
+  setStory: (code: string, participantId: string, story: string) =>
+    request<{ session: Session }>(`/api/session/${code}/story`, 'POST', { participantId, story }),
+};

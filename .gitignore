@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.local
+
+# Azure Functions
+api/node_modules/
+api/bin/
+api/obj/
+local.settings.json
+.func/
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,15 @@
+{
+  "name": "planning-poker-api",
+  "version": "1.0.0",
+  "description": "Azure Functions API for Planning Poker (in-memory)",
+  "main": "src/functions/*.js",
+  "scripts": {
+    "start": "func start"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.5.0"
+  },
+  "devDependencies": {
+    "azure-functions-core-tools": "^4.0.6280"
+  }
+}
