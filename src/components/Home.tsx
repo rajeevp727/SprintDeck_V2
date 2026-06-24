@@ -50,7 +50,7 @@ export default function Home({ initialCode = '', onEnter }: Props) {
     <div className="home">
       <header className="brand">
         <span className="brand-mark">♠</span>
-        <h1>Planning Poker</h1>
+        <h1>SprintDeck</h1>
       </header>
       <p className="tagline">Estimate together, across every time zone.</p>
 
