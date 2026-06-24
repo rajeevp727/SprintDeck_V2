@@ -121,6 +121,18 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   const total = session.participants.length;
   const pending = session.participants.filter((p) => !p.hasVoted).map((p) => p.name);
 
+  // Position-aware label for the Start button (first / next / last / only),
+  // unless the moderator typed an ad-hoc story.
+  const queued = session.queue.length;
+  const done = session.history.length;
+  let startLabel = 'Start voting';
+  if (!storyDraft.trim() && queued > 0) {
+    if (done === 0 && queued === 1) startLabel = 'Start story';
+    else if (done === 0) startLabel = 'Start first story';
+    else if (queued === 1) startLabel = 'Start last story';
+    else startLabel = 'Start next story';
+  }
+
   return (
     <div className="room">
       <header className="room-header">
@@ -240,7 +252,7 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
                   className="primary"
                   onClick={() => moderatorAction(() => api.start(code, participantId, storyDraft))}
                 >
-                  {storyDraft.trim() ? 'Start voting' : 'Start next story'}
+                  {startLabel}
                 </button>
               )}
               {session.status === 'voting' && (
