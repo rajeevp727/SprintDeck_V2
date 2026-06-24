@@ -25,11 +25,10 @@ function buildFibonacciDeck(max) {
 
 const DECK = buildFibonacciDeck(DECK_MAX);
 
-// Prune sessions with no activity for this long, and participants not seen recently.
+// Prune whole sessions with no activity for this long (memory cleanup only).
+// Participants are NEVER removed for being idle — they stay until the session
+// itself expires (or, in future, an explicit leave).
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12h
-// 2.5 min — long enough that a backgrounded/throttled tab (Chrome slows hidden
-// tabs to ~1 poll/min) isn't pruned mid-session. Members rarely truly leave.
-const PARTICIPANT_TTL_MS = 150 * 1000;
 
 // Max members per room (moderator included).
 const MAX_PARTICIPANTS = 20;
@@ -55,15 +54,6 @@ function pruneSessions() {
   const now = Date.now();
   for (const [code, s] of sessions) {
     if (now - s.lastActivity > SESSION_TTL_MS) sessions.delete(code);
-  }
-}
-
-function pruneParticipants(session) {
-  const now = Date.now();
-  for (const [pid, p] of Object.entries(session.participants)) {
-    // Never prune the moderator — they hold the session together.
-    if (pid === session.moderatorId) continue;
-    if (now - p.lastSeen > PARTICIPANT_TTL_MS) delete session.participants[pid];
   }
 }
 
@@ -101,8 +91,6 @@ function createSession(name, moderatorName) {
 function joinSession(code, name) {
   const session = sessions.get(normalize(code));
   if (!session) return { error: 'not_found' };
-  // Free up seats from anyone who already left before checking capacity.
-  pruneParticipants(session);
   if (Object.keys(session.participants).length >= MAX_PARTICIPANTS) {
     return { error: 'full' };
   }
@@ -178,6 +166,5 @@ module.exports = {
   getSession,
   isModerator,
   publicView,
-  pruneParticipants,
   touch,
 };

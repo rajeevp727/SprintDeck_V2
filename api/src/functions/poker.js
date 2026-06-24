@@ -72,11 +72,6 @@ app.http('getSession', {
     if (!session) return bad('Session not found', 404);
     const participantId = req.query.get('participantId');
 
-    // Heartbeat: mark the poller present, then prune anyone who went silent.
-    const me = participantId && session.participants[participantId];
-    if (me) me.lastSeen = Date.now();
-    store.pruneParticipants(session);
-
     return ok({ session: store.publicView(session, participantId) });
   },
 });
