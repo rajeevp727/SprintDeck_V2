@@ -13,3 +13,8 @@ local.settings.json
 .vscode/
 .DS_Store
 Thumbs.db
+
+# tsc -b build artifacts from vite.config.ts
+vite.config.js
+vite.config.d.ts
+*.tsbuildinfo
