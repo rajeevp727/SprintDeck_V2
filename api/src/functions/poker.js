@@ -3,11 +3,15 @@
 const { app } = require('@azure/functions');
 const store = require('../store');
 
+// no-store so polling reads are never cached by the browser/CDN — otherwise
+// other devices render stale state until a manual refresh.
+const NO_CACHE = { 'Cache-Control': 'no-store' };
+
 function ok(body) {
-  return { status: 200, jsonBody: body };
+  return { status: 200, jsonBody: body, headers: NO_CACHE };
 }
 function bad(message, status = 400) {
-  return { status, jsonBody: { error: message } };
+  return { status, jsonBody: { error: message }, headers: NO_CACHE };
 }
 
 async function readBody(req) {

@@ -3,6 +3,9 @@ import type { JoinResult, Session } from './types';
 async function request<T>(url: string, method: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
     method,
+    // Polling reads must never come from the HTTP cache, or other devices
+    // show stale state until a manual refresh forces revalidation.
+    cache: 'no-store',
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
