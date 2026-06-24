@@ -73,7 +73,7 @@ function createSession(name, moderatorName) {
   /** @type {Session} */
   const session = {
     code,
-    name: (name || '').trim() || 'Planning Poker',
+    name: (name || '').trim() || 'SprintDeck',
     moderatorId: pid,
     story: '', // title of the story currently being estimated
     status: 'waiting', // 'waiting' | 'voting' | 'revealed'
