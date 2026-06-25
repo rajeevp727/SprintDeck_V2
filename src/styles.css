@@ -222,6 +222,18 @@ input:focus {
   padding: 20vh 1rem;
   color: var(--muted);
 }
+.crash {
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 18vh 1.5rem;
+  text-align: center;
+}
+.crash h2 {
+  margin: 0 0 0.5rem;
+}
+.crash .primary {
+  margin-top: 1.25rem;
+}
 .room-header {
   display: flex;
   align-items: center;
