@@ -170,11 +170,6 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   const total = session.participants.length;
   const pending = session.participants.filter((p) => !p.hasVoted).map((p) => p.name);
 
-  // Results are available only once every queued story has been estimated
-  // (queue emptied, at least one saved, and not mid-round).
-  const allVoted =
-    session.queue.length === 0 && session.history.length > 0 && session.status === 'waiting';
-
   // Position-aware label for the Start button (first / next / last / only),
   // unless the moderator typed an ad-hoc story.
   const queued = session.queue.length;
@@ -311,23 +306,13 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
             />
             <div className="panel-buttons">
               {session.status === 'waiting' && (
-                <>
-                  {allVoted && !session.finished && (
-                    <button
-                      className="primary"
-                      onClick={() => moderatorAction(() => api.finish(code, participantId))}
-                    >
-                      Finish
-                    </button>
-                  )}
-                  <button
-                    className={allVoted && !session.finished ? 'ghost' : 'primary'}
-                    disabled={queued === 0 && !storyDraft.trim()}
-                    onClick={() => moderatorAction(() => api.start(code, participantId, storyDraft))}
-                  >
-                    {session.finished ? 'Start new' : startLabel}
-                  </button>
-                </>
+                <button
+                  className="primary"
+                  disabled={queued === 0 && !storyDraft.trim()}
+                  onClick={() => moderatorAction(() => api.start(code, participantId, storyDraft))}
+                >
+                  {session.finished ? 'Start new' : startLabel}
+                </button>
               )}
               {session.status === 'voting' && (
                 <>
@@ -347,12 +332,21 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
               )}
               {session.status === 'revealed' && (
                 <>
-                  <button
-                    className="primary"
-                    onClick={() => moderatorAction(() => api.next(code, participantId))}
-                  >
-                    {queued > 0 ? 'Save & next' : 'Save'}
-                  </button>
+                  {queued > 0 ? (
+                    <button
+                      className="primary"
+                      onClick={() => moderatorAction(() => api.next(code, participantId))}
+                    >
+                      Next
+                    </button>
+                  ) : (
+                    <button
+                      className="primary"
+                      onClick={() => moderatorAction(() => api.finish(code, participantId))}
+                    >
+                      Finish
+                    </button>
+                  )}
                   <button
                     className="ghost"
                     onClick={() => moderatorAction(() => api.reset(code, participantId))}

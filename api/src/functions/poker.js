@@ -137,7 +137,7 @@ app.http('reveal', {
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
-    session.status = 'revealed';
+    store.revealAndSave(session); // sets 'revealed' + auto-saves the result
     await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
@@ -252,6 +252,7 @@ app.http('finish', {
     if (error) return error;
 
     session.finished = true;
+    session.status = 'waiting';
     await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
@@ -272,7 +273,8 @@ app.http('endSession', {
   },
 });
 
-// POST /api/session/{code}/next  { participantId }   (moderator) — save + advance
+// POST /api/session/{code}/next  { participantId }   (moderator) — advance to the
+// next queued story (the current result was already saved on reveal).
 app.http('nextStory', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -282,7 +284,10 @@ app.http('nextStory', {
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
-    store.saveAndAdvance(session);
+    if (!store.startStory(session)) {
+      session.story = '';
+      session.status = 'waiting';
+    }
     await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },

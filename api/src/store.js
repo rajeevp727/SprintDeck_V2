@@ -194,6 +194,7 @@ async function createSession(name, moderatorName, desiredCode) {
     story: '',
     status: 'waiting', // 'waiting' | 'voting' | 'revealed'
     finished: false, // moderator clicked Finish → unlocks Results
+    currentEntryId: null, // history entry id for the story being estimated
     deck: DECK,
     participants: {
       [pid]: { id: pid, name: (moderatorName || '').trim() || 'Moderator', vote: null },
@@ -276,19 +277,26 @@ function startStory(session, explicitTitle) {
   for (const p of Object.values(session.participants)) p.vote = null;
   session.status = 'voting';
   session.finished = false; // starting a story un-finishes the session
+  session.currentEntryId = null; // next reveal creates a fresh history entry
   return true;
 }
 
-// Snapshot the current revealed result into history, then advance to the next
-// queued story (or back to 'waiting' if the queue is empty).
-function saveAndAdvance(session) {
-  if (session.story) {
-    const stats = voteStats(session);
-    session.history.push({ id: genId(), title: session.story, ...stats, at: Date.now() });
-  }
-  if (!startStory(session)) {
-    session.story = '';
-    session.status = 'waiting';
+// Reveal the current story and auto-save its result to history. Re-revealing
+// the same story (after "Vote again") updates the same entry instead of
+// duplicating it.
+function revealAndSave(session) {
+  session.status = 'revealed';
+  const stats = voteStats(session);
+  const data = { title: session.story, ...stats, at: Date.now() };
+  const idx = session.currentEntryId
+    ? session.history.findIndex((h) => h.id === session.currentEntryId)
+    : -1;
+  if (idx >= 0) {
+    session.history[idx] = { id: session.currentEntryId, ...data };
+  } else {
+    const id = genId();
+    session.history.push({ id, ...data });
+    session.currentEntryId = id;
   }
 }
 
@@ -364,5 +372,5 @@ module.exports = {
   removeFromQueue,
   reorderQueue,
   startStory,
-  saveAndAdvance,
+  revealAndSave,
 };
