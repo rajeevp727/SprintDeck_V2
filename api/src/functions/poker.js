@@ -207,6 +207,22 @@ app.http('removeFromQueue', {
   },
 });
 
+// POST /api/session/{code}/end  { participantId }   (moderator)
+// Ends the room for everyone. Other clients 404 on their next poll and exit.
+app.http('endSession', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'session/{code}/end',
+  handler: async (req) => {
+    const { participantId } = await readBody(req);
+    const { error } = requireModerator(req.params.code, participantId);
+    if (error) return error;
+
+    store.endSession(req.params.code);
+    return ok({ ended: true });
+  },
+});
+
 // POST /api/session/{code}/next  { participantId }   (moderator)
 // Saves the current revealed result to history, then advances to the next
 // queued story (or back to 'waiting' if the queue is empty).

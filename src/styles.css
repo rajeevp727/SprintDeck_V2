@@ -157,10 +157,22 @@ input:focus {
   border-color: #5a3340;
 }
 
-/* Ad slot (home screen only) */
+/* Ad slots */
 .ad-slot {
   max-width: 460px;
   margin: 1.5rem auto 0;
+  text-align: center;
+}
+/* In-room section-level ad (between sections) */
+.ad-section {
+  max-width: 728px;
+  margin: 1.25rem auto;
+  text-align: center;
+}
+/* In-room page-level ad (full width, bottom of the room) */
+.ad-page {
+  width: 100%;
+  margin: 2rem 0 0;
   text-align: center;
 }
 .ad-label {

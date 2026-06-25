@@ -3,6 +3,7 @@ import { api } from '../api';
 import { clearIdentity, getIdentity } from '../storage';
 import type { Session } from '../types';
 import ResultsModal from './ResultsModal';
+import AdBanner from './AdBanner';
 
 const POLL_MS = 1500;
 
@@ -97,6 +98,17 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
     onLeave();
   }
 
+  async function endRoom() {
+    if (!window.confirm('End this room for everyone? This cannot be undone.')) return;
+    try {
+      await api.end(code, participantId);
+    } catch {
+      /* even if it fails, leave locally */
+    }
+    clearIdentity(code);
+    onLeave();
+  }
+
   async function copyInvite() {
     const url = `${location.origin}/#/room/${code}`;
     try {
@@ -169,9 +181,15 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
               {copied ? 'Copied!' : 'Invite'}
             </button>
           )}
-          <button className="ghost danger" onClick={leave}>
-            Leave
-          </button>
+          {isModerator ? (
+            <button className="ghost danger" onClick={endRoom}>
+              End room
+            </button>
+          ) : (
+            <button className="ghost danger" onClick={leave}>
+              Leave
+            </button>
+          )}
         </div>
       </header>
 
@@ -210,6 +228,9 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
           <span className="muted">Waiting on:</span> {pending.join(', ')}
         </p>
       )}
+
+      {/* Section-level ad */}
+      <AdBanner className="ad-section" />
 
       {session.status === 'revealed' && (
         <div className="result">
@@ -364,6 +385,9 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
       </section>
 
       {error && <p className="error room-error">{error}</p>}
+
+      {/* Page-level ad */}
+      <AdBanner className="ad-page" />
 
       {showResults && (
         <ResultsModal

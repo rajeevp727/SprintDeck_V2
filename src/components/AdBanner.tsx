@@ -8,9 +8,17 @@ import { useEffect } from 'react';
 // Leave ADSENSE_CLIENT empty to keep ads OFF — nothing loads, nothing renders.
 // ──────────────────────────────────────────────────────────────────────────
 const ADSENSE_CLIENT: string = ''; // e.g. 'ca-pub-1234567890123456'
-const ADSENSE_SLOT: string = ''; // e.g. '1234567890'
+const ADSENSE_SLOT: string = ''; // default slot, e.g. '1234567890'
 
-export default function AdBanner() {
+interface Props {
+  // Use a distinct AdSense ad-unit slot id per placement for best reporting;
+  // falls back to ADSENSE_SLOT if not given.
+  slot?: string;
+  format?: string;
+  className?: string;
+}
+
+export default function AdBanner({ slot = ADSENSE_SLOT, format = 'auto', className = 'ad-slot' }: Props) {
   useEffect(() => {
     if (!ADSENSE_CLIENT) return;
 
@@ -38,14 +46,14 @@ export default function AdBanner() {
   if (!ADSENSE_CLIENT) return null;
 
   return (
-    <div className="ad-slot">
+    <div className={className}>
       <span className="ad-label">Advertisement</span>
       <ins
         className="adsbygoogle"
         style={{ display: 'block' }}
         data-ad-client={ADSENSE_CLIENT}
-        data-ad-slot={ADSENSE_SLOT}
-        data-ad-format="auto"
+        data-ad-slot={slot}
+        data-ad-format={format}
         data-full-width-responsive="true"
       />
     </div>

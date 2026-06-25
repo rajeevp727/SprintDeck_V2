@@ -61,4 +61,7 @@ export const api = {
 
   next: (code: string, participantId: string) =>
     request<{ session: Session }>(`/api/session/${code}/next`, 'POST', { participantId }),
+
+  end: (code: string, participantId: string) =>
+    request<{ ended: boolean }>(`/api/session/${code}/end`, 'POST', { participantId }),
 };

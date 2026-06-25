@@ -115,6 +115,12 @@ function getSession(code) {
   return sessions.get(normalize(code)) || null;
 }
 
+// Moderator ends the room: remove it entirely. Everyone else's next poll then
+// 404s and the client bounces them back to the join screen.
+function endSession(code) {
+  return sessions.delete(normalize(code));
+}
+
 function normalize(code) {
   return (code || '').trim().toUpperCase();
 }
@@ -246,6 +252,7 @@ module.exports = {
   createSession,
   joinSession,
   getSession,
+  endSession,
   isModerator,
   publicView,
   addToQueue,
