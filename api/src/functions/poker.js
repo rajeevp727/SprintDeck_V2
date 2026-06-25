@@ -103,7 +103,6 @@ app.http('castVote', {
     if (vote !== null && !session.deck.includes(vote)) return bad('Invalid card');
 
     p.vote = vote; // null clears the vote (toggle off)
-    p.lastSeen = Date.now();
     store.touch(session);
     return ok({ session: store.publicView(session, participantId) });
   },

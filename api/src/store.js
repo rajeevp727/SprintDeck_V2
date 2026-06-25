@@ -88,7 +88,6 @@ function createSession(name, moderatorName) {
     id: pid,
     name: (moderatorName || '').trim() || 'Moderator',
     vote: null,
-    lastSeen: now,
   };
   sessions.set(code, session);
   return { session, participantId: pid };
@@ -105,7 +104,6 @@ function joinSession(code, name) {
     id: pid,
     name: (name || '').trim() || 'Guest',
     vote: null,
-    lastSeen: Date.now(),
   };
   touch(session);
   return { session, participantId: pid };
@@ -246,8 +244,6 @@ function publicView(session, requesterId) {
 }
 
 module.exports = {
-  sessions,
-  DECK,
   MAX_PARTICIPANTS,
   createSession,
   joinSession,
