@@ -209,6 +209,22 @@ app.http('removeFromQueue', {
   },
 });
 
+// POST /api/session/{code}/queue/reorder  { participantId, order: [storyId] }   (moderator)
+app.http('reorderQueue', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'session/{code}/queue/reorder',
+  handler: async (req) => {
+    const { participantId, order } = await readBody(req);
+    const { session, error } = await requireModerator(req.params.code, participantId);
+    if (error) return error;
+
+    store.reorderQueue(session, order);
+    await store.saveSession(session);
+    return ok({ session: store.publicView(session, participantId) });
+  },
+});
+
 // POST /api/session/{code}/end  { participantId }   (moderator) — ends the room
 app.http('endSession', {
   methods: ['POST'],

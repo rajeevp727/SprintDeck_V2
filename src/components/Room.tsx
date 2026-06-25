@@ -28,6 +28,7 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   const [queueDraft, setQueueDraft] = useState('');
   const [copied, setCopied] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const storyDirty = useRef(false);
   const missCount = useRef(0);
 
@@ -101,6 +102,19 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
     if (titles.length === 0) return;
     setQueueDraft('');
     moderatorAction(() => api.addToQueue(code, participantId, titles));
+  }
+
+  function dropOnQueueItem(targetIndex: number) {
+    if (!session || dragIndex === null || dragIndex === targetIndex) {
+      setDragIndex(null);
+      return;
+    }
+    const items = [...session.queue];
+    const [moved] = items.splice(dragIndex, 1);
+    items.splice(targetIndex, 0, moved);
+    setDragIndex(null);
+    setSession({ ...session, queue: items }); // optimistic
+    moderatorAction(() => api.reorderQueue(code, participantId, items.map((q) => q.id)));
   }
 
   function leave() {
@@ -333,7 +347,16 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
             {session.queue.length > 0 && (
               <ul className="queue-list">
                 {session.queue.map((q, i) => (
-                  <li key={q.id}>
+                  <li
+                    key={q.id}
+                    draggable
+                    onDragStart={() => setDragIndex(i)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => dropOnQueueItem(i)}
+                    onDragEnd={() => setDragIndex(null)}
+                    className={dragIndex === i ? 'dragging' : ''}
+                  >
+                    <span className="q-handle" title="Drag to reorder">⠿</span>
                     <span className="q-num">{i + 1}</span>
                     <span className="q-title">{q.title}</span>
                     <button

@@ -237,6 +237,23 @@ function removeFromQueue(session, id) {
   session.queue = session.queue.filter((s) => s.id !== id);
 }
 
+// Reorder the queue to match the given list of story ids (any not listed are
+// appended in their existing order, so a stale client can't drop stories).
+function reorderQueue(session, orderedIds) {
+  const ids = Array.isArray(orderedIds) ? orderedIds : [];
+  const byId = new Map(session.queue.map((s) => [s.id, s]));
+  const reordered = [];
+  for (const id of ids) {
+    const item = byId.get(id);
+    if (item) {
+      reordered.push(item);
+      byId.delete(id);
+    }
+  }
+  for (const item of session.queue) if (byId.has(item.id)) reordered.push(item);
+  session.queue = reordered;
+}
+
 // Start estimating a story: an explicit title if given, else the next queued
 // one. Clears votes and opens voting. Returns false if there's nothing to start.
 function startStory(session, explicitTitle) {
@@ -330,6 +347,7 @@ module.exports = {
   publicView,
   addToQueue,
   removeFromQueue,
+  reorderQueue,
   startStory,
   saveAndAdvance,
 };

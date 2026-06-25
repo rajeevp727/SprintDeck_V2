@@ -457,6 +457,17 @@ input:focus {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0.45rem 0.6rem;
+  cursor: grab;
+}
+.queue-list li.dragging {
+  opacity: 0.4;
+}
+.q-handle {
+  color: var(--muted);
+  cursor: grab;
+  user-select: none;
+  font-size: 1rem;
+  line-height: 1;
 }
 .q-num {
   color: var(--muted);

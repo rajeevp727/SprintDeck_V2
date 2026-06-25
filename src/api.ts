@@ -59,6 +59,12 @@ export const api = {
       'DELETE',
     ),
 
+  reorderQueue: (code: string, participantId: string, order: string[]) =>
+    request<{ session: Session }>(`/api/session/${code}/queue/reorder`, 'POST', {
+      participantId,
+      order,
+    }),
+
   next: (code: string, participantId: string) =>
     request<{ session: Session }>(`/api/session/${code}/next`, 'POST', { participantId }),
 
