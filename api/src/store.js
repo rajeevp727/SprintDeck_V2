@@ -40,7 +40,12 @@ function getContainer() {
         defaultTtl: SESSION_IDLE_MS / 1000,
       });
       return container;
-    })();
+    })().catch((e) => {
+      // Don't cache a failed init (bad/rotated key, transient outage) — reset so
+      // the next request retries instead of replaying the same stale error.
+      containerPromise = null;
+      throw e;
+    });
   }
   return containerPromise;
 }
