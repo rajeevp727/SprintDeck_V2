@@ -222,6 +222,14 @@ function isModerator(session, participantId) {
   return session.moderatorId === participantId;
 }
 
+// Moderator removes a participant. The moderator can't be kicked.
+function kickParticipant(session, targetId) {
+  if (targetId === session.moderatorId) return false;
+  if (!session.participants[targetId]) return false;
+  delete session.participants[targetId];
+  return true;
+}
+
 // ───────────────────────────────────────────────────────────────────────────
 // Domain mutators — operate on a loaded session object (sync); the caller
 // persists with saveSession afterwards.
@@ -344,6 +352,7 @@ module.exports = {
   createSession,
   joinSession,
   isModerator,
+  kickParticipant,
   publicView,
   addToQueue,
   removeFromQueue,

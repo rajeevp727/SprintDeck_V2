@@ -225,6 +225,22 @@ app.http('reorderQueue', {
   },
 });
 
+// POST /api/session/{code}/kick  { participantId, targetId }   (moderator)
+app.http('kickParticipant', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'session/{code}/kick',
+  handler: async (req) => {
+    const { participantId, targetId } = await readBody(req);
+    const { session, error } = await requireModerator(req.params.code, participantId);
+    if (error) return error;
+
+    store.kickParticipant(session, targetId);
+    await store.saveSession(session);
+    return ok({ session: store.publicView(session, participantId) });
+  },
+});
+
 // POST /api/session/{code}/end  { participantId }   (moderator) — ends the room
 app.http('endSession', {
   methods: ['POST'],

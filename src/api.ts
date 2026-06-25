@@ -70,4 +70,7 @@ export const api = {
 
   end: (code: string, participantId: string) =>
     request<{ ended: boolean }>(`/api/session/${code}/end`, 'POST', { participantId }),
+
+  kick: (code: string, participantId: string, targetId: string) =>
+    request<{ session: Session }>(`/api/session/${code}/kick`, 'POST', { participantId, targetId }),
 };

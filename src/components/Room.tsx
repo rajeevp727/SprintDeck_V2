@@ -44,11 +44,17 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
     try {
       const { session: s } = await api.getSession(code, participantId);
       missCount.current = 0; // successful poll resets the miss streak
+      // Removed by the moderator (kicked) → the room still exists but we're no
+      // longer in it. Leave gracefully.
+      const me = s.participants.find((p) => p.id === participantId);
+      if (!me) {
+        clearIdentity(code);
+        onMissingIdentity();
+        return;
+      }
       setSession(s);
       setError('');
-      // Keep my selected card in sync with what the server has for me.
-      const me = s.participants.find((p) => p.id === participantId);
-      if (me) setMyVote(me.vote);
+      setMyVote(me.vote); // keep my selected card in sync with the server
       if (!storyDirty.current) setStoryDraft(s.story);
     } catch (err) {
       const msg = (err as Error).message;
@@ -115,6 +121,11 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
     setDragIndex(null);
     setSession({ ...session, queue: items }); // optimistic
     moderatorAction(() => api.reorderQueue(code, participantId, items.map((q) => q.id)));
+  }
+
+  function kickMember(targetId: string, targetName: string) {
+    if (!window.confirm(`Remove ${targetName} from the room?`)) return;
+    moderatorAction(() => api.kick(code, participantId, targetId));
   }
 
   function leave() {
@@ -228,6 +239,15 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
           const showFace = session.status !== 'revealed';
           return (
             <div key={p.id} className={`seat ${p.hasVoted ? 'voted' : ''}`}>
+              {isModerator && p.id !== session.moderatorId && (
+                <button
+                  className="seat-kick"
+                  title={`Remove ${p.name}`}
+                  onClick={() => kickMember(p.id, p.name)}
+                >
+                  ×
+                </button>
+              )}
               <div className="seat-name">
                 {p.isModerator && <span className="crown" title="Moderator">★</span>}
                 {p.name}

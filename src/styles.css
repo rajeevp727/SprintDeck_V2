@@ -334,6 +334,27 @@ input:focus {
 .seat {
   width: 96px;
   text-align: center;
+  position: relative;
+}
+.seat-kick {
+  position: absolute;
+  top: 1.6rem;
+  right: 4px;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--danger);
+  background: var(--bg);
+  color: var(--danger);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.seat:hover .seat-kick {
+  opacity: 1;
 }
 .seat-name {
   font-size: 0.85rem;
