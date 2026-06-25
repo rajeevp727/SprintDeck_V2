@@ -205,8 +205,8 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
           {isModerator && (
             <button
               className="ghost"
-              disabled={!allVoted}
-              title={allVoted ? 'View results' : 'Available once all queued stories are estimated'}
+              disabled={!session.finished}
+              title={session.finished ? 'View results' : 'Click Finish to unlock results'}
               onClick={() => setShowResults(true)}
             >
               Results
@@ -312,16 +312,20 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
             <div className="panel-buttons">
               {session.status === 'waiting' && (
                 <>
-                  {allVoted && (
-                    <button className="primary" onClick={() => setShowResults(true)}>
-                      Finish &amp; view results
+                  {allVoted && !session.finished && (
+                    <button
+                      className="primary"
+                      onClick={() => moderatorAction(() => api.finish(code, participantId))}
+                    >
+                      Finish
                     </button>
                   )}
                   <button
-                    className={allVoted ? 'ghost' : 'primary'}
+                    className={allVoted && !session.finished ? 'ghost' : 'primary'}
+                    disabled={queued === 0 && !storyDraft.trim()}
                     onClick={() => moderatorAction(() => api.start(code, participantId, storyDraft))}
                   >
-                    {startLabel}
+                    {session.finished ? 'Start new' : startLabel}
                   </button>
                 </>
               )}

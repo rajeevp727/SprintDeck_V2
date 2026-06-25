@@ -35,6 +35,7 @@ export interface Session {
   name: string;
   story: string;
   status: SessionStatus;
+  finished: boolean;
   deck: string[];
   moderatorId: string;
   participants: Participant[];

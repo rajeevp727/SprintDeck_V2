@@ -193,6 +193,7 @@ async function createSession(name, moderatorName, desiredCode) {
     moderatorId: pid,
     story: '',
     status: 'waiting', // 'waiting' | 'voting' | 'revealed'
+    finished: false, // moderator clicked Finish → unlocks Results
     deck: DECK,
     participants: {
       [pid]: { id: pid, name: (moderatorName || '').trim() || 'Moderator', vote: null },
@@ -271,6 +272,7 @@ function startStory(session, explicitTitle) {
   session.story = title;
   for (const p of Object.values(session.participants)) p.vote = null;
   session.status = 'voting';
+  session.finished = false; // starting a story un-finishes the session
   return true;
 }
 
@@ -334,6 +336,7 @@ function publicView(session, requesterId) {
     name: session.name,
     story: session.story,
     status: session.status,
+    finished: !!session.finished,
     deck: session.deck,
     moderatorId: session.moderatorId,
     participants,

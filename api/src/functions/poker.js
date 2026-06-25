@@ -241,6 +241,22 @@ app.http('kickParticipant', {
   },
 });
 
+// POST /api/session/{code}/finish  { participantId }   (moderator) — unlock Results
+app.http('finish', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'session/{code}/finish',
+  handler: async (req) => {
+    const { participantId } = await readBody(req);
+    const { session, error } = await requireModerator(req.params.code, participantId);
+    if (error) return error;
+
+    session.finished = true;
+    await store.saveSession(session);
+    return ok({ session: store.publicView(session, participantId) });
+  },
+});
+
 // POST /api/session/{code}/end  { participantId }   (moderator) — ends the room
 app.http('endSession', {
   methods: ['POST'],
