@@ -269,6 +269,9 @@ function startStory(session, explicitTitle) {
   let title = String(explicitTitle || '').trim();
   if (!title && session.queue.length > 0) title = session.queue.shift().title;
   if (!title) return false;
+  // Starting fresh after a finished session (results were viewed) wipes the old
+  // history so the new round starts clean. A mid-session next story keeps it.
+  if (session.finished) session.history = [];
   session.story = title;
   for (const p of Object.values(session.participants)) p.vote = null;
   session.status = 'voting';
