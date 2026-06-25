@@ -16,15 +16,23 @@ type Route =
   | { kind: 'home'; joinCode?: string };
 
 // The room code is NOT kept in the URL — it lives in storage (see storage.ts).
-// The URL stays clean ("/"); only /privacy is a real path. A legacy /room-CODE
-// link is still honored (code pulled out, URL cleaned) for backward compat.
+// Invite links carry the code as a ?room=CODE query param, which is read on
+// open and then stripped from the address bar. A legacy /room-CODE path is also
+// honored. Otherwise the room resumes from storage; the visible URL stays "/".
+function codeFromUrl(): string {
+  const params = new URLSearchParams(window.location.search);
+  const fromQuery = (params.get('room') || '').toUpperCase();
+  if (fromQuery) return fromQuery;
+  const legacy = window.location.pathname.match(/^\/room-([A-Za-z0-9-]+)\/?$/);
+  return legacy ? legacy[1].toUpperCase() : '';
+}
+
 function computeRoute(): Route {
   const path = window.location.pathname;
   if (path === '/privacy' || path === '/privacy/') return { kind: 'privacy' };
 
-  const legacy = path.match(/^\/room-([A-Za-z0-9-]+)\/?$/);
-  if (legacy) {
-    const code = legacy[1].toUpperCase();
+  const code = codeFromUrl();
+  if (code) {
     if (getIdentity(code)) {
       setCurrentRoom(code);
       return { kind: 'room', code };
@@ -41,8 +49,8 @@ export default function App() {
   const [route, setRoute] = useState<Route>(computeRoute);
 
   useEffect(() => {
-    // Strip any legacy /room-CODE out of the address bar so the code isn't shown.
-    if (/^\/room-/.test(window.location.pathname)) {
+    // Strip the code (query param or legacy path) out of the address bar.
+    if (window.location.search || /^\/room-/.test(window.location.pathname)) {
       window.history.replaceState({}, '', '/');
     }
     const onPop = () => setRoute(computeRoute());

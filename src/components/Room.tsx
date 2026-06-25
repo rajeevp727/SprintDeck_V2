@@ -145,13 +145,15 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   }
 
   async function copyInvite() {
-    // Share the room CODE — members join by entering it on the home screen.
+    // Invite link carries the code as a query param; the app reads it on open
+    // and strips it from the URL, so the code isn't left in the address bar.
+    const url = `${location.origin}/?room=${code}`;
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      window.prompt('Room code:', code);
+      window.prompt('Invite link:', url);
     }
   }
 
