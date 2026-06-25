@@ -24,7 +24,14 @@ function getContainer() {
   if (!containerPromise) {
     const client = new CosmosClient(CONN);
     containerPromise = (async () => {
-      const { database } = await client.databases.createIfNotExists({ id: DB_NAME });
+      // Provisioned (free-tier) accounts need shared throughput; serverless
+      // accounts reject it — try with, fall back to without.
+      let database;
+      try {
+        ({ database } = await client.databases.createIfNotExists({ id: DB_NAME, throughput: 400 }));
+      } catch {
+        ({ database } = await client.databases.createIfNotExists({ id: DB_NAME }));
+      }
       const { container } = await database.containers.createIfNotExists({
         id: CONTAINER_NAME,
         partitionKey: { paths: ['/code'] },
