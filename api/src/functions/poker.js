@@ -160,22 +160,6 @@ app.http('reset', {
   },
 });
 
-// POST /api/session/{code}/story  { participantId, story }   (moderator)
-app.http('setStory', {
-  methods: ['POST'],
-  authLevel: 'anonymous',
-  route: 'session/{code}/story',
-  handler: async (req) => {
-    const { participantId, story } = await readBody(req);
-    const { session, error } = await requireModerator(req.params.code, participantId);
-    if (error) return error;
-
-    session.story = typeof story === 'string' ? story.trim() : '';
-    await store.saveSession(session);
-    return ok({ session: store.publicView(session, participantId) });
-  },
-});
-
 // POST /api/session/{code}/queue  { participantId, stories }   (moderator)
 app.http('addToQueue', {
   methods: ['POST'],
@@ -253,6 +237,7 @@ app.http('finish', {
 
     session.finished = true;
     session.status = 'waiting';
+    session.story = ''; // clear the current story so the field resets
     await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },

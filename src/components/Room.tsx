@@ -24,12 +24,10 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   const [session, setSession] = useState<Session | null>(null);
   const [error, setError] = useState('');
   const [myVote, setMyVote] = useState<string | null>(null);
-  const [storyDraft, setStoryDraft] = useState('');
   const [queueDraft, setQueueDraft] = useState('');
   const [copied, setCopied] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const storyDirty = useRef(false);
   const missCount = useRef(0);
 
   // No identity for this room (e.g. opened an invite link directly) → bounce to join.
@@ -55,7 +53,6 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
       setSession(s);
       setError('');
       setMyVote(me.vote); // keep my selected card in sync with the server
-      if (!storyDirty.current) setStoryDraft(s.story);
     } catch (err) {
       const msg = (err as Error).message;
       if (msg.includes('not found')) {
@@ -94,7 +91,6 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
     try {
       const { session: s } = await fn();
       setSession(s);
-      storyDirty.current = false;
     } catch (err) {
       setError((err as Error).message);
     }
@@ -171,11 +167,11 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   const pending = session.participants.filter((p) => !p.hasVoted).map((p) => p.name);
 
   // Position-aware label for the Start button (first / next / last / only),
-  // unless the moderator typed an ad-hoc story.
+  // based purely on the queue — stories are always pulled from it.
   const queued = session.queue.length;
   const done = session.history.length;
   let startLabel = 'Start voting';
-  if (!storyDraft.trim() && queued > 0) {
+  if (queued > 0) {
     if (done === 0 && queued === 1) startLabel = 'Start story';
     else if (done === 0) startLabel = 'Start first story';
     else if (queued === 1) startLabel = 'Start last story';
@@ -291,25 +287,16 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
           <div className="panel">
             <input
               className="story-input"
-              value={storyDraft}
-              placeholder="Story name or ticket # (or pull from the queue below)"
-              maxLength={120}
-              onChange={(e) => {
-                storyDirty.current = true;
-                setStoryDraft(e.target.value);
-              }}
-              onBlur={() => {
-                if (storyDirty.current && session.status !== 'waiting') {
-                  moderatorAction(() => api.setStory(code, participantId, storyDraft));
-                }
-              }}
+              value={session.story}
+              placeholder="Current story — add tickets to the queue, then Start"
+              readOnly
             />
             <div className="panel-buttons">
               {session.status === 'waiting' && (
                 <button
                   className="primary"
-                  disabled={queued === 0 && !storyDraft.trim()}
-                  onClick={() => moderatorAction(() => api.start(code, participantId, storyDraft))}
+                  disabled={queued === 0}
+                  onClick={() => moderatorAction(() => api.start(code, participantId, ''))}
                 >
                   {session.finished ? 'Start new' : startLabel}
                 </button>

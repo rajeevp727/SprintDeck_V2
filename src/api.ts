@@ -47,9 +47,6 @@ export const api = {
   reset: (code: string, participantId: string) =>
     request<{ session: Session }>(`/api/session/${code}/reset`, 'POST', { participantId }),
 
-  setStory: (code: string, participantId: string, story: string) =>
-    request<{ session: Session }>(`/api/session/${code}/story`, 'POST', { participantId, story }),
-
   addToQueue: (code: string, participantId: string, stories: string[]) =>
     request<{ session: Session }>(`/api/session/${code}/queue`, 'POST', { participantId, stories }),
 
