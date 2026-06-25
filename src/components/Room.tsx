@@ -351,7 +351,7 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
                     className="primary"
                     onClick={() => moderatorAction(() => api.next(code, participantId))}
                   >
-                    Save &amp; next
+                    {queued > 0 ? 'Save & next' : 'Save'}
                   </button>
                   <button
                     className="ghost"
