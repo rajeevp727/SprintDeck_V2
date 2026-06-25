@@ -6,6 +6,10 @@ import ResultsModal from './ResultsModal';
 import AdBanner from './AdBanner';
 
 const POLL_MS = 1500;
+// Only leave the room after this many CONSECUTIVE "not found" polls — tolerates
+// transient misses (tab loses focus & throttles, cold start, instance split) so
+// you stay put until you leave or the moderator actually ends the room.
+const MAX_MISSES = 6;
 
 interface Props {
   code: string;
@@ -25,6 +29,7 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   const [copied, setCopied] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const storyDirty = useRef(false);
+  const missCount = useRef(0);
 
   // No identity for this room (e.g. opened an invite link directly) → bounce to join.
   useEffect(() => {
@@ -37,6 +42,7 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
     if (!participantId) return;
     try {
       const { session: s } = await api.getSession(code, participantId);
+      missCount.current = 0; // successful poll resets the miss streak
       setSession(s);
       setError('');
       // Keep my selected card in sync with what the server has for me.
@@ -45,10 +51,14 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
       if (!storyDirty.current) setStoryDraft(s.story);
     } catch (err) {
       const msg = (err as Error).message;
-      // Session evaporated (cold start / TTL) — drop the stale identity.
       if (msg.includes('not found')) {
-        clearIdentity(code);
-        onMissingIdentity();
+        // Tolerate transient misses; only exit after a sustained run of them
+        // (room truly gone / moderator ended it).
+        missCount.current += 1;
+        if (missCount.current >= MAX_MISSES) {
+          clearIdentity(code);
+          onMissingIdentity();
+        }
         return;
       }
       setError(msg);
@@ -238,16 +248,6 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
             <div className="stat">
               <span className="muted">Average</span>
               <strong>{session.average ?? '—'}</strong>
-            </div>
-            <div className="stat">
-              <span className="muted">Median</span>
-              <strong>{session.median ?? '—'}</strong>
-            </div>
-            <div className="stat">
-              <span className="muted">Range</span>
-              <strong>
-                {session.min ?? '—'}–{session.max ?? '—'}
-              </strong>
             </div>
           </div>
           {session.consensus ? (

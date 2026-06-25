@@ -27,10 +27,10 @@ const DECK = buildFibonacciDeck(DECK_MAX);
 
 // Whole-session cleanup limits (memory housekeeping only; participants are
 // NEVER removed for being idle). A session is dropped when EITHER:
-//   - it has had no activity for SESSION_IDLE_MS (60 min idle), or
+//   - it has had no activity for SESSION_IDLE_MS (2h idle), or
 //   - its total age exceeds SESSION_MAX_AGE_MS (5h hard cap).
 const SESSION_MAX_AGE_MS = 5 * 60 * 60 * 1000; // 5h
-const SESSION_IDLE_MS = 60 * 60 * 1000; // 60 min
+const SESSION_IDLE_MS = 2 * 60 * 60 * 1000; // 2h — survives long inactivity
 
 // Max members per room (moderator included).
 const MAX_PARTICIPANTS = 20;
