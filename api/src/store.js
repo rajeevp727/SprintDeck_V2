@@ -1,15 +1,88 @@
 'use strict';
 
-// In-memory session store.
-// NOTE: Azure Static Web Apps managed Functions can cold-start and (rarely)
-// scale to multiple instances. State here is not durable across either event.
-// That is acceptable for live estimation with a small team — see README.
+const { CosmosClient } = require('@azure/cosmos');
 
-/** @type {Map<string, Session>} */
-const sessions = new Map();
+// ───────────────────────────────────────────────────────────────────────────
+// Backend selection.
+// If a Cosmos DB connection string is configured (app setting
+// COSMOS_CONNECTION_STRING), sessions are persisted in Cosmos — shared across
+// every Function instance and durable across cold starts. This fixes "room not
+// available" (instance split) and "rooms expired" (cold-start memory loss).
+// Cosmos native TTL also auto-deletes idle rooms (see IDLE_SECONDS below).
+// Without a connection string it falls back to an in-memory Map (single
+// instance only) so local dev / unconfigured deploys still run.
+// ───────────────────────────────────────────────────────────────────────────
+const CONN = process.env.COSMOS_CONNECTION_STRING || '';
+const DB_NAME = 'sprintdeck';
+const CONTAINER_NAME = 'sessions';
 
-// The deck is the Fibonacci series (estimation variant: 1, 2, 3, 5, 8…)
-// generated up to DECK_MAX — change the max in one place, the deck follows.
+const memory = new Map(); // fallback when no connection string
+let containerPromise = null;
+
+function getContainer() {
+  if (!CONN) return null;
+  if (!containerPromise) {
+    const client = new CosmosClient(CONN);
+    containerPromise = (async () => {
+      const { database } = await client.databases.createIfNotExists({ id: DB_NAME });
+      const { container } = await database.containers.createIfNotExists({
+        id: CONTAINER_NAME,
+        partitionKey: { paths: ['/code'] },
+        // Native TTL: a room auto-deletes this many seconds after its last write
+        // (_ts), giving us automatic idle expiry without any cleanup job.
+        defaultTtl: SESSION_IDLE_MS / 1000,
+      });
+      return container;
+    })();
+  }
+  return containerPromise;
+}
+
+// Low-level persistence (code already normalized to upper-case).
+async function readRaw(code) {
+  const c = getContainer();
+  if (c) {
+    try {
+      const { resource } = await (await c).item(code, code).read();
+      return resource ? resource.doc : null;
+    } catch (err) {
+      if (err.code === 404) return null;
+      throw err;
+    }
+  }
+  return memory.get(code) || null;
+}
+
+async function writeRaw(session) {
+  const c = getContainer();
+  if (c) {
+    await (await c).items.upsert({
+      id: session.code,
+      code: session.code,
+      doc: session,
+      ttl: SESSION_IDLE_MS / 1000, // refresh idle expiry on every write
+    });
+  } else {
+    memory.set(session.code, session);
+  }
+}
+
+async function removeRaw(code) {
+  const c = getContainer();
+  if (c) {
+    try {
+      await (await c).item(code, code).delete();
+    } catch (err) {
+      if (err.code !== 404) throw err;
+    }
+  } else {
+    memory.delete(code);
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Deck
+// ───────────────────────────────────────────────────────────────────────────
 const DECK_MAX = 21;
 
 function buildFibonacciDeck(max) {
@@ -25,26 +98,20 @@ function buildFibonacciDeck(max) {
 
 const DECK = buildFibonacciDeck(DECK_MAX);
 
-// Whole-session cleanup limits (memory housekeeping only; participants are
-// NEVER removed for being idle). A session is dropped when EITHER:
-//   - it has had no activity for SESSION_IDLE_MS (2h idle), or
-//   - its total age exceeds SESSION_MAX_AGE_MS (5h hard cap).
+// ───────────────────────────────────────────────────────────────────────────
+// Limits
+// ───────────────────────────────────────────────────────────────────────────
+// A session is treated as gone when EITHER it has had no activity for
+// SESSION_IDLE_MS (2h) or its total age exceeds SESSION_MAX_AGE_MS (5h).
 const SESSION_MAX_AGE_MS = 5 * 60 * 60 * 1000; // 5h
-const SESSION_IDLE_MS = 2 * 60 * 60 * 1000; // 2h — survives long inactivity
-
-// Max members per room (moderator included).
-const MAX_PARTICIPANTS = 20;
+const SESSION_IDLE_MS = 2 * 60 * 60 * 1000; // 2h
+const MAX_PARTICIPANTS = 20; // moderator included
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L ambiguity
 
-function genCode() {
-  let code;
-  do {
-    code = '';
-    for (let i = 0; i < 5; i++) {
-      code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
-    }
-  } while (sessions.has(code));
+function randomCode() {
+  let code = '';
+  for (let i = 0; i < 5; i++) code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
   return code;
 }
 
@@ -52,95 +119,100 @@ function genId() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
-function pruneSessions() {
+function normalize(code) {
+  return (code || '').trim().toUpperCase();
+}
+
+function isExpired(s) {
   const now = Date.now();
-  for (const [code, s] of sessions) {
-    const idle = now - s.lastActivity > SESSION_IDLE_MS;
-    const tooOld = now - s.createdAt > SESSION_MAX_AGE_MS;
-    if (idle || tooOld) sessions.delete(code);
+  return now - s.lastActivity > SESSION_IDLE_MS || now - s.createdAt > SESSION_MAX_AGE_MS;
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Public session API (all async — they hit storage)
+// ───────────────────────────────────────────────────────────────────────────
+
+// Load a session, lazily dropping it if it has expired.
+async function loadSession(code) {
+  const s = await readRaw(normalize(code));
+  if (!s) return null;
+  if (isExpired(s)) {
+    await removeRaw(s.code);
+    return null;
   }
+  return s;
 }
 
-function touch(session) {
+// Persist a session; every save bumps lastActivity (keeps the room alive).
+async function saveSession(session) {
   session.lastActivity = Date.now();
+  await writeRaw(session);
 }
 
-function createSession(name, moderatorName) {
-  pruneSessions();
-  const code = genCode();
+async function deleteSession(code) {
+  await removeRaw(normalize(code));
+}
+
+async function genUniqueCode() {
+  let code;
+  do {
+    code = randomCode();
+  } while (await readRaw(code));
+  return code;
+}
+
+async function createSession(name, moderatorName) {
+  const code = await genUniqueCode();
   const pid = genId();
   const now = Date.now();
-  /** @type {Session} */
   const session = {
     code,
     name: (name || '').trim() || 'SprintDeck',
     moderatorId: pid,
-    story: '', // title of the story currently being estimated
+    story: '',
     status: 'waiting', // 'waiting' | 'voting' | 'revealed'
     deck: DECK,
-    participants: {},
-    queue: [], // upcoming stories: [{ id, title }]
-    history: [], // completed estimates: [{ id, title, average, median, min, max, consensus, votes, at }]
+    participants: {
+      [pid]: { id: pid, name: (moderatorName || '').trim() || 'Moderator', vote: null },
+    },
+    queue: [], // [{ id, title }]
+    history: [], // [{ id, title, average, median, min, max, consensus, votes, at }]
     createdAt: now,
     lastActivity: now,
   };
-  session.participants[pid] = {
-    id: pid,
-    name: (moderatorName || '').trim() || 'Moderator',
-    vote: null,
-  };
-  sessions.set(code, session);
+  await writeRaw(session);
   return { session, participantId: pid };
 }
 
-function joinSession(code, name) {
-  const session = sessions.get(normalize(code));
+async function joinSession(code, name) {
+  const session = await loadSession(code);
   if (!session) return { error: 'not_found' };
   if (Object.keys(session.participants).length >= MAX_PARTICIPANTS) {
     return { error: 'full' };
   }
   const pid = genId();
-  session.participants[pid] = {
-    id: pid,
-    name: (name || '').trim() || 'Guest',
-    vote: null,
-  };
-  touch(session);
+  session.participants[pid] = { id: pid, name: (name || '').trim() || 'Guest', vote: null };
+  await saveSession(session);
   return { session, participantId: pid };
-}
-
-function getSession(code) {
-  return sessions.get(normalize(code)) || null;
-}
-
-// Moderator ends the room: remove it entirely. Everyone else's next poll then
-// 404s and the client bounces them back to the join screen.
-function endSession(code) {
-  return sessions.delete(normalize(code));
-}
-
-function normalize(code) {
-  return (code || '').trim().toUpperCase();
 }
 
 function isModerator(session, participantId) {
   return session.moderatorId === participantId;
 }
 
-// --- Story queue & history -------------------------------------------------
-
-// Add one or more story titles to the end of the queue.
+// ───────────────────────────────────────────────────────────────────────────
+// Domain mutators — operate on a loaded session object (sync); the caller
+// persists with saveSession afterwards.
+// ───────────────────────────────────────────────────────────────────────────
 function addToQueue(session, titles) {
   for (const t of titles) {
     const title = String(t || '').trim();
     if (title) session.queue.push({ id: genId(), title });
   }
-  touch(session);
 }
 
 function removeFromQueue(session, id) {
   session.queue = session.queue.filter((s) => s.id !== id);
-  touch(session);
 }
 
 // Start estimating a story: an explicit title if given, else the next queued
@@ -152,7 +224,6 @@ function startStory(session, explicitTitle) {
   session.story = title;
   for (const p of Object.values(session.participants)) p.vote = null;
   session.status = 'voting';
-  touch(session);
   return true;
 }
 
@@ -166,7 +237,6 @@ function saveAndAdvance(session) {
   if (!startStory(session)) {
     session.story = '';
     session.status = 'waiting';
-    touch(session);
   }
 }
 
@@ -196,8 +266,8 @@ function voteStats(session) {
   return { votes, average, median, min, max, consensus };
 }
 
-// Build a client-safe view. Votes stay hidden until 'revealed'; the requester
-// always sees their own selection so the UI can highlight it.
+// Client-safe view. Votes stay hidden until 'revealed'; the requester always
+// sees their own selection so the UI can highlight it.
 function publicView(session, requesterId) {
   const revealed = session.status === 'revealed';
   const participants = Object.values(session.participants)
@@ -206,7 +276,6 @@ function publicView(session, requesterId) {
       name: p.name,
       isModerator: p.id === session.moderatorId,
       hasVoted: p.vote !== null,
-      // Reveal everyone's vote when revealed; otherwise only the requester's own.
       vote: revealed || p.id === requesterId ? p.vote : null,
     }))
     .sort((a, b) => (a.isModerator === b.isModerator ? 0 : a.isModerator ? -1 : 1));
@@ -215,7 +284,6 @@ function publicView(session, requesterId) {
     ? voteStats(session)
     : { average: null, median: null, min: null, max: null, consensus: false };
 
-  // Highest/lowest voters surface who to discuss with (only when revealed).
   let lowVoters = [];
   let highVoters = [];
   if (revealed && stats.min !== null && stats.max !== stats.min) {
@@ -245,15 +313,15 @@ function publicView(session, requesterId) {
 
 module.exports = {
   MAX_PARTICIPANTS,
+  loadSession,
+  saveSession,
+  deleteSession,
   createSession,
   joinSession,
-  getSession,
-  endSession,
   isModerator,
   publicView,
   addToQueue,
   removeFromQueue,
   startStory,
   saveAndAdvance,
-  touch,
 };

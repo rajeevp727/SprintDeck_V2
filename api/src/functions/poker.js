@@ -22,10 +22,10 @@ async function readBody(req) {
   }
 }
 
-// Resolve session + verify the caller is its moderator. Returns the session
+// Load a session and verify the caller is its moderator. Returns the session
 // or a ready-to-return error response.
-function requireModerator(code, participantId) {
-  const session = store.getSession(code);
+async function requireModerator(code, participantId) {
+  const session = await store.loadSession(code);
   if (!session) return { error: bad('Session not found', 404) };
   if (!store.isModerator(session, participantId)) {
     return { error: bad('Only the moderator can do this', 403) };
@@ -34,9 +34,6 @@ function requireModerator(code, participantId) {
 }
 
 // GET /api/health — lightweight warm-keep target for an uptime pinger.
-// Touches no session state; its only job is to be a request that keeps the
-// Functions host from going idle (no-store header ensures it hits the function,
-// not a cached CDN response).
 app.http('health', {
   methods: ['GET'],
   authLevel: 'anonymous',
@@ -51,7 +48,7 @@ app.http('createSession', {
   route: 'session',
   handler: async (req) => {
     const { name, moderatorName } = await readBody(req);
-    const { session, participantId } = store.createSession(name, moderatorName);
+    const { session, participantId } = await store.createSession(name, moderatorName);
     return ok({ participantId, session: store.publicView(session, participantId) });
   },
 });
@@ -63,7 +60,7 @@ app.http('joinSession', {
   route: 'session/{code}/join',
   handler: async (req) => {
     const { name } = await readBody(req);
-    const result = store.joinSession(req.params.code, name);
+    const result = await store.joinSession(req.params.code, name);
     if (result.error === 'not_found') return bad('Session not found', 404);
     if (result.error === 'full') {
       return bad(`This room is full (max ${store.MAX_PARTICIPANTS} members)`, 409);
@@ -79,10 +76,9 @@ app.http('getSession', {
   authLevel: 'anonymous',
   route: 'session/{code}',
   handler: async (req) => {
-    const session = store.getSession(req.params.code);
+    const session = await store.loadSession(req.params.code);
     if (!session) return bad('Session not found', 404);
     const participantId = req.query.get('participantId');
-
     return ok({ session: store.publicView(session, participantId) });
   },
 });
@@ -94,7 +90,7 @@ app.http('castVote', {
   route: 'session/{code}/vote',
   handler: async (req) => {
     const { participantId, vote } = await readBody(req);
-    const session = store.getSession(req.params.code);
+    const session = await store.loadSession(req.params.code);
     if (!session) return bad('Session not found', 404);
     if (session.status !== 'voting') return bad('Voting is not open');
 
@@ -103,7 +99,7 @@ app.http('castVote', {
     if (vote !== null && !session.deck.includes(vote)) return bad('Invalid card');
 
     p.vote = vote; // null clears the vote (toggle off)
-    store.touch(session);
+    await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
 });
@@ -115,12 +111,13 @@ app.http('startVoting', {
   route: 'session/{code}/start',
   handler: async (req) => {
     const { participantId, story } = await readBody(req);
-    const { session, error } = requireModerator(req.params.code, participantId);
+    const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
     if (!store.startStory(session, story)) {
       return bad('No story to estimate — type a title or add one to the queue');
     }
+    await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
 });
@@ -132,11 +129,11 @@ app.http('reveal', {
   route: 'session/{code}/reveal',
   handler: async (req) => {
     const { participantId } = await readBody(req);
-    const { session, error } = requireModerator(req.params.code, participantId);
+    const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
     session.status = 'revealed';
-    store.touch(session);
+    await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
 });
@@ -148,12 +145,12 @@ app.http('reset', {
   route: 'session/{code}/reset',
   handler: async (req) => {
     const { participantId } = await readBody(req);
-    const { session, error } = requireModerator(req.params.code, participantId);
+    const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
     for (const p of Object.values(session.participants)) p.vote = null;
     session.status = 'voting';
-    store.touch(session);
+    await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
 });
@@ -165,76 +162,75 @@ app.http('setStory', {
   route: 'session/{code}/story',
   handler: async (req) => {
     const { participantId, story } = await readBody(req);
-    const { session, error } = requireModerator(req.params.code, participantId);
+    const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
     session.story = typeof story === 'string' ? story.trim() : '';
-    store.touch(session);
+    await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
 });
 
 // POST /api/session/{code}/queue  { participantId, stories }   (moderator)
-// `stories` may be an array of titles or a newline-separated string.
 app.http('addToQueue', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'session/{code}/queue',
   handler: async (req) => {
     const { participantId, stories } = await readBody(req);
-    const { session, error } = requireModerator(req.params.code, participantId);
+    const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
     const titles = Array.isArray(stories) ? stories : String(stories || '').split('\n');
     store.addToQueue(session, titles);
+    await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
 });
 
-// DELETE /api/session/{code}/queue/{storyId}   (moderator)
+// DELETE /api/session/{code}/queue/{storyId}?participantId=...   (moderator)
 app.http('removeFromQueue', {
   methods: ['DELETE'],
   authLevel: 'anonymous',
   route: 'session/{code}/queue/{storyId}',
   handler: async (req) => {
     const participantId = req.query.get('participantId');
-    const { session, error } = requireModerator(req.params.code, participantId);
+    const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
     store.removeFromQueue(session, req.params.storyId);
+    await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
 });
 
-// POST /api/session/{code}/end  { participantId }   (moderator)
-// Ends the room for everyone. Other clients 404 on their next poll and exit.
+// POST /api/session/{code}/end  { participantId }   (moderator) — ends the room
 app.http('endSession', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'session/{code}/end',
   handler: async (req) => {
     const { participantId } = await readBody(req);
-    const { error } = requireModerator(req.params.code, participantId);
+    const { error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
-    store.endSession(req.params.code);
+    await store.deleteSession(req.params.code);
     return ok({ ended: true });
   },
 });
 
-// POST /api/session/{code}/next  { participantId }   (moderator)
-// Saves the current revealed result to history, then advances to the next
-// queued story (or back to 'waiting' if the queue is empty).
+// POST /api/session/{code}/next  { participantId }   (moderator) — save + advance
 app.http('nextStory', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'session/{code}/next',
   handler: async (req) => {
     const { participantId } = await readBody(req);
-    const { session, error } = requireModerator(req.params.code, participantId);
+    const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
     store.saveAndAdvance(session);
+    await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
 });
