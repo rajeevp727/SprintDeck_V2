@@ -241,21 +241,21 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
           const showFace = session.status !== 'revealed';
           return (
             <div key={p.id} className={`seat ${p.hasVoted ? 'voted' : ''}`}>
-              {isModerator && p.id !== session.moderatorId && (
-                <button
-                  className="seat-kick"
-                  title={`Remove ${p.name}`}
-                  onClick={() => kickMember(p.id, p.name)}
-                >
-                  ×
-                </button>
-              )}
               <div className="seat-name">
                 {p.isModerator && <span className="crown" title="Moderator">★</span>}
                 {p.name}
                 {p.id === participantId && <span className="you"> (you)</span>}
               </div>
               <div className={`seat-card ${p.hasVoted ? 'flipped' : ''}`}>
+                {isModerator && p.id !== session.moderatorId && (
+                  <button
+                    className="seat-kick"
+                    title={`Remove ${p.name}`}
+                    onClick={() => kickMember(p.id, p.name)}
+                  >
+                    ×
+                  </button>
+                )}
                 {session.status === 'revealed' ? (
                   <span className="seat-value">{p.vote ?? '–'}</span>
                 ) : p.hasVoted ? (

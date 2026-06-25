@@ -338,23 +338,34 @@ input:focus {
 }
 .seat-kick {
   position: absolute;
-  top: 1.6rem;
-  right: 4px;
-  z-index: 2;
-  width: 22px;
-  height: 22px;
+  top: -9px;
+  right: -9px;
+  z-index: 3;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
   border: 1px solid var(--danger);
-  background: var(--bg);
+  background: var(--bg-2);
   color: var(--danger);
   font-size: 1rem;
   line-height: 1;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.12s;
+  transform: scale(0.7);
+  transition: opacity 0.12s, transform 0.12s, background 0.12s, color 0.12s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
-.seat:hover .seat-kick {
+.seat:hover .seat-kick,
+.seat-kick:focus-visible {
   opacity: 1;
+  transform: scale(1);
+}
+.seat-kick:hover {
+  background: var(--danger);
+  color: #fff;
 }
 .seat-name {
   font-size: 0.85rem;
@@ -371,6 +382,7 @@ input:focus {
   color: var(--muted);
 }
 .seat-card {
+  position: relative;
   height: 110px;
   border-radius: 10px;
   background: var(--bg-2);
