@@ -41,26 +41,6 @@ app.http('health', {
   handler: async () => ok({ status: 'ok', service: 'sprintdeck' }),
 });
 
-// GET /api/diag — TEMPORARY: surfaces the real Cosmos connection error.
-app.http('diag', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'diag',
-  handler: async () => {
-    const configured = !!(process.env.COSMOS_CONNECTION_STRING || '').trim();
-    try {
-      await store.loadSession('DIAGTEST');
-      return ok({ cosmosConfigured: configured, cosmos: 'connected' });
-    } catch (e) {
-      return {
-        status: 200,
-        headers: NO_CACHE,
-        jsonBody: { cosmosConfigured: configured, cosmos: 'error', message: String((e && e.message) || e) },
-      };
-    }
-  },
-});
-
 // POST /api/session  { name, moderatorName }
 app.http('createSession', {
   methods: ['POST'],
