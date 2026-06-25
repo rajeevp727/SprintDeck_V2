@@ -127,6 +127,10 @@ input:focus {
   font-weight: 700;
   text-align: center;
 }
+.code-input:read-only {
+  opacity: 0.75;
+  cursor: default;
+}
 .primary {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #fff;

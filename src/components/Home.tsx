@@ -100,7 +100,15 @@ export default function Home({ initialCode = '', onEnter, onPrivacy }: Props) {
             </label>
             <label>
               Room code
-              <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="" className="code-input" maxLength={24} />
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                placeholder=""
+                className="code-input"
+                maxLength={24}
+                readOnly={!!initialCode}
+                title={initialCode ? 'From your invite link' : undefined}
+              />
             </label>
             <button className="primary" disabled={busy} type="submit">
               {busy ? 'Joining…' : 'Join room'}
