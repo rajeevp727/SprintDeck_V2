@@ -91,7 +91,7 @@ export default function Home({ initialCode = '', onEnter }: Props) {
             </label>
             <label>
               Room code <span className="muted">(people join with this)</span>
-              <input value={roomCode} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} placeholder="SPRINT13" className="code-input" maxLength={24} />
+              <input value={roomCode} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} placeholder="" className="code-input" maxLength={24} />
             </label>
             <button className="primary" disabled={busy} type="submit">
               {busy ? 'Creating…' : 'Create & host'}
@@ -105,7 +105,7 @@ export default function Home({ initialCode = '', onEnter }: Props) {
             </label>
             <label>
               Room code
-              <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="SPRINT13" className="code-input" maxLength={24} />
+              <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="" className="code-input" maxLength={24} />
             </label>
             <button className="primary" disabled={busy} type="submit">
               {busy ? 'Joining…' : 'Join room'}
