@@ -693,6 +693,12 @@ input:focus {
 .story-input {
   flex: 1;
   min-width: 220px;
+  cursor: not-allowed;
+}
+/* read-only display field shouldn't glow on focus like an editable input */
+.story-input:focus {
+  box-shadow: none;
+  border-color: var(--line);
 }
 .panel-buttons {
   display: flex;
