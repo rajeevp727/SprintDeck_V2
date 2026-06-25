@@ -1,11 +1,12 @@
 // ──────────────────────────────────────────────────────────────────────────
-// Google AdSense configuration — fill these in to switch ads ON.
-// 1. Create an AdSense account, get your site approved (needs your own domain
-//    + a privacy policy page), then create Display / Anchor ad units.
-// 2. Paste your publisher ID and ad-slot id(s) below.
-// Leave ADSENSE_CLIENT empty to keep every ad OFF (nothing loads or renders).
+// Google AdSense configuration.
+// The publisher id (ca-pub-…) is PUBLIC — it ships in the page and the <head>
+// script in index.html. The site-verification script lives in index.html.
+// Ad UNITS only render once a slot id is set here (you create ad units in the
+// AdSense dashboard AFTER approval, then paste the slot id(s)).
 // ──────────────────────────────────────────────────────────────────────────
-export const ADSENSE_CLIENT: string = ''; // e.g. 'ca-pub-1234567890123456'
-export const ADSENSE_SLOT: string = ''; // default slot, e.g. '1234567890'
+export const ADSENSE_CLIENT: string = 'ca-pub-7462453330857711';
+export const ADSENSE_SLOT: string = ''; // e.g. '1234567890' — fill after approval
 
-export const adsEnabled = ADSENSE_CLIENT.length > 0;
+// Ad units render only when both a client and a slot are configured.
+export const adsEnabled = ADSENSE_CLIENT.length > 0 && ADSENSE_SLOT.length > 0;

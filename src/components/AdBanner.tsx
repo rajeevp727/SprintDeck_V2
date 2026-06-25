@@ -9,22 +9,13 @@ interface Props {
   className?: string;
 }
 
+// The AdSense library is loaded once via the <head> script in index.html.
+// A unit renders only when both a publisher id and a slot id are configured.
 export default function AdBanner({ slot = ADSENSE_SLOT, format = 'auto', className = 'ad-slot' }: Props) {
+  const active = ADSENSE_CLIENT.length > 0 && slot.length > 0;
+
   useEffect(() => {
-    if (!ADSENSE_CLIENT) return;
-
-    // Load the AdSense script once.
-    const scriptId = 'adsbygoogle-js';
-    if (!document.getElementById(scriptId)) {
-      const s = document.createElement('script');
-      s.id = scriptId;
-      s.async = true;
-      s.crossOrigin = 'anonymous';
-      s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
-      document.head.appendChild(s);
-    }
-
-    // Request an ad for this slot.
+    if (!active) return;
     try {
       const w = window as unknown as { adsbygoogle?: Record<string, unknown>[] };
       w.adsbygoogle = w.adsbygoogle || [];
@@ -32,9 +23,9 @@ export default function AdBanner({ slot = ADSENSE_SLOT, format = 'auto', classNa
     } catch {
       /* AdSense not ready yet — ignored */
     }
-  }, []);
+  }, [active]);
 
-  if (!ADSENSE_CLIENT) return null;
+  if (!active) return null;
 
   return (
     <div className={className}>

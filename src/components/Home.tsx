@@ -117,6 +117,10 @@ export default function Home({ initialCode = '', onEnter }: Props) {
       </div>
 
       <AdBanner />
+
+      <footer className="home-footer">
+        <a href="#/privacy">Privacy &amp; About</a>
+      </footer>
     </div>
   );
 }
