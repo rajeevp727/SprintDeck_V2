@@ -7,30 +7,38 @@ import { getIdentity } from './storage';
 
 type Route = { kind: 'room'; code: string } | { kind: 'privacy' } | { kind: 'home' };
 
-// Tiny hash router. Room codes may contain letters, digits and dashes.
-function parseHash(): Route {
-  const m = window.location.hash.match(/^#\/room\/([A-Za-z0-9-]+)/);
+// Path router (clean URLs, no hash). Rooms live at /room-CODE, privacy at /privacy.
+// Deep links work because Static Web Apps rewrites unknown paths to index.html.
+function parsePath(): Route {
+  const path = window.location.pathname;
+  const m = path.match(/^\/room-([A-Za-z0-9-]+)\/?$/);
   if (m) return { kind: 'room', code: m[1].toUpperCase() };
-  if (window.location.hash.startsWith('#/privacy')) return { kind: 'privacy' };
+  if (path === '/privacy' || path === '/privacy/') return { kind: 'privacy' };
   return { kind: 'home' };
 }
 
 export default function App() {
-  const [route, setRoute] = useState<Route>(parseHash());
+  const [route, setRoute] = useState<Route>(parsePath());
 
   useEffect(() => {
-    const onHash = () => setRoute(parseHash());
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
+    const onPop = () => setRoute(parsePath());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, []);
 
+  // pushState doesn't fire popstate, so update React state alongside it.
+  function navigate(path: string, next: Route) {
+    window.history.pushState({}, '', path);
+    setRoute(next);
+  }
   function goRoom(code: string) {
-    // Setting the same hash won't fire 'hashchange', so update state directly too.
-    window.location.hash = `/room/${code}`;
-    setRoute({ kind: 'room', code: code.toUpperCase() });
+    navigate(`/room-${code}`, { kind: 'room', code: code.toUpperCase() });
   }
   function goHome() {
-    window.location.hash = '';
+    navigate('/', { kind: 'home' });
+  }
+  function goPrivacy() {
+    navigate('/privacy', { kind: 'privacy' });
   }
 
   let page;
@@ -40,9 +48,9 @@ export default function App() {
     page = <Room code={route.code} onLeave={goHome} onMissingIdentity={() => setRoute({ ...route })} />;
   } else if (route.kind === 'room') {
     // Opened an invite link without having joined yet → prefill join form.
-    page = <Home initialCode={route.code} onEnter={goRoom} />;
+    page = <Home initialCode={route.code} onEnter={goRoom} onPrivacy={goPrivacy} />;
   } else {
-    page = <Home onEnter={goRoom} />;
+    page = <Home onEnter={goRoom} onPrivacy={goPrivacy} />;
   }
 
   return (

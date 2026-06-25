@@ -134,7 +134,7 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   }
 
   async function copyInvite() {
-    const url = `${location.origin}/#/room/${code}`;
+    const url = `${location.origin}/room-${code}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);

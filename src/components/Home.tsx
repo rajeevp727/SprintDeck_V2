@@ -6,9 +6,10 @@ import AdBanner from './AdBanner';
 interface Props {
   initialCode?: string;
   onEnter: (code: string) => void;
+  onPrivacy: () => void;
 }
 
-export default function Home({ initialCode = '', onEnter }: Props) {
+export default function Home({ initialCode = '', onEnter, onPrivacy }: Props) {
   const [mode, setMode] = useState<'create' | 'join'>(initialCode ? 'join' : 'create');
   const [name, setName] = useState('');
   const [sessionName, setSessionName] = useState('');
@@ -113,7 +114,15 @@ export default function Home({ initialCode = '', onEnter }: Props) {
       <AdBanner />
 
       <footer className="home-footer">
-        <a href="#/privacy">Privacy &amp; About</a>
+        <a
+          href="/privacy"
+          onClick={(e) => {
+            e.preventDefault();
+            onPrivacy();
+          }}
+        >
+          Privacy &amp; About
+        </a>
       </footer>
     </div>
   );
