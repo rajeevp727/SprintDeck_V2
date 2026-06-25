@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/api.ts","./src/export.ts","./src/main.tsx","./src/storage.ts","./src/types.ts","./src/components/home.tsx","./src/components/resultsmodal.tsx","./src/components/room.tsx"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/api.ts","./src/export.ts","./src/main.tsx","./src/storage.ts","./src/types.ts","./src/components/adbanner.tsx","./src/components/home.tsx","./src/components/resultsmodal.tsx","./src/components/room.tsx"],"version":"5.9.3"}

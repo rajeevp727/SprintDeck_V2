@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api';
 import { saveIdentity, lastName } from '../storage';
+import AdBanner from './AdBanner';
 
 interface Props {
   initialCode?: string;
@@ -108,6 +109,8 @@ export default function Home({ initialCode = '', onEnter }: Props) {
 
         {error && <p className="error">{error}</p>}
       </div>
+
+      <AdBanner />
     </div>
   );
 }
