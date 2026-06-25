@@ -27,9 +27,3 @@ export function clearIdentity(code: string) {
   delete map[code.toUpperCase()];
   localStorage.setItem(KEY, JSON.stringify(map));
 }
-
-export function lastName(): string {
-  const map = read();
-  const entries = Object.values(map);
-  return entries.length ? entries[entries.length - 1].name : '';
-}

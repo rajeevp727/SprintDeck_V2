@@ -121,6 +121,11 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   const total = session.participants.length;
   const pending = session.participants.filter((p) => !p.hasVoted).map((p) => p.name);
 
+  // Results are available only once every queued story has been estimated
+  // (queue emptied, at least one saved, and not mid-round).
+  const allVoted =
+    session.queue.length === 0 && session.history.length > 0 && session.status === 'waiting';
+
   // Position-aware label for the Start button (first / next / last / only),
   // unless the moderator typed an ad-hoc story.
   const queued = session.queue.length;
@@ -148,12 +153,22 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
             {session.status === 'voting' && `Voting · ${voted}/${total}`}
             {session.status === 'revealed' && 'Revealed 🎉'}
           </span>
-          <button className="ghost" onClick={() => setShowResults(true)}>
-            Results{session.history.length > 0 && <span className="badge">{session.history.length}</span>}
-          </button>
-          <button className="ghost" onClick={copyInvite}>
-            {copied ? 'Copied!' : 'Invite'}
-          </button>
+          {isModerator && (
+            <button
+              className="ghost"
+              disabled={!allVoted}
+              title={allVoted ? 'View results' : 'Available once all queued stories are estimated'}
+              onClick={() => setShowResults(true)}
+            >
+              Results
+              {session.history.length > 0 && <span className="badge">{session.history.length}</span>}
+            </button>
+          )}
+          {isModerator && (
+            <button className="ghost" onClick={copyInvite}>
+              {copied ? 'Copied!' : 'Invite'}
+            </button>
+          )}
           <button className="ghost danger" onClick={leave}>
             Leave
           </button>

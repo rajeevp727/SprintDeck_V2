@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api';
-import { saveIdentity, lastName } from '../storage';
+import { saveIdentity } from '../storage';
 import AdBanner from './AdBanner';
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
 
 export default function Home({ initialCode = '', onEnter }: Props) {
   const [mode, setMode] = useState<'create' | 'join'>(initialCode ? 'join' : 'create');
-  const [name, setName] = useState(lastName());
+  const [name, setName] = useState('');
   const [sessionName, setSessionName] = useState('');
   const [code, setCode] = useState(initialCode.toUpperCase());
   const [busy, setBusy] = useState(false);

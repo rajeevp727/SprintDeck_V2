@@ -148,6 +148,10 @@ input:focus {
   padding: 0.5rem 0.85rem;
   font-size: 0.9rem;
 }
+.ghost:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 .ghost.danger {
   color: var(--danger);
   border-color: #5a3340;
