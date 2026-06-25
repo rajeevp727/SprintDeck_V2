@@ -27,3 +27,19 @@ export function clearIdentity(code: string) {
   delete map[code.toUpperCase()];
   localStorage.setItem(KEY, JSON.stringify(map));
 }
+
+// The room you're currently in — kept in storage (not the URL) so the page can
+// resume the room on refresh without exposing the code in the address bar.
+const CURRENT_KEY = 'pp.currentRoom';
+
+export function setCurrentRoom(code: string) {
+  localStorage.setItem(CURRENT_KEY, code.toUpperCase());
+}
+
+export function getCurrentRoom(): string | null {
+  return localStorage.getItem(CURRENT_KEY);
+}
+
+export function clearCurrentRoom() {
+  localStorage.removeItem(CURRENT_KEY);
+}

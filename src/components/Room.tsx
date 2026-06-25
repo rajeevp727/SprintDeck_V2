@@ -145,13 +145,13 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   }
 
   async function copyInvite() {
-    const url = `${location.origin}/room-${code}`;
+    // Share the room CODE — members join by entering it on the home screen.
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(code);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      window.prompt('Copy this invite link:', url);
+      window.prompt('Room code:', code);
     }
   }
 
