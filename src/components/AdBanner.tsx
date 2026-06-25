@@ -1,14 +1,5 @@
 import { useEffect } from 'react';
-
-// ──────────────────────────────────────────────────────────────────────────
-// Google AdSense configuration.
-// 1. Create an AdSense account, get your site approved (needs your own domain
-//    + a privacy policy page), then create a Display ad unit.
-// 2. Paste your publisher ID and ad-slot ID below.
-// Leave ADSENSE_CLIENT empty to keep ads OFF — nothing loads, nothing renders.
-// ──────────────────────────────────────────────────────────────────────────
-const ADSENSE_CLIENT: string = ''; // e.g. 'ca-pub-1234567890123456'
-const ADSENSE_SLOT: string = ''; // default slot, e.g. '1234567890'
+import { ADSENSE_CLIENT, ADSENSE_SLOT } from '../adsConfig';
 
 interface Props {
   // Use a distinct AdSense ad-unit slot id per placement for best reporting;

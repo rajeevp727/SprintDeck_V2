@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Home from './components/Home';
 import Room from './components/Room';
+import StickyAd from './components/StickyAd';
 import { getIdentity } from './storage';
 
 // Tiny hash router: "#/room/ABCDE" → room view, anything else → home.
@@ -27,16 +28,20 @@ export default function App() {
     window.location.hash = '';
   }
 
-  if (route) {
-    const hasIdentity = !!getIdentity(route.code);
-    if (hasIdentity) {
-      return (
-        <Room code={route.code} onLeave={goHome} onMissingIdentity={() => setRoute({ ...route })} />
-      );
-    }
+  let page;
+  if (route && getIdentity(route.code)) {
+    page = <Room code={route.code} onLeave={goHome} onMissingIdentity={() => setRoute({ ...route })} />;
+  } else if (route) {
     // Opened an invite link without having joined yet → prefill join form.
-    return <Home initialCode={route.code} onEnter={goRoom} />;
+    page = <Home initialCode={route.code} onEnter={goRoom} />;
+  } else {
+    page = <Home onEnter={goRoom} />;
   }
 
-  return <Home onEnter={goRoom} />;
+  return (
+    <>
+      {page}
+      <StickyAd />
+    </>
+  );
 }

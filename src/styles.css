@@ -175,6 +175,33 @@ input:focus {
   margin: 2rem 0 0;
   text-align: center;
 }
+/* Dismissible sticky footer ad (highest viewability) */
+.ad-sticky {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  padding: 0.4rem 2.5rem 0.5rem;
+  text-align: center;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
+}
+.ad-sticky-inner {
+  margin: 0 auto;
+  max-width: 970px;
+}
+.ad-sticky-close {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.6rem;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.3rem;
+  line-height: 1;
+}
 .ad-label {
   display: block;
   font-size: 0.7rem;
