@@ -362,13 +362,6 @@ input:focus {
   color: var(--green);
   font-weight: 600;
 }
-.discuss {
-  color: var(--text);
-  font-size: 0.95rem;
-}
-.discuss b {
-  color: var(--accent);
-}
 .waiting-on {
   text-align: center;
   color: var(--text);

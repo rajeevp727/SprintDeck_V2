@@ -302,16 +302,7 @@ function publicView(session, requesterId) {
     }))
     .sort((a, b) => (a.isModerator === b.isModerator ? 0 : a.isModerator ? -1 : 1));
 
-  const stats = revealed
-    ? voteStats(session)
-    : { average: null, median: null, min: null, max: null, consensus: false };
-
-  let lowVoters = [];
-  let highVoters = [];
-  if (revealed && stats.min !== null && stats.max !== stats.min) {
-    lowVoters = stats.votes.filter((v) => Number(v.vote) === stats.min).map((v) => v.name);
-    highVoters = stats.votes.filter((v) => Number(v.vote) === stats.max).map((v) => v.name);
-  }
+  const stats = revealed ? voteStats(session) : { average: null, consensus: false };
 
   return {
     code: session.code,
@@ -324,11 +315,7 @@ function publicView(session, requesterId) {
     queue: session.queue,
     history: session.history,
     average: stats.average,
-    min: stats.min,
-    max: stats.max,
     consensus: stats.consensus,
-    lowVoters,
-    highVoters,
   };
 }
 

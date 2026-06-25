@@ -41,11 +41,7 @@ export interface Session {
   queue: QueueItem[];
   history: HistoryEntry[];
   average: number | null;
-  min: number | null;
-  max: number | null;
   consensus: boolean;
-  lowVoters: string[];
-  highVoters: string[];
 }
 
 export interface JoinResult {

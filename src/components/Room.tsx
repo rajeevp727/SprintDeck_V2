@@ -250,16 +250,7 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
               <strong>{session.average ?? '—'}</strong>
             </div>
           </div>
-          {session.consensus ? (
-            <div className="consensus">Consensus! 🎯</div>
-          ) : (
-            session.highVoters.length > 0 && (
-              <div className="discuss">
-                Discuss: <b>{session.min}</b> ({session.lowVoters.join(', ')}) vs{' '}
-                <b>{session.max}</b> ({session.highVoters.join(', ')})
-              </div>
-            )
-          )}
+          {session.consensus && <div className="consensus">Consensus! 🎯</div>}
         </div>
       )}
 
