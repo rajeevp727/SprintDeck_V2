@@ -12,6 +12,7 @@ export default function Home({ initialCode = '', onEnter }: Props) {
   const [mode, setMode] = useState<'create' | 'join'>(initialCode ? 'join' : 'create');
   const [name, setName] = useState('');
   const [sessionName, setSessionName] = useState('');
+  const [roomCode, setRoomCode] = useState('');
   const [code, setCode] = useState(initialCode.toUpperCase());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -19,10 +20,11 @@ export default function Home({ initialCode = '', onEnter }: Props) {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return setError('Enter your name');
+    if (!roomCode.trim()) return setError('Choose a room code');
     setBusy(true);
     setError('');
     try {
-      const res = await api.createSession(sessionName, name);
+      const res = await api.createSession(sessionName, name, roomCode.trim());
       saveIdentity(res.session.code, res.participantId, name.trim());
       onEnter(res.session.code);
     } catch (err) {
@@ -87,6 +89,10 @@ export default function Home({ initialCode = '', onEnter }: Props) {
               Session name <span className="muted">(optional)</span>
               <input value={sessionName} onChange={(e) => setSessionName(e.target.value)} placeholder="Sprint {Number} Grooming" maxLength={60} />
             </label>
+            <label>
+              Room code <span className="muted">(people join with this)</span>
+              <input value={roomCode} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} placeholder="SPRINT13" className="code-input" maxLength={24} />
+            </label>
             <button className="primary" disabled={busy} type="submit">
               {busy ? 'Creating…' : 'Create & host'}
             </button>
@@ -99,7 +105,7 @@ export default function Home({ initialCode = '', onEnter }: Props) {
             </label>
             <label>
               Room code
-              <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="ABCDE" className="code-input" maxLength={5} />
+              <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="SPRINT13" className="code-input" maxLength={24} />
             </label>
             <button className="primary" disabled={busy} type="submit">
               {busy ? 'Joining…' : 'Join room'}

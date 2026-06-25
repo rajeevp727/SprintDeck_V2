@@ -168,8 +168,18 @@ async function genUniqueCode() {
   return code;
 }
 
-async function createSession(name, moderatorName) {
-  const code = await genUniqueCode();
+const CODE_RE = /^[A-Z0-9-]{3,24}$/;
+
+async function createSession(name, moderatorName, desiredCode) {
+  let code;
+  const wanted = normalize(desiredCode);
+  if (wanted) {
+    if (!CODE_RE.test(wanted)) return { error: 'invalid' };
+    if (await loadSession(wanted)) return { error: 'taken' };
+    code = wanted;
+  } else {
+    code = await genUniqueCode();
+  }
   const pid = genId();
   const now = Date.now();
   const session = {
@@ -309,7 +319,6 @@ function publicView(session, requesterId) {
     queue: session.queue,
     history: session.history,
     average: stats.average,
-    median: stats.median,
     min: stats.min,
     max: stats.max,
     consensus: stats.consensus,

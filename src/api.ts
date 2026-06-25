@@ -23,8 +23,8 @@ async function request<T>(url: string, method: string, body?: unknown): Promise<
 }
 
 export const api = {
-  createSession: (name: string, moderatorName: string) =>
-    request<JoinResult>('/api/session', 'POST', { name, moderatorName }),
+  createSession: (name: string, moderatorName: string, code: string) =>
+    request<JoinResult>('/api/session', 'POST', { name, moderatorName, code }),
 
   joinSession: (code: string, name: string) =>
     request<JoinResult>(`/api/session/${code}/join`, 'POST', { name }),

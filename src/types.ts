@@ -41,7 +41,6 @@ export interface Session {
   queue: QueueItem[];
   history: HistoryEntry[];
   average: number | null;
-  median: number | null;
   min: number | null;
   max: number | null;
   consensus: boolean;

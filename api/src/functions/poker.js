@@ -47,8 +47,13 @@ app.http('createSession', {
   authLevel: 'anonymous',
   route: 'session',
   handler: async (req) => {
-    const { name, moderatorName } = await readBody(req);
-    const { session, participantId } = await store.createSession(name, moderatorName);
+    const { name, moderatorName, code } = await readBody(req);
+    const result = await store.createSession(name, moderatorName, code);
+    if (result.error === 'invalid') {
+      return bad('Room code must be 3–24 letters, numbers or dashes');
+    }
+    if (result.error === 'taken') return bad('That room code is taken — pick another', 409);
+    const { session, participantId } = result;
     return ok({ participantId, session: store.publicView(session, participantId) });
   },
 });

@@ -284,12 +284,19 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
             />
             <div className="panel-buttons">
               {session.status === 'waiting' && (
-                <button
-                  className="primary"
-                  onClick={() => moderatorAction(() => api.start(code, participantId, storyDraft))}
-                >
-                  {startLabel}
-                </button>
+                <>
+                  {allVoted && (
+                    <button className="primary" onClick={() => setShowResults(true)}>
+                      Finish &amp; view results
+                    </button>
+                  )}
+                  <button
+                    className={allVoted ? 'ghost' : 'primary'}
+                    onClick={() => moderatorAction(() => api.start(code, participantId, storyDraft))}
+                  >
+                    {startLabel}
+                  </button>
+                </>
               )}
               {session.status === 'voting' && (
                 <>
