@@ -119,9 +119,7 @@ app.http('startVoting', {
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
-    if (!store.startStory(session, story)) {
-      return bad('No story to estimate — type a title or add one to the queue');
-    }
+    store.startStory(session, story); // story is optional
     await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
@@ -269,7 +267,9 @@ app.http('nextStory', {
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
-    if (!store.startStory(session)) {
+    if (session.queue.length > 0) {
+      store.startStory(session); // pull the next queued story
+    } else {
       session.story = '';
       session.status = 'waiting';
     }

@@ -264,21 +264,20 @@ function reorderQueue(session, orderedIds) {
   session.queue = reordered;
 }
 
-// Start estimating a story: an explicit title if given, else the next queued
-// one. Clears votes and opens voting. Returns false if there's nothing to start.
+// Open a voting round. Uses an explicit title if given, else the next queued
+// story. A story is OPTIONAL — with no title and an empty queue this starts a
+// plain "just vote" round (story = '').
 function startStory(session, explicitTitle) {
   let title = String(explicitTitle || '').trim();
   if (!title && session.queue.length > 0) title = session.queue.shift().title;
-  if (!title) return false;
   // Starting fresh after a finished session (results were viewed) wipes the old
   // history so the new round starts clean. A mid-session next story keeps it.
   if (session.finished) session.history = [];
-  session.story = title;
+  session.story = title; // may be '' for a story-less round
   for (const p of Object.values(session.participants)) p.vote = null;
   session.status = 'voting';
-  session.finished = false; // starting a story un-finishes the session
+  session.finished = false; // starting a round un-finishes the session
   session.currentEntryId = null; // next reveal creates a fresh history entry
-  return true;
 }
 
 // Reveal the current story and auto-save its result to history. Re-revealing

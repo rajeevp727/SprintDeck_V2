@@ -10,6 +10,9 @@ const POLL_MS = 1500;
 // transient misses (tab loses focus & throttles, cold start, instance split) so
 // you stay put until you leave or the moderator actually ends the room.
 const MAX_MISSES = 6;
+// Story planning (the queue + per-story field) is hidden for now — teams just
+// join and vote. Flip to true to bring back queued, per-story estimation.
+const SHOW_QUEUE = false;
 
 interface Props {
   code: string;
@@ -285,17 +288,18 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
       {isModerator && (
         <>
           <div className="panel">
-            <input
-              className="story-input"
-              value={session.story}
-              placeholder="Current story — add tickets to the queue, then Start"
-              readOnly
-            />
+            {SHOW_QUEUE && (
+              <input
+                className="story-input"
+                value={session.story}
+                placeholder="Current story — add tickets to the queue, then Start"
+                readOnly
+              />
+            )}
             <div className="panel-buttons">
               {session.status === 'waiting' && (
                 <button
                   className="primary"
-                  disabled={queued === 0}
                   onClick={() => moderatorAction(() => api.start(code, participantId, ''))}
                 >
                   {session.finished ? 'Start new' : startLabel}
@@ -346,6 +350,7 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
           </div>
 
           {/* Story queue */}
+          {SHOW_QUEUE && (
           <div className="queue-panel">
             <div className="queue-head">
               <span className="queue-title">Story queue</span>
@@ -389,6 +394,7 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
               </button>
             </div>
           </div>
+          )}
         </>
       )}
 
