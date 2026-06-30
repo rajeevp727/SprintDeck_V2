@@ -284,17 +284,6 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
       {/* Section-level ad */}
       <AdBanner className="ad-section" />
 
-      {session.status === 'revealed' && (
-        <div className="result">
-          <div className="result-stats">
-            <div className="stat">
-              <span className="muted">Average</span>
-              <strong>{session.average ?? '—'}</strong>
-            </div>
-          </div>
-          {session.consensus && <div className="consensus">Consensus! 🎯</div>}
-        </div>
-      )}
 
       {/* Moderator controls */}
       {isModerator && (
