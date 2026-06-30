@@ -78,6 +78,18 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
     return () => clearInterval(id);
   }, [refresh]);
 
+  // Remind the moderator to review results before they close/refresh/navigate away.
+  // (Browsers show their own generic confirm text, but this guarantees the prompt.)
+  useEffect(() => {
+    if (!isModerator) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Please check the sprint planning results';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isModerator]);
+
   async function castVote(card: string) {
     if (!session || session.status !== 'voting') return;
     const next = myVote === card ? null : card; // click again to clear
@@ -133,6 +145,7 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   }
 
   async function endRoom() {
+    window.alert('Please check the sprint planning results');
     if (!window.confirm('End this room for everyone? This cannot be undone.')) return;
     try {
       await api.end(code, participantId);
@@ -199,8 +212,7 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
           {isModerator && (
             <button
               className="ghost"
-              disabled={!session.finished}
-              title={session.finished ? 'View results' : 'Click Finish to unlock results'}
+              title="View results"
               onClick={() => setShowResults(true)}
             >
               Results
@@ -302,7 +314,7 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
                   className="primary"
                   onClick={() => moderatorAction(() => api.start(code, participantId, ''))}
                 >
-                  {session.finished ? 'Start new' : startLabel}
+                  {startLabel}
                 </button>
               )}
               {session.status === 'voting' && (
@@ -323,23 +335,16 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
               )}
               {session.status === 'revealed' && (
                 <>
-                  {queued > 0 ? (
+                  {queued > 0 && (
                     <button
                       className="primary"
                       onClick={() => moderatorAction(() => api.next(code, participantId))}
                     >
                       Next
                     </button>
-                  ) : (
-                    <button
-                      className="primary"
-                      onClick={() => moderatorAction(() => api.finish(code, participantId))}
-                    >
-                      Finish
-                    </button>
                   )}
                   <button
-                    className="ghost"
+                    className="primary"
                     onClick={() => moderatorAction(() => api.reset(code, participantId))}
                   >
                     Vote again
