@@ -249,12 +249,10 @@ app.http('nextStory', {
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
-    if (session.queue.length > 0) {
-      store.startStory(session); // pull the next queued story
-    } else {
-      session.story = '';
-      session.status = 'waiting';
-    }
+    // Save the current result (done on reveal) was kept; start the next round —
+    // the next queued story if any, otherwise a fresh auto-numbered round.
+    // History is preserved so every round accumulates in the results.
+    store.startStory(session);
     await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },

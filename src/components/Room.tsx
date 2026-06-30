@@ -180,7 +180,6 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
 
   const voted = session.participants.filter((p) => p.hasVoted).length;
   const total = session.participants.length;
-  const pending = session.participants.filter((p) => !p.hasVoted).map((p) => p.name);
 
   // Position-aware label for the Start button (first / next / last / only),
   // based purely on the queue — stories are always pulled from it.
@@ -275,12 +274,6 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
         })}
       </section>
 
-      {session.status === 'voting' && pending.length > 0 && pending.length < total && (
-        <p className="waiting-on">
-          <span className="muted">Waiting on:</span> {pending.join(', ')}
-        </p>
-      )}
-
       {/* Section-level ad */}
       <AdBanner className="ad-section" />
 
@@ -324,19 +317,23 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
               )}
               {session.status === 'revealed' && (
                 <>
-                  {queued > 0 && (
-                    <button
-                      className="primary"
-                      onClick={() => moderatorAction(() => api.next(code, participantId))}
-                    >
-                      Next
-                    </button>
-                  )}
                   <button
                     className="primary"
+                    onClick={() => moderatorAction(() => api.next(code, participantId))}
+                  >
+                    {queued > 0 ? 'Next story' : 'Next round'}
+                  </button>
+                  <button
+                    className="ghost"
                     onClick={() => moderatorAction(() => api.reset(code, participantId))}
                   >
                     Vote again
+                  </button>
+                  <button
+                    className="ghost"
+                    onClick={() => moderatorAction(() => api.finish(code, participantId))}
+                  >
+                    Finish
                   </button>
                 </>
               )}

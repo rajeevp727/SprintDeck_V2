@@ -273,7 +273,9 @@ function startStory(session, explicitTitle) {
   // Starting fresh after a finished session (results were viewed) wipes the old
   // history so the new round starts clean. A mid-session next story keeps it.
   if (session.finished) session.history = [];
-  session.story = title; // may be '' for a story-less round
+  // No story name (just-vote mode) → auto-number the round so results read well.
+  if (!title) title = `Round ${session.history.length + 1}`;
+  session.story = title;
   for (const p of Object.values(session.participants)) p.vote = null;
   session.status = 'voting';
   session.finished = false; // starting a round un-finishes the session
