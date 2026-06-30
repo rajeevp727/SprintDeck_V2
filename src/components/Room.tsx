@@ -235,12 +235,6 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
         </div>
       </header>
 
-      {session.story && session.status !== 'waiting' && (
-        <div className="story-banner">
-          <span className="muted">Estimating</span> {session.story}
-        </div>
-      )}
-
       <section className="participants">
         {session.participants.map((p) => {
           const showFace = session.status !== 'revealed';
