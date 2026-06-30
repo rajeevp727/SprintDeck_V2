@@ -41,9 +41,7 @@ export default function ResultsModal({ sessionName, history, onClose }: Props) {
                 {history.map((h, i) => (
                   <tr key={h.id}>
                     <td>{i + 1}</td>
-                    <td className="story-cell">
-                      {h.title} {h.consensus && <span className="mini-consensus">✓</span>}
-                    </td>
+                    <td className="story-cell">{h.title}</td>
                     <td>{cell(h.average)}</td>
                     <td>{cell(h.median)}</td>
                     <td>

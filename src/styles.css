@@ -653,9 +653,6 @@ input:focus {
 .story-cell {
   white-space: normal;
 }
-.mini-consensus {
-  color: var(--green);
-}
 .votes-cell {
   color: var(--muted);
   white-space: normal;
