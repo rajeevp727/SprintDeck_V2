@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:all": "concurrently -k -n WEB,API -c cyan,magenta \"vite\" \"npm --prefix api start\"",
-    "dev:lan": "concurrently -k -n WEB,API -c cyan,magenta \"vite --host\" \"npm --prefix api start\"",
+    "dev:all": "concurrently -k -n WEB,API -c cyan,magenta \"vite\" \"npm --prefix api start -- --port 7072\"",
+    "dev:lan": "concurrently -k -n WEB,API -c cyan,magenta \"vite --host\" \"npm --prefix api start -- --port 7072\"",
     "build": "tsc -b && vite build",
     "preview": "vite preview"
   },
