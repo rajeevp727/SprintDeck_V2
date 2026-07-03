@@ -11,6 +11,8 @@ export interface Participant {
 export interface QueueItem {
   id: string;
   title: string;
+  identifier?: string; // Linear key, e.g. ENG-876 (V1 Linear flow)
+  linearId?: string; // Linear issue UUID
 }
 
 export interface HistoryVote {
@@ -28,6 +30,9 @@ export interface HistoryEntry {
   consensus: boolean;
   votes: HistoryVote[];
   at: number;
+  identifier?: string | null; // Linear key when this round is a Linear issue
+  linearId?: string | null; // Linear issue UUID
+  pushedEstimate?: number | null; // estimate written back to Linear, if any
 }
 
 export interface Session {
@@ -36,6 +41,7 @@ export interface Session {
   story: string;
   status: SessionStatus;
   finished: boolean;
+  currentEntryId: string | null; // history entry of the just-revealed round
   deck: string[];
   moderatorId: string;
   participants: Participant[];

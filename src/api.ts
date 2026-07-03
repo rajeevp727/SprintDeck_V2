@@ -73,4 +73,20 @@ export const api = {
 
   finish: (code: string, participantId: string) =>
     request<{ session: Session }>(`/api/session/${code}/finish`, 'POST', { participantId }),
+
+  // Linear V1 flow — paste ticket IDs, write agreed estimates back.
+  linearStatus: () => request<{ enabled: boolean }>('/api/linear/status', 'GET'),
+
+  linearImport: (code: string, participantId: string, identifiers: string[]) =>
+    request<{ session: Session; missing: string[] }>(`/api/session/${code}/linear/import`, 'POST', {
+      participantId,
+      identifiers,
+    }),
+
+  linearPush: (code: string, participantId: string, entryId: string, estimate: number) =>
+    request<{ session: Session }>(`/api/session/${code}/linear/push`, 'POST', {
+      participantId,
+      entryId,
+      estimate,
+    }),
 };

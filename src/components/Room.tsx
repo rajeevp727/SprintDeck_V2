@@ -14,6 +14,16 @@ const MAX_MISSES = 6;
 // join and vote. Flip to true to bring back queued, per-story estimation.
 const SHOW_QUEUE = false;
 
+// Snap a round's median to the nearest deck value — the prefilled suggestion the
+// moderator confirms before pushing an estimate to Linear (V1 Linear flow).
+function nearestDeckValue(median: number | null, deck: string[]): string {
+  const nums = deck.map(Number).filter(Number.isFinite);
+  if (median == null || nums.length === 0) return deck[0] ?? '';
+  let best = nums[0];
+  for (const n of nums) if (Math.abs(n - median) < Math.abs(best - median)) best = n;
+  return String(best);
+}
+
 interface Props {
   code: string;
   onLeave: () => void;
@@ -31,6 +41,11 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   const [copied, setCopied] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [linearEnabled, setLinearEnabled] = useState(false);
+  const [linearDraft, setLinearDraft] = useState('');
+  const [linearMissing, setLinearMissing] = useState<string[]>([]);
+  const [pushEntryId, setPushEntryId] = useState<string | null>(null);
+  const [pushValue, setPushValue] = useState('');
   const missCount = useRef(0);
 
   // No identity for this room (e.g. opened an invite link directly) → bounce to join.
@@ -90,6 +105,23 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
     return () => window.removeEventListener('beforeunload', handler);
   }, [isModerator]);
 
+  // Is the Linear flow available on the server? (LINEAR_API_KEY configured.)
+  useEffect(() => {
+    api.linearStatus().then((r) => setLinearEnabled(r.enabled)).catch(() => {});
+  }, []);
+
+  // On a freshly revealed Linear-backed round, prefill the push value with the
+  // median-nearest deck value — once per entry, so polling doesn't clobber a
+  // manual selection.
+  useEffect(() => {
+    if (!session) return;
+    const entry = session.history.find((h) => h.id === session.currentEntryId);
+    if (session.status === 'revealed' && entry?.linearId && entry.id !== pushEntryId) {
+      setPushEntryId(entry.id);
+      setPushValue(nearestDeckValue(entry.median, session.deck));
+    }
+  }, [session, pushEntryId]);
+
   async function castVote(card: string) {
     if (!session || session.status !== 'voting') return;
     const next = myVote === card ? null : card; // click again to clear
@@ -132,6 +164,33 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
     setDragIndex(null);
     setSession({ ...session, queue: items }); // optimistic
     moderatorAction(() => api.reorderQueue(code, participantId, items.map((q) => q.id)));
+  }
+
+  async function importLinear() {
+    const identifiers = linearDraft
+      .split(/[\n,]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (identifiers.length === 0) return;
+    try {
+      const { session: s, missing } = await api.linearImport(code, participantId, identifiers);
+      setSession(s);
+      setLinearDraft('');
+      setLinearMissing(missing);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  async function pushToLinear(entryId: string) {
+    const estimate = Number(pushValue);
+    if (!Number.isInteger(estimate)) return;
+    try {
+      const { session: s } = await api.linearPush(code, participantId, entryId, estimate);
+      setSession(s);
+    } catch (err) {
+      setError((err as Error).message);
+    }
   }
 
   function kickMember(targetId: string, targetName: string) {
@@ -180,6 +239,11 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
 
   const voted = session.participants.filter((p) => p.hasVoted).length;
   const total = session.participants.length;
+
+  // The just-revealed round — used by the Linear "confirm & push estimate" control.
+  const currentEntry = session.history.find((h) => h.id === session.currentEntryId);
+  const showLinearPush =
+    linearEnabled && session.status === 'revealed' && !!currentEntry?.linearId;
 
   // Position-aware label for the Start button (first / next / last / only),
   // based purely on the queue — stories are always pulled from it.
@@ -332,6 +396,40 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
                 </>
               )}
             </div>
+
+            {/* Linear: confirm the agreed estimate and write it back to the issue */}
+            {showLinearPush && currentEntry && (
+              <div className="linear-push">
+                {currentEntry.pushedEstimate != null ? (
+                  <span className="linear-pushed">
+                    ✓ {currentEntry.identifier} = {currentEntry.pushedEstimate} pushed to Linear
+                  </span>
+                ) : (
+                  <>
+                    <span className="linear-push-label">
+                      Estimate for {currentEntry.identifier}
+                      {currentEntry.median != null && (
+                        <span className="muted"> · median {currentEntry.median}</span>
+                      )}
+                    </span>
+                    <select
+                      className="linear-push-select"
+                      value={pushValue}
+                      onChange={(e) => setPushValue(e.target.value)}
+                    >
+                      {session.deck.map((card) => (
+                        <option key={card} value={card}>
+                          {card}
+                        </option>
+                      ))}
+                    </select>
+                    <button className="primary" onClick={() => pushToLinear(currentEntry.id)}>
+                      Push to Linear
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Story queue */}
@@ -379,6 +477,48 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
               </button>
             </div>
           </div>
+          )}
+
+          {/* Linear V1 flow — paste ticket IDs, estimate, write points back */}
+          {linearEnabled && (
+            <div className="queue-panel linear-panel">
+              <div className="queue-head">
+                <span className="queue-title">Linear tickets</span>
+                <span className="muted">{session.queue.length} queued</span>
+              </div>
+              {session.queue.length > 0 && (
+                <ul className="queue-list">
+                  {session.queue.map((q, i) => (
+                    <li key={q.id}>
+                      <span className="q-num">{i + 1}</span>
+                      {q.identifier && <span className="q-badge">{q.identifier}</span>}
+                      <span className="q-title">{q.title}</span>
+                      <button
+                        className="q-remove"
+                        title="Remove"
+                        onClick={() => moderatorAction(() => api.removeFromQueue(code, participantId, q.id))}
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="queue-add">
+                <textarea
+                  value={linearDraft}
+                  placeholder="Paste Linear ticket IDs (e.g. ENG-876) — one per line or comma-separated"
+                  rows={2}
+                  onChange={(e) => setLinearDraft(e.target.value)}
+                />
+                <button className="ghost" disabled={!linearDraft.trim()} onClick={importLinear}>
+                  Import from Linear
+                </button>
+              </div>
+              {linearMissing.length > 0 && (
+                <p className="linear-missing">Not found: {linearMissing.join(', ')}</p>
+              )}
+            </div>
           )}
         </>
       )}

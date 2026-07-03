@@ -195,11 +195,12 @@ async function createSession(name, moderatorName, desiredCode) {
     status: 'waiting', // 'waiting' | 'voting' | 'revealed'
     finished: false, // moderator clicked Finish → unlocks Results
     currentEntryId: null, // history entry id for the story being estimated
+    currentLinear: null, // { linearId, identifier } when the current story is a Linear issue
     deck: DECK,
     participants: {
       [pid]: { id: pid, name: (moderatorName || '').trim() || 'Moderator', vote: null },
     },
-    queue: [], // [{ id, title }]
+    queue: [], // [{ id, title, linearId?, identifier? }]
     history: [], // [{ id, title, average, median, min, max, consensus, votes, at }]
     createdAt: now,
     lastActivity: now,
@@ -243,6 +244,21 @@ function addToQueue(session, titles) {
   }
 }
 
+// Queue resolved Linear issues, carrying the linkage needed to write estimates
+// back later. Title reads "ENG-876 — Some story" so it's recognisable in the UI.
+function addLinearToQueue(session, issues) {
+  for (const issue of Array.isArray(issues) ? issues : []) {
+    if (!issue?.linearId || !issue?.identifier) continue;
+    const label = String(issue.title || '').trim();
+    session.queue.push({
+      id: genId(),
+      title: label ? `${issue.identifier} — ${label}` : issue.identifier,
+      linearId: issue.linearId,
+      identifier: issue.identifier,
+    });
+  }
+}
+
 function removeFromQueue(session, id) {
   session.queue = session.queue.filter((s) => s.id !== id);
 }
@@ -269,7 +285,16 @@ function reorderQueue(session, orderedIds) {
 // plain "just vote" round (story = '').
 function startStory(session, explicitTitle) {
   let title = String(explicitTitle || '').trim();
-  if (!title && session.queue.length > 0) title = session.queue.shift().title;
+  // A queued story (pulled when no explicit title is given) may be Linear-backed;
+  // remember its linkage for this round so reveal can carry it into history.
+  session.currentLinear = null;
+  if (!title && session.queue.length > 0) {
+    const next = session.queue.shift();
+    title = next.title;
+    if (next.linearId && next.identifier) {
+      session.currentLinear = { linearId: next.linearId, identifier: next.identifier };
+    }
+  }
   // Starting fresh after a finished session (results were viewed) wipes the old
   // history so the new round starts clean. A mid-session next story keeps it.
   if (session.finished) session.history = [];
@@ -288,17 +313,36 @@ function startStory(session, explicitTitle) {
 function revealAndSave(session) {
   session.status = 'revealed';
   const stats = voteStats(session);
-  const data = { title: session.story, ...stats, at: Date.now() };
+  const linear = session.currentLinear || {};
+  const data = {
+    title: session.story,
+    ...stats,
+    linearId: linear.linearId ?? null,
+    identifier: linear.identifier ?? null,
+    pushedEstimate: null,
+    at: Date.now(),
+  };
   const idx = session.currentEntryId
     ? session.history.findIndex((h) => h.id === session.currentEntryId)
     : -1;
   if (idx >= 0) {
-    session.history[idx] = { id: session.currentEntryId, ...data };
+    // Re-reveal (after "Vote again") — keep any estimate already pushed to Linear.
+    const prev = session.history[idx];
+    session.history[idx] = { id: session.currentEntryId, ...data, pushedEstimate: prev.pushedEstimate ?? null };
   } else {
     const id = genId();
     session.history.push({ id, ...data });
     session.currentEntryId = id;
   }
+}
+
+// Record that a history entry's estimate was written back to Linear.
+function markPushed(session, entryId, estimate) {
+  const entry = session.history.find((h) => h.id === entryId);
+  if (!entry) return false;
+  entry.pushedEstimate = estimate;
+  entry.pushedAt = Date.now();
+  return true;
 }
 
 // Numeric stats over the current votes (ignores non-numeric like ? / ☕).
@@ -349,6 +393,7 @@ function publicView(session, requesterId) {
     story: session.story,
     status: session.status,
     finished: !!session.finished,
+    currentEntryId: session.currentEntryId ?? null,
     deck: session.deck,
     moderatorId: session.moderatorId,
     participants,
@@ -370,8 +415,10 @@ module.exports = {
   kickParticipant,
   publicView,
   addToQueue,
+  addLinearToQueue,
   removeFromQueue,
   reorderQueue,
   startStory,
   revealAndSave,
+  markPushed,
 };

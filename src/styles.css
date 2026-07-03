@@ -580,6 +580,52 @@ input:focus {
   font-size: 0.95rem;
 }
 
+/* Linear V1 flow — ticket import + write-back */
+.linear-panel .queue-list li {
+  cursor: default;
+}
+.q-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.1rem 0.4rem;
+  white-space: nowrap;
+}
+.linear-missing {
+  margin: 0.5rem 0 0;
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+.linear-push {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+.linear-push-label {
+  font-size: 0.9rem;
+}
+.linear-push-select {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+.linear-pushed {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
 /* Results modal */
 .modal-overlay {
   position: fixed;

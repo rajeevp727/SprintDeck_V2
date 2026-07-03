@@ -2,6 +2,7 @@
 
 const { app } = require('@azure/functions');
 const store = require('../store');
+const linear = require('../linear');
 
 // no-store so polling reads are never cached by the browser/CDN — otherwise
 // other devices render stale state until a manual refresh.
@@ -253,6 +254,73 @@ app.http('nextStory', {
     // the next queued story if any, otherwise a fresh auto-numbered round.
     // History is preserved so every round accumulates in the results.
     store.startStory(session);
+    await store.saveSession(session);
+    return ok({ session: store.publicView(session, participantId) });
+  },
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// Linear integration — V1 flow: paste ticket IDs, write agreed estimates back.
+// The Linear API key lives only in the LINEAR_API_KEY app setting (server-side).
+// ───────────────────────────────────────────────────────────────────────────
+
+// GET /api/linear/status — lets the UI show/hide the Linear flow.
+app.http('linearStatus', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'linear/status',
+  handler: async () => ok({ enabled: linear.isEnabled() }),
+});
+
+// POST /api/session/{code}/linear/import  { participantId, identifiers }  (moderator)
+// Resolves pasted ticket IDs (ENG-876, …) to Linear issues and queues them.
+app.http('linearImport', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'session/{code}/linear/import',
+  handler: async (req) => {
+    if (!linear.isEnabled()) return bad('Linear is not configured', 400);
+    const { participantId, identifiers } = await readBody(req);
+    const { session, error } = await requireModerator(req.params.code, participantId);
+    if (error) return error;
+
+    let resolved, missing;
+    try {
+      ({ resolved, missing } = await linear.resolveIssues(identifiers));
+    } catch (err) {
+      return bad(`Linear lookup failed: ${err.message}`, 502);
+    }
+    store.addLinearToQueue(session, resolved);
+    await store.saveSession(session);
+    return ok({ session: store.publicView(session, participantId), missing });
+  },
+});
+
+// POST /api/session/{code}/linear/push  { participantId, entryId, estimate }  (moderator)
+// Writes the moderator-confirmed estimate back onto the entry's Linear issue.
+app.http('linearPush', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'session/{code}/linear/push',
+  handler: async (req) => {
+    if (!linear.isEnabled()) return bad('Linear is not configured', 400);
+    const { participantId, entryId, estimate } = await readBody(req);
+    const { session, error } = await requireModerator(req.params.code, participantId);
+    if (error) return error;
+
+    const entry = session.history.find((h) => h.id === entryId);
+    if (!entry) return bad('Round not found', 404);
+    if (!entry.linearId) return bad('This round is not linked to a Linear issue', 400);
+    if (!Number.isInteger(estimate) || estimate <= 0 || !session.deck.includes(String(estimate))) {
+      return bad('Estimate must be a value from the deck');
+    }
+
+    try {
+      await linear.setEstimate(entry.linearId, estimate);
+    } catch (err) {
+      return bad(`Linear update failed: ${err.message}`, 502);
+    }
+    store.markPushed(session, entryId, estimate);
     await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
