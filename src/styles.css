@@ -1366,14 +1366,16 @@ a.room-code:hover {
   align-items: center;
   justify-content: center;
 }
-/* Spinner rotating around the full circle while the QR is prepared. */
+/* Spinner rotating around the full circle while the QR is prepared. The
+   !important keeps it spinning even under the global prefers-reduced-motion
+   rule — it's a functional loading indicator, not decorative motion. */
 .qr-loader {
   width: 54px;
   height: 54px;
   border: 5px solid #c9d3e4;
   border-top-color: var(--accent);
   border-radius: 50%;
-  animation: qrSpin 0.9s linear infinite;
+  animation: qrSpin 0.9s linear infinite !important;
 }
 @keyframes qrSpin {
   to {
