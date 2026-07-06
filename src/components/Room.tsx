@@ -8,6 +8,7 @@ import ToolConnectModal from './ToolConnectModal';
 import ThemeToggle from './ThemeToggle';
 import SubscriptionModal from './SubscriptionModal';
 import AdBanner from './AdBanner';
+import { CrownIcon } from './icons';
 import { nearestDeckValue } from '../estimate';
 import { isSubscribed } from '../subscription';
 
@@ -349,7 +350,8 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
         <div className="room-actions">
           <ThemeToggle />
           {isModerator && !isSubscribed() && (
-            <button className="ghost" onClick={() => setShowSubscribe(true)}>
+            <button className="ghost upgrade-btn" onClick={() => setShowSubscribe(true)}>
+              <CrownIcon />
               Upgrade
             </button>
           )}

@@ -416,6 +416,19 @@ a.room-code:hover {
   align-items: center;
   gap: 0.5rem;
 }
+.upgrade-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.upgrade-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+  color: #fff;
+}
 .status-pill {
   font-size: 0.85rem;
   padding: 0.35rem 0.7rem;

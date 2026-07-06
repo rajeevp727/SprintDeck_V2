@@ -10,3 +10,10 @@ export const BackIcon = () => (
     <path d="M15 6l-6 6 6 6" />
   </svg>
 );
+
+// Crown — marks the paid/upgrade action.
+export const CrownIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden>
+    <path d="M2 8l4.2 3.2L12 4l5.8 7.2L22 8l-1.7 10H3.7L2 8zm3 12h14v1.5H5V20z" />
+  </svg>
+);
