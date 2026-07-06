@@ -11,6 +11,7 @@ export interface Tier {
   name: string;
   price: number; // INR / month (illustrative — adjust freely)
   tagline: string;
+  icon: string; // emoji shown on the plan card
   features: string[];
   highlight?: boolean;
 }
@@ -21,6 +22,7 @@ export const TIERS: Tier[] = [
     name: 'Pro',
     price: 199,
     tagline: 'For a single team',
+    icon: '🚀',
     features: [
       'Connect one project-management tool',
       'Unlimited rooms · up to 20 voters',
@@ -33,6 +35,7 @@ export const TIERS: Tier[] = [
     name: 'Expert',
     price: 499,
     tagline: 'For power teams',
+    icon: '⚡',
     highlight: true,
     features: [
       'Everything in Pro',
@@ -46,6 +49,7 @@ export const TIERS: Tier[] = [
     name: 'Master',
     price: 999,
     tagline: 'For organisations',
+    icon: '💎',
     features: [
       'Everything in Expert',
       'All integrations (Jira, Azure DevOps) as they ship',

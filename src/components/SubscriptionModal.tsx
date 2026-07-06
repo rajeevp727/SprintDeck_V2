@@ -159,6 +159,7 @@ export default function SubscriptionModal({ onClose }: Props) {
                 target="_blank"
                 rel="noreferrer"
               >
+                <span className="tier-icon" aria-hidden>♠</span>
                 <span className="tier-name">Free</span>
                 <span className="tier-price">
                   ₹0<small>/mo</small>
@@ -182,6 +183,7 @@ export default function SubscriptionModal({ onClose }: Props) {
                     onClick={() => startPayment(t.id, t.price)}
                   >
                     {t.highlight && <span className="tier-badge">Popular</span>}
+                    <span className="tier-icon" aria-hidden>{t.icon}</span>
                     <span className="tier-name">{t.name}</span>
                     <span className="tier-price">
                       ₹{t.price}
