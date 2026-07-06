@@ -31,7 +31,18 @@ const GMAIL_QUERY = 'newer_than:2d (credited OR "received" OR "deposited")';
 // Dedups per MESSAGE (not per thread) via Script Properties, so a second alert
 // in an existing thread is still forwarded. The backend also dedups by UTR, so
 // a rare double-send never double-confirms.
+// Time-triggers fire at most once/minute, so this run re-checks Gmail every
+// ~10s for the whole minute → email→ingest latency drops from up to 60s to ~10s.
 function pollBankAlerts() {
+  const ROUNDS = 5; // 5 checks × ~10s ≈ covers the minute
+  const GAP_MS = 10000;
+  for (let r = 0; r < ROUNDS; r++) {
+    forwardNewAlerts_();
+    if (r < ROUNDS - 1) Utilities.sleep(GAP_MS);
+  }
+}
+
+function forwardNewAlerts_() {
   const props = PropertiesService.getScriptProperties();
   const seen = new Set(JSON.parse(props.getProperty('seenMsgIds') || '[]'));
   const threads = GmailApp.search(GMAIL_QUERY, 0, 25);
