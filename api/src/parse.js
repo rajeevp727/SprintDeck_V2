@@ -10,21 +10,21 @@
 // Bank SMS formats vary and change over time — these regexes are deliberately
 // tolerant. When a bank tweaks its wording, adjust here (and add a test case).
 
-const CREDIT_RE = /\b(credited|received|deposited)\b/i;
+const creditRe = /\b(credited|received|deposited)\b/i;
 // Only the debit VERBS — NOT the bare noun "debit", which appears in footers
 // ("debit card", "credit/debit") and would wrongly reject genuine credits.
-const DEBIT_RE = /\b(debited|withdrawn|spent)\b/i;
+const debitRe = /\b(debited|withdrawn|spent)\b/i;
 
 // INR 499.02 | Rs. 499.02 | Rs 499 | ₹499.02  (thousands separators allowed)
-const AMOUNT_RE = /(?:INR|Rs\.?|₹)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i;
+const amountRe = /(?:INR|Rs\.?|₹)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i;
 
 // "UPI Ref no 412345678901", "Ref No. 4123 4567 8901", "RRN 412345678901",
 // "UTR 412345678901". Falls back to a bare 12-digit run if none matched.
-const UTR_LABELLED_RE = /(?:UPI\s*Ref(?:erence)?(?:\s*(?:no|number))?|Ref(?:erence)?\s*(?:no|number)?|RRN|UTR)[:.\s-]*([0-9][0-9\s]{9,21}[0-9])/i;
-const UTR_BARE_RE = /\b(\d{12})\b/;
+const utrLabelledRe = /(?:UPI\s*Ref(?:erence)?(?:\s*(?:no|number))?|Ref(?:erence)?\s*(?:no|number)?|RRN|UTR)[:.\s-]*([0-9][0-9\s]{9,21}[0-9])/i;
+const utrBareRe = /\b(\d{12})\b/;
 
 function parseAmount(text) {
-  const m = AMOUNT_RE.exec(text || '');
+  const m = amountRe.exec(text || '');
   if (!m) return null;
   const n = Number(m[1].replace(/,/g, ''));
   return Number.isFinite(n) && n > 0 ? n : null;
@@ -32,15 +32,15 @@ function parseAmount(text) {
 
 function parseUtr(text) {
   const s = text || '';
-  const m = UTR_LABELLED_RE.exec(s);
+  const m = utrLabelledRe.exec(s);
   if (m) return m[1].replace(/\s/g, '');
-  const b = UTR_BARE_RE.exec(s);
+  const b = utrBareRe.exec(s);
   return b ? b[1] : null;
 }
 
 function isCredit(text) {
   const s = text || '';
-  return CREDIT_RE.test(s) && !DEBIT_RE.test(s);
+  return creditRe.test(s) && !debitRe.test(s);
 }
 
 function parse(text) {

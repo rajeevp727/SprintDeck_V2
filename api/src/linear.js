@@ -11,7 +11,7 @@
 const ENDPOINT = 'https://api.linear.app/graphql';
 
 // A Linear identifier is TEAMKEY-NUMBER, e.g. ENG-876.
-const IDENTIFIER_RE = /^[A-Z0-9]+-\d+$/;
+const identifierRe = /^[A-Z0-9]+-\d+$/;
 
 function isEnabled() {
   return !!process.env.LINEAR_API_KEY;
@@ -43,7 +43,7 @@ function normalizeIdentifiers(identifiers) {
   const clean = [];
   for (const raw of Array.isArray(identifiers) ? identifiers : []) {
     const id = String(raw || '').trim().toUpperCase();
-    if (!IDENTIFIER_RE.test(id) || seen.has(id)) continue;
+    if (!identifierRe.test(id) || seen.has(id)) continue;
     seen.add(id);
     clean.push(id);
   }
@@ -87,7 +87,7 @@ async function resolveIssues(identifiers) {
 // with a real customView(id).issues query — the returned shape already matches
 // what store.addLinearToQueue() expects, so nothing downstream changes.
 const WORKSPACE = 'trivinna';
-const MOCK_ESTIMATION_TICKETS = [
+const mockEstimationTickets = [
   { identifier: 'ENG-1023', title: '"View All Data" full-screen expansion grouped by section', project: 'Rent Roll Table UI/UX', status: 'Blocked' },
   { identifier: 'ENG-1053', title: 'Lease rollover chart', project: 'Retail Rent Rolls', status: 'Todo' },
   { identifier: 'ENG-1048', title: 'Retail Rent Roll Dashboard', project: 'Retail Rent Rolls', status: 'Todo' },
@@ -100,7 +100,7 @@ const MOCK_ESTIMATION_TICKETS = [
 // store.addLinearToQueue() path handles both. `linearId` is a mock id; the push
 // endpoint recognises the "mock-" prefix and skips the real Linear API call.
 function getEstimationTickets() {
-  return MOCK_ESTIMATION_TICKETS.map((t) => ({
+  return mockEstimationTickets.map((t) => ({
     identifier: t.identifier,
     linearId: `mock-${t.identifier}`,
     title: t.title,

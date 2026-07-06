@@ -12,7 +12,7 @@ function downloadBlob(content: string, filename: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
-const APP_NAME = 'SprintDeck';
+const appName = 'SprintDeck';
 
 function fmt(n: number | null) {
   return n === null ? '—' : String(n);
@@ -35,7 +35,7 @@ export function exportText(sessionName: string, history: HistoryEntry[]) {
     lines.push('');
   });
   if (history.length === 0) lines.push('(no estimates yet)');
-  downloadBlob(lines.join('\n'), `${APP_NAME}.txt`, 'text/plain;charset=utf-8');
+  downloadBlob(lines.join('\n'), `${appName}.txt`, 'text/plain;charset=utf-8');
 }
 
 // CSV (opens in Excel). One row per story; individual votes joined in a column.
@@ -61,13 +61,13 @@ export function exportCsv(history: HistoryEntry[]) {
     );
   });
   // BOM so Excel detects UTF-8 correctly.
-  downloadBlob('﻿' + rows.join('\r\n'), `${APP_NAME}.csv`, 'text/csv;charset=utf-8');
+  downloadBlob('﻿' + rows.join('\r\n'), `${appName}.csv`, 'text/csv;charset=utf-8');
 }
 
 // Full session data as JSON — for archival / data portability.
 export function exportJson(sessionName: string, history: HistoryEntry[]) {
   const data = {
-    app: APP_NAME,
+    app: appName,
     session: sessionName,
     exportedAt: new Date().toISOString(),
     rounds: history.map((h, i) => ({
@@ -84,5 +84,5 @@ export function exportJson(sessionName: string, history: HistoryEntry[]) {
       at: h.at,
     })),
   };
-  downloadBlob(JSON.stringify(data, null, 2), `${APP_NAME}.json`, 'application/json;charset=utf-8');
+  downloadBlob(JSON.stringify(data, null, 2), `${appName}.json`, 'application/json;charset=utf-8');
 }

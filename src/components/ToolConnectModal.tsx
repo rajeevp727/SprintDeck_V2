@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TOOL_META, type ToolId } from './ConnectToolModal';
+import { toolMeta, type ToolId } from './ConnectToolModal';
 import { BackIcon, CloseIcon } from './icons';
 
 interface Props {
@@ -18,7 +18,7 @@ interface Props {
  * (encrypted) and drives the real read/write calls.
  */
 export default function ToolConnectModal({ tool, onBack, onClose, onConnected }: Props) {
-  const meta = TOOL_META[tool];
+  const meta = toolMeta[tool];
   const [key, setKey] = useState('');
   const [shake, setShake] = useState(false);
 

@@ -17,13 +17,13 @@ function secretMatches(provided, expected) {
   return crypto.timingSafeEqual(h(provided), h(expected));
 }
 
-const NO_CACHE = { 'Cache-Control': 'no-store' };
+const noCache = { 'Cache-Control': 'no-store' };
 
 function ok(body, status = 200) {
-  return { status, jsonBody: body, headers: NO_CACHE };
+  return { status, jsonBody: body, headers: noCache };
 }
 function bad(message, status = 400) {
-  return { status, jsonBody: { error: message }, headers: NO_CACHE };
+  return { status, jsonBody: { error: message }, headers: noCache };
 }
 async function readBody(req) {
   try {
@@ -45,10 +45,11 @@ function rateLimited(req, bucket, max, windowMs) {
   return recent.length > max;
 }
 
-// Amounts the client may request — full plan prices PLUS valid upgrade balances
-// (499-199=300, 999-499=500, 999-199=800). Guards a tampered request.
-const ALLOWED_AMOUNTS = new Set([199, 499, 999, 300, 500, 800]);
-const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+// Amounts the client may request — full plan prices and upgrade balances, each
+// PLUS the ₹2 platform fee: full 201/501/1001, upgrades 302/502/802. Guards a
+// tampered request. Keep in sync with platformFee in src/subscription.ts.
+const allowedAmounts = new Set([201, 501, 1001, 302, 502, 802]);
+const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 // POST /api/order  { tier, email?, baseAmount }
 // Creates a pending order to match a payment against. The UPI QR/link (and the
@@ -63,8 +64,8 @@ app.http('createOrder', {
 
     const { tier, email, baseAmount } = await readBody(req);
     const base = Number(baseAmount);
-    if (!Number.isInteger(base) || !ALLOWED_AMOUNTS.has(base)) return bad('Invalid amount');
-    if (email && !EMAIL_RE.test(String(email))) return bad('Invalid email');
+    if (!Number.isInteger(base) || !allowedAmounts.has(base)) return bad('Invalid amount');
+    if (email && !emailRe.test(String(email))) return bad('Invalid email');
 
     const { order } = await store.createOrder({ tier: String(tier || '').slice(0, 40), email, baseAmount: base });
     return ok({ orderId: order.id, payAmount: order.payAmount });

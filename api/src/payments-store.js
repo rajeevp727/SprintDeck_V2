@@ -8,32 +8,32 @@
 
 const { sameAmount } = require('./parse');
 
-const CONN = process.env.COSMOS_CONNECTION_STRING || '';
-const DB_NAME = 'sprintdeck';
-const CONTAINER_NAME = 'payments';
+const conn = process.env.COSMOS_CONNECTION_STRING || '';
+const dbName = 'sprintdeck';
+const containerName = 'payments';
 
 // A pending order reserves its unique amount for this long, then expires so the
 // paise offset can be reused. Configurable via app setting.
-const ORDER_TTL_MS = (Number(process.env.ORDER_TTL_MINUTES) || 30) * 60 * 1000;
+const orderTtlMs = (Number(process.env.ORDER_TTL_MINUTES) || 30) * 60 * 1000;
 
 const memory = new Map(); // id → record (fallback)
 let containerPromise = null;
 let seq = 0; // monotonic tiebreaker for orders created in the same millisecond
 
 function getContainer() {
-  if (!CONN) return null;
+  if (!conn) return null;
   if (!containerPromise) {
     const { CosmosClient } = require('@azure/cosmos');
-    const client = new CosmosClient(CONN);
+    const client = new CosmosClient(conn);
     containerPromise = (async () => {
       let database;
       try {
-        ({ database } = await client.databases.createIfNotExists({ id: DB_NAME, throughput: 400 }));
+        ({ database } = await client.databases.createIfNotExists({ id: dbName, throughput: 400 }));
       } catch {
-        ({ database } = await client.databases.createIfNotExists({ id: DB_NAME }));
+        ({ database } = await client.databases.createIfNotExists({ id: dbName }));
       }
       const { container } = await database.containers.createIfNotExists({
-        id: CONTAINER_NAME,
+        id: containerName,
         partitionKey: { paths: ['/id'] },
       });
       return container;
@@ -76,7 +76,7 @@ async function getRecord(id) {
 // All currently-pending orders (not yet confirmed, not expired).
 async function pendingOrders() {
   const now = Date.now();
-  const fresh = (o) => o.type === 'order' && o.status === 'pending' && now - o.createdAt < ORDER_TTL_MS;
+  const fresh = (o) => o.type === 'order' && o.status === 'pending' && now - o.createdAt < orderTtlMs;
   const c = getContainer();
   if (c) {
     const query = "SELECT * FROM c WHERE c.type = 'order' AND c.status = 'pending'";
@@ -111,7 +111,7 @@ async function createOrder({ tier, email, baseAmount }) {
 async function getOrder(id) {
   const rec = await getRecord(id);
   if (!rec || rec.type !== 'order') return null;
-  if (rec.status === 'pending' && Date.now() - rec.createdAt >= ORDER_TTL_MS) {
+  if (rec.status === 'pending' && Date.now() - rec.createdAt >= orderTtlMs) {
     rec.status = 'expired';
     await putRecord(rec);
   }

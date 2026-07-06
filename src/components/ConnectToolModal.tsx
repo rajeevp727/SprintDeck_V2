@@ -5,7 +5,7 @@ import { CloseIcon } from './icons';
 export type ToolId = 'linear' | 'jira' | 'ado';
 
 // Shared metadata for each tool — reused by the picker and the key-entry modal.
-export const TOOL_META: Record<
+export const toolMeta: Record<
   ToolId,
   { name: string; logo: ReactNode; status: 'ready' | 'preview'; keyPlaceholder: string; keyHelp: string }
 > = {
@@ -50,7 +50,7 @@ export default function ConnectToolModal({ onClose, onSelect }: Props) {
         <p className="auth-sub">Pick the tool to pull estimation tickets from.</p>
         <div className="tool-list">
           {ORDER.map((id) => {
-            const t = TOOL_META[id];
+            const t = toolMeta[id];
             return (
               <button
                 key={id}

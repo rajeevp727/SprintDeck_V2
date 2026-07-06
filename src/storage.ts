@@ -30,16 +30,16 @@ export function clearIdentity(code: string) {
 
 // The room you're currently in — kept in storage (not the URL) so the page can
 // resume the room on refresh without exposing the code in the address bar.
-const CURRENT_KEY = 'pp.currentRoom';
+const currentRoomKey = 'pp.currentRoom';
 
 export function setCurrentRoom(code: string) {
-  localStorage.setItem(CURRENT_KEY, code.toUpperCase());
+  localStorage.setItem(currentRoomKey, code.toUpperCase());
 }
 
 export function getCurrentRoom(): string | null {
-  return localStorage.getItem(CURRENT_KEY);
+  return localStorage.getItem(currentRoomKey);
 }
 
 export function clearCurrentRoom() {
-  localStorage.removeItem(CURRENT_KEY);
+  localStorage.removeItem(currentRoomKey);
 }

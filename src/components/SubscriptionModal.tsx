@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
-  TIERS,
-  UPI_ID,
+  tiers,
+  upiId,
   upiLink,
   setSubscription,
   setPendingOrder,
@@ -10,6 +10,7 @@ import {
   getActiveSubscription,
   tierPrice,
   amountForTier,
+  platformFee,
   type TierId,
 } from '../subscription';
 import { createOrder, getStatus, type PaymentOrder } from '../verifier';
@@ -26,9 +27,9 @@ interface Props {
 // 'error'        — couldn't reach the verifier / payments not configured
 type PayState = 'loading' | 'pending' | 'confirmed' | 'regenerating' | 'error';
 
-const PAY_WINDOW = 90; // seconds the QR stays visible (1:30); the background watcher still confirms late payments
-const POLL_MS = 3000;
-const REGEN_MS = 5000; // how long the "regenerating" state shows before a fresh QR
+const payWindow = 90; // seconds the QR stays visible (1:30); the background watcher still confirms late payments
+const pollMs = 3000;
+const regenMs = 5000; // how long the "regenerating" state shows before a fresh QR
 
 // QR-sized placeholder with a centered spinner (reserves the QR's exact space
 // while loading/regenerating — no layout shift on load).
@@ -44,38 +45,36 @@ export default function SubscriptionModal({ onClose }: Props) {
   const [selected, setSelected] = useState<TierId | null>(null);
   const [payState, setPayState] = useState<PayState>('loading');
   const [order, setOrder] = useState<PaymentOrder | null>(null);
-  const [seconds, setSeconds] = useState(PAY_WINDOW);
+  const [seconds, setSeconds] = useState(payWindow);
   const [errMsg, setErrMsg] = useState('');
-  const tier = TIERS.find((t) => t.id === selected) ?? null;
+  const tier = tiers.find((t) => t.id === selected) ?? null;
 
-  // When the selected tier is a mid-subscription upgrade, the amount is reduced
-  // to the balance (new − current). Details drive the info icon + formula.
+  // Breakdown behind the payable amount (drives the info-icon tooltip): full
+  // price or the upgrade balance (new − current), plus the platform fee.
   const activeSub = getActiveSubscription();
-  const upgrade =
-    tier && activeSub && tier.price > tierPrice(activeSub.tier)
-      ? {
-          curr: tierPrice(activeSub.tier),
-          currName: TIERS.find((x) => x.id === activeSub.tier)?.name ?? activeSub.tier,
-          diff: tier.price - tierPrice(activeSub.tier),
-        }
-      : null;
+  const feeInfo = tier
+    ? (() => {
+        const isUpgrade = !!activeSub && tier.price > tierPrice(activeSub.tier);
+        const curr = isUpgrade ? tierPrice(activeSub!.tier) : 0;
+        const currName = isUpgrade ? tiers.find((x) => x.id === activeSub!.tier)?.name ?? activeSub!.tier : '';
+        const base = isUpgrade ? tier.price - curr : tier.price;
+        const title = isUpgrade
+          ? `${tier.name} ₹${tier.price} − ${currName} ₹${curr} + ₹${platformFee} platform fee = ₹${base + platformFee}`
+          : `₹${tier.price} plan + ₹${platformFee} platform fee = ₹${base + platformFee}`;
+        return { title };
+      })()
+    : null;
 
-  // "Pay ₹X" line — with an info icon + formula when the amount is a reduced upgrade balance.
+  // "Pay ₹X" line — with an info icon whose tooltip shows the full breakdown.
   const renderPayAmount = (amount: number) => (
-    <>
-      <p className="pay-amount">
-        Pay <strong>₹{amount.toFixed(2)}</strong>
-        {upgrade && tier && (
-          <span
-            className="pay-info"
-            title={`Reduced upgrade balance: ${tier.name} ₹${tier.price} − ${upgrade.currName} ₹${upgrade.curr} = ₹${upgrade.diff}`}
-            aria-label="Why this amount is reduced"
-          >
-            <InfoIcon />
-          </span>
-        )}
-      </p>
-    </>
+    <p className="pay-amount">
+      Pay <strong>₹{amount.toFixed(2)}</strong>
+      {feeInfo && (
+        <span className="pay-info" title={feeInfo.title} aria-label="Amount breakdown">
+          <InfoIcon />
+        </span>
+      )}
+    </p>
   );
 
   // Esc: on the pay step go BACK to the plans list; on the plans list, close.
@@ -107,7 +106,7 @@ export default function SubscriptionModal({ onClose }: Props) {
   // After the window elapses, show "regenerating" briefly, then auto-create a fresh QR.
   useEffect(() => {
     if (payState !== 'regenerating' || !tier) return;
-    const id = setTimeout(() => startPayment(tier.id, amountForTier(tier.id)), REGEN_MS);
+    const id = setTimeout(() => startPayment(tier.id, amountForTier(tier.id)), regenMs);
     return () => clearTimeout(id);
   }, [payState, tier]);
 
@@ -130,7 +129,7 @@ export default function SubscriptionModal({ onClose }: Props) {
         /* transient — keep polling until the window elapses */
       }
     };
-    const id = setInterval(poll, POLL_MS);
+    const id = setInterval(poll, pollMs);
     const onVisible = () => {
       if (!document.hidden) poll(); // check immediately on returning from the UPI app
     };
@@ -151,7 +150,7 @@ export default function SubscriptionModal({ onClose }: Props) {
   // Pick a tier → create an order for `amount` (full price, or upgrade balance).
   async function startPayment(id: TierId, amount: number) {
     setSelected(id);
-    setSeconds(PAY_WINDOW);
+    setSeconds(payWindow);
     setErrMsg('');
     setPayState('loading');
     try {
@@ -214,7 +213,7 @@ export default function SubscriptionModal({ onClose }: Props) {
                 </ul>
                 <span className="tier-cta">Use SprintDeck Free →</span>
               </a>
-              {TIERS.map((t) => {
+              {tiers.map((t) => {
                 const active = getActiveSubscription();
                 const isCurrent = active?.tier === t.id;
                 const isLower = !!active && t.price < tierPrice(active.tier);
@@ -296,10 +295,10 @@ export default function SubscriptionModal({ onClose }: Props) {
                   Try again
                 </button>
               </div>
-            ) : payState === 'pending' && order && UPI_ID ? (
+            ) : payState === 'pending' && order && upiId ? (
               <>
                 <p className="auth-sub">Scan with any UPI app. We&rsquo;ll confirm automatically.</p>
-                <p className="upi-vpa">{UPI_ID}</p>
+                <p className="upi-vpa">{upiId}</p>
                 <div className="qr-wrap">
                   <QRCodeSVG value={upiLink(order.payAmount, `SprintDeck ${tier.name}`)} size={176} marginSize={2} />
                 </div>
@@ -310,7 +309,7 @@ export default function SubscriptionModal({ onClose }: Props) {
                 <p className="auth-hint pay-hint">Once your payment lands, this confirms automatically.</p>
               </>
             ) : payState === 'pending' ? (
-              <p className="linear-notice">Payments aren&rsquo;t configured yet (set VITE_UPI_ID / the UPI_ID secret).</p>
+              <p className="linear-notice">Payments aren&rsquo;t configured yet (set VITE_UPI_ID / the upiId secret).</p>
             ) : null}
           </div>
         )}

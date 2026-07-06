@@ -6,13 +6,13 @@ const linear = require('../linear');
 
 // no-store so polling reads are never cached by the browser/CDN — otherwise
 // other devices render stale state until a manual refresh.
-const NO_CACHE = { 'Cache-Control': 'no-store' };
+const noCache = { 'Cache-Control': 'no-store' };
 
 function ok(body) {
-  return { status: 200, jsonBody: body, headers: NO_CACHE };
+  return { status: 200, jsonBody: body, headers: noCache };
 }
 function bad(message, status = 400) {
-  return { status, jsonBody: { error: message }, headers: NO_CACHE };
+  return { status, jsonBody: { error: message }, headers: noCache };
 }
 
 async function readBody(req) {
@@ -63,13 +63,13 @@ app.http('clientLog', {
   authLevel: 'anonymous',
   route: 'log',
   handler: async (req, context) => {
-    if (rateLimited(req, 'log', 30, 60_000)) return { status: 429, headers: NO_CACHE };
+    if (rateLimited(req, 'log', 30, 60_000)) return { status: 429, headers: noCache };
     const body = await readBody(req);
     const msg = String(body.message || '').slice(0, 1000);
     const url = String(body.url || '').slice(0, 500);
     const stack = String(body.stack || '').slice(0, 4000);
     context.error(`[client-error] ${msg} @ ${url}${stack ? `\n${stack}` : ''}`);
-    return { status: 204, headers: NO_CACHE };
+    return { status: 204, headers: noCache };
   },
 });
 
@@ -103,7 +103,7 @@ app.http('joinSession', {
     const result = await store.joinSession(req.params.code, name);
     if (result.error === 'notFound') return bad('Session not found', 404);
     if (result.error === 'full') {
-      return bad(`This room is full (max ${store.MAX_PARTICIPANTS} members)`, 409);
+      return bad(`This room is full (max ${store.maxParticipants} members)`, 409);
     }
     const { session, participantId } = result;
     return ok({ participantId, session: store.publicView(session, participantId) });

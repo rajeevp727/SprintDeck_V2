@@ -3,20 +3,20 @@ import { api } from '../api';
 import { clearIdentity, getIdentity } from '../storage';
 import type { Session } from '../types';
 import ResultsModal from './ResultsModal';
-import ConnectToolModal, { TOOL_META, type ToolId } from './ConnectToolModal';
+import ConnectToolModal, { toolMeta, type ToolId } from './ConnectToolModal';
 import ToolConnectModal from './ToolConnectModal';
 import ThemeToggle from './ThemeToggle';
 import SubscriptionModal from './SubscriptionModal';
 import AdBanner from './AdBanner';
 import { CrownIcon } from './icons';
 import { nearestDeckValue } from '../estimate';
-import { isSubscribed, getActiveSubscription, TIERS } from '../subscription';
+import { isSubscribed, getActiveSubscription, tiers } from '../subscription';
 
-const POLL_MS = 1500;
+const pollMs = 1500;
 // Only leave the room after this many CONSECUTIVE "not found" polls — tolerates
 // transient misses (tab loses focus & throttles, cold start, instance split) so
 // you stay put until you leave or the moderator actually ends the room.
-const MAX_MISSES = 6;
+const maxMisses = 6;
 
 interface Props {
   code: string;
@@ -86,7 +86,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
         // Tolerate transient misses; only exit after a sustained run of them
         // (room truly gone / moderator ended it).
         missCount.current += 1;
-        if (missCount.current >= MAX_MISSES) {
+        if (missCount.current >= maxMisses) {
           clearIdentity(code);
           onMissingIdentity();
         }
@@ -102,7 +102,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
     // room); refresh immediately when it becomes visible again.
     const id = setInterval(() => {
       if (!document.hidden) refresh();
-    }, POLL_MS);
+    }, pollMs);
     const onVisible = () => {
       if (!document.hidden) refresh();
     };
@@ -229,7 +229,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
     setPendingTool(null);
     setLinearConnected(true);
     setLinearNotice(
-      `Connected to ${TOOL_META[tool].name} (demo — sample tickets loaded; live read/write once the integration is wired).`,
+      `Connected to ${toolMeta[tool].name} (demo — sample tickets loaded; live read/write once the integration is wired).`,
     );
     loadEstimation();
   }
@@ -363,7 +363,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
           {isModerator &&
             (() => {
               const active = getActiveSubscription();
-              const plan = active ? TIERS.find((t) => t.id === active.tier) : null;
+              const plan = active ? tiers.find((t) => t.id === active.tier) : null;
               return (
                 <button
                   className={`ghost upgrade-btn${plan ? ' current-plan' : ''}`}

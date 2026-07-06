@@ -9,37 +9,37 @@
 // COSMOS_CONNECTION_STRING), sessions are persisted in Cosmos — shared across
 // every Function instance and durable across cold starts. This fixes "room not
 // available" (instance split) and "rooms expired" (cold-start memory loss).
-// Cosmos native TTL also auto-deletes idle rooms (see IDLE_SECONDS below).
+// Cosmos native TTL also auto-deletes idle rooms (see idleSeconds below).
 // Without a connection string it falls back to an in-memory Map (single
 // instance only) so local dev / unconfigured deploys still run.
 // ───────────────────────────────────────────────────────────────────────────
-const CONN = process.env.COSMOS_CONNECTION_STRING || '';
-const DB_NAME = 'sprintdeck';
-const CONTAINER_NAME = 'sessions';
+const conn = process.env.COSMOS_CONNECTION_STRING || '';
+const dbName = 'sprintdeck';
+const containerName = 'sessions';
 
 const memory = new Map(); // fallback when no connection string
 let containerPromise = null;
 
 function getContainer() {
-  if (!CONN) return null;
+  if (!conn) return null;
   if (!containerPromise) {
     const { CosmosClient } = require('@azure/cosmos');
-    const client = new CosmosClient(CONN);
+    const client = new CosmosClient(conn);
     containerPromise = (async () => {
       // Provisioned (free-tier) accounts need shared throughput; serverless
       // accounts reject it — try with, fall back to without.
       let database;
       try {
-        ({ database } = await client.databases.createIfNotExists({ id: DB_NAME, throughput: 400 }));
+        ({ database } = await client.databases.createIfNotExists({ id: dbName, throughput: 400 }));
       } catch {
-        ({ database } = await client.databases.createIfNotExists({ id: DB_NAME }));
+        ({ database } = await client.databases.createIfNotExists({ id: dbName }));
       }
       const { container } = await database.containers.createIfNotExists({
-        id: CONTAINER_NAME,
+        id: containerName,
         partitionKey: { paths: ['/code'] },
         // Native TTL: a room auto-deletes this many seconds after its last write
         // (_ts), giving us automatic idle expiry without any cleanup job.
-        defaultTtl: SESSION_IDLE_MS / 1000,
+        defaultTtl: sessionIdleMs / 1000,
       });
       return container;
     })().catch((e) => {
@@ -74,7 +74,7 @@ async function writeRaw(session) {
       id: session.code,
       code: session.code,
       doc: session,
-      ttl: SESSION_IDLE_MS / 1000, // refresh idle expiry on every write
+      ttl: sessionIdleMs / 1000, // refresh idle expiry on every write
     });
   } else {
     memory.set(session.code, session);
@@ -97,7 +97,7 @@ async function removeRaw(code) {
 // ───────────────────────────────────────────────────────────────────────────
 // Deck
 // ───────────────────────────────────────────────────────────────────────────
-const DECK_MAX = 21;
+const deckMax = 21;
 
 function buildFibonacciDeck(max) {
   const deck = [1];
@@ -110,24 +110,24 @@ function buildFibonacciDeck(max) {
   return deck.map(String);
 }
 
-const DECK = buildFibonacciDeck(DECK_MAX);
+const deck = buildFibonacciDeck(deckMax);
 
 // ───────────────────────────────────────────────────────────────────────────
 // Limits
 // ───────────────────────────────────────────────────────────────────────────
 // A session is treated as gone when EITHER it has had no activity for
-// SESSION_IDLE_MS or its total age exceeds SESSION_MAX_AGE_MS. Retention is a
+// sessionIdleMs or its total age exceeds sessionMaxAgeMs. Retention is a
 // configurable policy: override via app settings SESSION_IDLE_HOURS (default 2)
-// and SESSION_MAX_AGE_HOURS (default 5). Cosmos native TTL uses SESSION_IDLE_MS.
-const SESSION_IDLE_MS = (Number(process.env.SESSION_IDLE_HOURS) || 2) * 60 * 60 * 1000;
-const SESSION_MAX_AGE_MS = (Number(process.env.SESSION_MAX_AGE_HOURS) || 5) * 60 * 60 * 1000;
-const MAX_PARTICIPANTS = 20; // moderator included
+// and SESSION_MAX_AGE_HOURS (default 5). Cosmos native TTL uses sessionIdleMs.
+const sessionIdleMs = (Number(process.env.SESSION_IDLE_HOURS) || 2) * 60 * 60 * 1000;
+const sessionMaxAgeMs = (Number(process.env.SESSION_MAX_AGE_HOURS) || 5) * 60 * 60 * 1000;
+const maxParticipants = 20; // moderator included
 
-const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L ambiguity
+const codeChars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L ambiguity
 
 function randomCode() {
   let code = '';
-  for (let i = 0; i < 5; i++) code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+  for (let i = 0; i < 5; i++) code += codeChars[Math.floor(Math.random() * codeChars.length)];
   return code;
 }
 
@@ -141,7 +141,7 @@ function normalize(code) {
 
 function isExpired(s) {
   const now = Date.now();
-  return now - s.lastActivity > SESSION_IDLE_MS || now - s.createdAt > SESSION_MAX_AGE_MS;
+  return now - s.lastActivity > sessionIdleMs || now - s.createdAt > sessionMaxAgeMs;
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -177,13 +177,13 @@ async function genUniqueCode() {
   return code;
 }
 
-const CODE_RE = /^[A-Z0-9-]{3,24}$/;
+const codeRe = /^[A-Z0-9-]{3,24}$/;
 
 async function createSession(name, moderatorName, desiredCode) {
   let code;
   const wanted = normalize(desiredCode);
   if (wanted) {
-    if (!CODE_RE.test(wanted)) return { error: 'invalid' };
+    if (!codeRe.test(wanted)) return { error: 'invalid' };
     if (await loadSession(wanted)) return { error: 'taken' };
     code = wanted;
   } else {
@@ -200,7 +200,7 @@ async function createSession(name, moderatorName, desiredCode) {
     finished: false, // moderator clicked Finish → unlocks Results
     currentEntryId: null, // history entry id for the story being estimated
     currentLinear: null, // { linearId, identifier } when the current story is a Linear issue
-    deck: DECK,
+    deck: deck,
     participants: {
       [pid]: { id: pid, name: (moderatorName || '').trim() || 'Moderator', vote: null },
     },
@@ -216,7 +216,7 @@ async function createSession(name, moderatorName, desiredCode) {
 async function joinSession(code, name) {
   const session = await loadSession(code);
   if (!session) return { error: 'notFound' };
-  if (Object.keys(session.participants).length >= MAX_PARTICIPANTS) {
+  if (Object.keys(session.participants).length >= maxParticipants) {
     return { error: 'full' };
   }
   const pid = genId();
@@ -420,7 +420,7 @@ function publicView(session, requesterId) {
 }
 
 module.exports = {
-  MAX_PARTICIPANTS,
+  maxParticipants,
   loadSession,
   saveSession,
   deleteSession,

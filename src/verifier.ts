@@ -2,7 +2,7 @@
 // api (/api/order, /api/upi/status). PSP-free: the backend matches a bank
 // credit alert to a pending order by its unique amount.
 
-const BASE = '/api';
+const apiBase = '/api';
 
 export interface PaymentOrder {
   orderId: string;
@@ -27,7 +27,7 @@ async function json<T>(res: Response): Promise<T> {
 
 // Create a pending order for a plan; returns the exact amount + UPI link to pay.
 export function createOrder(tier: string, baseAmount: number): Promise<PaymentOrder> {
-  return fetch(`${BASE}/order`, {
+  return fetch(`${apiBase}/order`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ tier, baseAmount }),
@@ -36,7 +36,7 @@ export function createOrder(tier: string, baseAmount: number): Promise<PaymentOr
 
 // Poll whether the order has been paid (matched by the verifier's ingest).
 export function getStatus(orderId: string): Promise<{ status: PayStatus }> {
-  return fetch(`${BASE}/upi/status?orderId=${encodeURIComponent(orderId)}`, {
+  return fetch(`${apiBase}/upi/status?orderId=${encodeURIComponent(orderId)}`, {
     cache: 'no-store',
   }).then((r) => json<{ status: PayStatus }>(r));
 }
