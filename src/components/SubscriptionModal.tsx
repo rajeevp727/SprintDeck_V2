@@ -307,7 +307,7 @@ export default function SubscriptionModal({ onClose }: Props) {
                   Waiting for payment · <strong>{mmss}</strong>
                 </p>
                 {renderPayAmount(order.payAmount)}
-                <p className="auth-hint">Once your payment lands, this confirms automatically.</p>
+                <p className="auth-hint pay-hint">Once your payment lands, this confirms automatically.</p>
               </>
             ) : payState === 'pending' ? (
               <p className="linear-notice">Payments aren&rsquo;t configured yet (set VITE_UPI_ID / the UPI_ID secret).</p>

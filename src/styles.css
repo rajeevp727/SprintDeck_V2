@@ -1426,6 +1426,11 @@ a.room-code:hover {
   color: var(--muted);
   cursor: default;
 }
+.pay-hint {
+  font-size: 0.62rem;
+  text-align: center;
+  margin: 0.1rem 0 0;
+}
 
 /* Payment countdown — colour shifts as the window runs down. */
 .pay-timer {
