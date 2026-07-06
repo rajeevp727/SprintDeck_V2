@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { TIERS, UPI_ID, upiLink, setSubscription, type TierId } from '../subscription';
-import { verifierEnabled, createOrder, getStatus, type PaymentOrder } from '../verifier';
+import { TIERS, setSubscription, type TierId } from '../subscription';
+import { createOrder, getStatus, type PaymentOrder } from '../verifier';
 import { CloseIcon } from './icons';
 
 interface Props {
@@ -12,9 +12,8 @@ interface Props {
 // 'pending'  — QR shown, polling for payment
 // 'confirmed'— verifier matched the payment → plan activated
 // 'expired'  — payment window elapsed → Retry
-// 'error'    — couldn't reach the verifier
-// 'static'   — no verifier configured: display-only QR, no auto-activation
-type PayState = 'loading' | 'pending' | 'confirmed' | 'expired' | 'error' | 'static';
+// 'error'    — couldn't reach the verifier / payments not configured
+type PayState = 'loading' | 'pending' | 'confirmed' | 'expired' | 'error';
 
 const PAY_WINDOW = 120; // seconds the QR stays valid before it must be regenerated
 const POLL_MS = 3000;
@@ -74,15 +73,11 @@ export default function SubscriptionModal({ onClose }: Props) {
     return () => clearTimeout(id);
   }, [payState, onClose]);
 
-  // Pick a tier → create a verifier order (or fall back to a static QR).
+  // Pick a tier → create an order and show its QR.
   async function startPayment(id: TierId, price: number) {
     setSelected(id);
     setSeconds(PAY_WINDOW);
     setErrMsg('');
-    if (!verifierEnabled) {
-      setPayState('static');
-      return;
-    }
     setPayState('loading');
     try {
       const o = await createOrder(id, price);
@@ -172,9 +167,7 @@ export default function SubscriptionModal({ onClose }: Props) {
               {tier.name} · ₹{tier.price}/mo
             </h3>
 
-            {!UPI_ID && !verifierEnabled ? (
-              <p className="linear-notice">Payments aren&rsquo;t configured yet (set VITE_UPI_ID / VITE_VERIFIER_URL).</p>
-            ) : payState === 'confirmed' ? (
+            {payState === 'confirmed' ? (
               <div className="pay-success">
                 <div className="pay-check" aria-hidden>✓</div>
                 <p className="pay-success-title">Payment received</p>
@@ -215,17 +208,7 @@ export default function SubscriptionModal({ onClose }: Props) {
                 <p className="upi-vpa">{order.vpa}</p>
                 <p className="auth-hint">Pay the exact amount (incl. paise) so we can auto-confirm your plan.</p>
               </>
-            ) : (
-              /* 'static' — no verifier: display-only QR, no auto-activation */
-              <>
-                <p className="auth-sub">Scan with any UPI app to pay.</p>
-                <div className="qr-wrap">
-                  <QRCodeSVG value={upiLink(tier.price, `SprintDeck ${tier.name}`)} size={176} marginSize={2} />
-                </div>
-                <p className="upi-vpa">{UPI_ID}</p>
-                <p className="auth-hint">Payment auto-confirmation isn&rsquo;t enabled here.</p>
-              </>
-            )}
+            ) : null}
           </div>
         )}
       </div>

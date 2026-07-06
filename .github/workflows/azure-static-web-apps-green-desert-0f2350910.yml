@@ -22,12 +22,6 @@ jobs:
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
-        env:
-          # UPI VPA injected at build from the repo secret UPI_ID (kept out of the repo).
-          VITE_UPI_ID: ${{ secrets.UPI_ID }}
-          # Base URL of the deployed upi-verifier (e.g. https://<app>.azurewebsites.net/api).
-          # When unset, the pay screen falls back to a display-only QR (no auto-confirm).
-          VITE_VERIFIER_URL: ${{ secrets.VERIFIER_URL }}
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_GREEN_DESERT_0F2350910 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)

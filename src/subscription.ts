@@ -1,7 +1,8 @@
-// Subscription tiers + client-side state for SprintDeck V2 (paid product).
+// Subscription tiers + client-side "paid" state for SprintDeck V2 (paid product).
 //
-// There is no auth/backend payment confirmation (UPI has no webhook), so "paid"
-// is recorded locally after the moderator confirms — honour-system for now.
+// Payment is verified server-side by the upi-verifier endpoints (see verifier.ts):
+// the modal polls /api/upi/status and records the tier here once the backend
+// matches the bank credit alert to the order.
 
 export type TierId = 'pro' | 'expert' | 'master';
 
@@ -80,20 +81,4 @@ export function setSubscription(tier: TierId) {
   } catch {
     /* ignore storage failures */
   }
-}
-
-// UPI VPA injected at build from the GitHub secret UPI_ID (workflow maps it to
-// VITE_UPI_ID; .env.local for local dev). Never hardcoded in the repo.
-export const UPI_ID: string = import.meta.env.VITE_UPI_ID || '';
-
-// UPI deep link for a given amount; scanning/opening it pays the VPA.
-export function upiLink(amount: number, note: string): string {
-  const params = new URLSearchParams({
-    pa: UPI_ID,
-    pn: 'SprintDeck',
-    cu: 'INR',
-    am: String(amount),
-    tn: note,
-  });
-  return `upi://pay?${params.toString()}`;
 }

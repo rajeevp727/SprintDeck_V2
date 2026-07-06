@@ -1,12 +1,8 @@
-// Client for the standalone upi-verifier service (PSP-free UPI verification).
-//
-// Base URL comes from VITE_VERIFIER_URL (e.g. http://localhost:7073/api in dev,
-// the deployed Function App's /api in prod). When it's unset the payment flow
-// falls back to a display-only QR (no auto-activation) — see SubscriptionModal.
+// Client for the UPI verification endpoints, served same-origin from the SWA
+// api (/api/order, /api/upi/status). PSP-free: the backend matches a bank
+// credit alert to a pending order by its unique amount.
 
-const BASE = import.meta.env.VITE_VERIFIER_URL || '';
-
-export const verifierEnabled = !!BASE;
+const BASE = '/api';
 
 export interface PaymentOrder {
   orderId: string;
