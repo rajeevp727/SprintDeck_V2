@@ -82,3 +82,21 @@ export function setSubscription(tier: TierId) {
     /* ignore storage failures */
   }
 }
+
+// Owner bypass — since there's no login, the owner unlocks the paid plan for
+// their own browser by visiting `?unlock=<OWNER_UNLOCK_CODE>`. It activates the
+// top (Master) tier and is invisible to normal users. Change the code to rotate.
+export const OWNER_UNLOCK_CODE = 'sd-owner-2f5a91';
+
+export function applyOwnerUnlock(): boolean {
+  try {
+    const code = new URLSearchParams(window.location.search).get('unlock');
+    if (code && code === OWNER_UNLOCK_CODE) {
+      setSubscription('master');
+      return true;
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
