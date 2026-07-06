@@ -1353,27 +1353,62 @@ a.room-code:hover {
   margin: 0.5rem 0;
   display: inline-block;
 }
-/* Shimmer placeholder shown while the QR (order) is being created. */
-.qr-shimmer {
+/* QR skeleton shown while the real QR (order) is being created: dark modules
+   twinkle in/out with staggered delays, with the three QR "finder" squares so
+   it reads as a loading QR. Replaced by the real QR on load. */
+.qr-skeleton {
+  position: relative;
   width: 176px;
   height: 176px;
-  border-radius: 6px;
-  background: #e9edf3;
-  background-image: linear-gradient(100deg, #e9edf3 30%, #f6f8fb 50%, #e9edf3 70%);
-  background-size: 200% 100%;
-  animation: qrShimmer 1.2s ease-in-out infinite;
 }
-@keyframes qrShimmer {
-  0% {
-    background-position: 200% 0;
-  }
+.qr-grid {
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  grid-template-rows: repeat(11, 1fr);
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
+.qr-cell {
+  border-radius: 1px;
+  background: #0b1020;
+  animation: qrTwinkle 1s ease-in-out infinite;
+}
+@keyframes qrTwinkle {
+  0%,
   100% {
-    background-position: -200% 0;
+    opacity: 0.12;
+    transform: scale(0.55);
   }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.qr-finder {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 6px solid #0b1020;
+  border-radius: 6px;
+  background: #fff;
+}
+.qr-tl {
+  top: 0;
+  left: 0;
+}
+.qr-tr {
+  top: 0;
+  right: 0;
+}
+.qr-bl {
+  bottom: 0;
+  left: 0;
 }
 @media (prefers-reduced-motion: reduce) {
-  .qr-shimmer {
+  .qr-cell {
     animation: none;
+    opacity: 0.5;
   }
 }
 .upi-vpa {
