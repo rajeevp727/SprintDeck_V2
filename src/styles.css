@@ -1420,7 +1420,7 @@ a.room-code:hover {
   vertical-align: middle;
   margin-left: 0.35rem;
   color: var(--muted);
-  cursor: help;
+  cursor: default;
 }
 .pay-formula {
   font-size: 0.8rem;
