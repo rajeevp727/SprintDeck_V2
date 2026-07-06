@@ -3,6 +3,10 @@
 Dated log of changes, updated each working day. Newest first.
 See `PRD.md` for product direction and `README.md` for setup.
 
+## 2026-07-06 (T7) — subscriptions + code cleanup
+- **T7 · Monetization** — subscription popup shown on moderator room-entry (unless subscribed/dismissed): tiers **Pro / Expert / Master**, pay via **UPI QR** (`qrcode.react`). VPA sourced from GitHub secret **`UPI_ID`** → `VITE_UPI_ID` (never hardcoded; `.env.local` for dev, workflow env for prod). "Upgrade" button in the room header; subscribed state in localStorage (activation is manual — UPI has no auto-confirmation).
+- **Cleanup / optimize** — removed dead `SHOW_QUEUE` queue panel + drag-reorder code (`dragIndex`/`dropOnQueueItem`); extracted shared `CloseIcon`/`BackIcon` (dedup modal SVGs); added `vite-env.d.ts`; pruned orphaned CSS (`.story-input`, `.q-handle`, `.dragging`, cursor overrides).
+
 ## 2026-07-06 (later) — report-card remediation batch
 Hardening pass toward the due-diligence report card (each its own commit):
 

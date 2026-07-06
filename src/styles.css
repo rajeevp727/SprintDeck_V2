@@ -599,17 +599,6 @@ a.room-code:hover {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0.45rem 0.6rem;
-  cursor: grab;
-}
-.queue-list li.dragging {
-  opacity: 0.4;
-}
-.q-handle {
-  color: var(--muted);
-  cursor: grab;
-  user-select: none;
-  font-size: 1rem;
-  line-height: 1;
 }
 .q-num {
   color: var(--muted);
@@ -645,9 +634,6 @@ a.room-code:hover {
 }
 
 /* Linear V1 flow — ticket import + write-back */
-.linear-panel .queue-list li {
-  cursor: default;
-}
 .q-badge {
   font-size: 0.72rem;
   font-weight: 600;
@@ -1073,16 +1059,6 @@ a.room-code:hover {
 .panel-buttons .primary {
   min-width: 150px;
 }
-.story-input {
-  flex: 1;
-  min-width: 220px;
-  cursor: default;
-}
-/* read-only display field shouldn't glow on focus like an editable input */
-.story-input:focus {
-  box-shadow: none;
-  border-color: var(--line);
-}
 .panel-buttons {
   display: flex;
   gap: 0.5rem;
@@ -1212,4 +1188,128 @@ a.room-code:hover {
 .sum-stat span {
   font-size: 0.72rem;
   color: var(--muted);
+}
+
+/* Subscription modal + tiers */
+.sub-modal {
+  position: relative;
+  width: min(720px, 94vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.6rem 1.5rem;
+  text-align: center;
+}
+.sub-modal h3 {
+  margin: 0 0 0.3rem;
+}
+.tier-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8rem;
+  margin: 1rem 0 0.75rem;
+}
+@media (max-width: 640px) {
+  .tier-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.tier-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  text-align: left;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1rem 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text);
+  transition: border-color var(--transition), transform var(--transition);
+}
+.tier-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.tier-hot {
+  border-color: var(--accent);
+  box-shadow: var(--ring);
+}
+.tier-badge {
+  position: absolute;
+  top: -10px;
+  right: 12px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+.tier-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.tier-price {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+.tier-price small {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.tier-tagline {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.tier-feats {
+  margin: 0.4rem 0 0.6rem;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+}
+.tier-feats li {
+  margin: 0.2rem 0;
+}
+.tier-cta {
+  margin-top: auto;
+  width: 100%;
+  text-align: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.45rem;
+  border-radius: 8px;
+}
+.sub-later {
+  margin-top: 0.25rem;
+}
+.pay-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.pay-back {
+  align-self: flex-start;
+}
+.qr-wrap {
+  background: #fff;
+  padding: 12px;
+  border-radius: 12px;
+  margin: 0.5rem 0;
+  display: inline-block;
+}
+.upi-vpa {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0 0 0.75rem;
 }

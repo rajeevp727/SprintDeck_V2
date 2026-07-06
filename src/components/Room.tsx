@@ -6,17 +6,16 @@ import ResultsModal from './ResultsModal';
 import ConnectToolModal, { TOOL_META, type ToolId } from './ConnectToolModal';
 import ToolConnectModal from './ToolConnectModal';
 import ThemeToggle from './ThemeToggle';
+import SubscriptionModal from './SubscriptionModal';
 import AdBanner from './AdBanner';
 import { nearestDeckValue } from '../estimate';
+import { isSubscribed } from '../subscription';
 
 const POLL_MS = 1500;
 // Only leave the room after this many CONSECUTIVE "not found" polls — tolerates
 // transient misses (tab loses focus & throttles, cold start, instance split) so
 // you stay put until you leave or the moderator actually ends the room.
 const MAX_MISSES = 6;
-// Story planning (the queue + per-story field) is hidden for now — teams just
-// join and vote. Flip to true to bring back queued, per-story estimation.
-const SHOW_QUEUE = false;
 
 interface Props {
   code: string;
@@ -36,7 +35,6 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
   const [copied, setCopied] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [viewedCount, setViewedCount] = useState(0); // history entries the moderator has opened
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [linearEnabled, setLinearEnabled] = useState(false);
   const [linearDraft, setLinearDraft] = useState('');
   const [linearMissing, setLinearMissing] = useState<string[]>([]);
@@ -44,6 +42,8 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
   const [linearConnected, setLinearConnected] = useState(false);
   const [showToolPicker, setShowToolPicker] = useState(false);
   const [pendingTool, setPendingTool] = useState<ToolId | null>(null);
+  const [showSubscribe, setShowSubscribe] = useState(false);
+  const subChecked = useRef(false);
   const [pushEntryId, setPushEntryId] = useState<string | null>(null);
   const [pushValue, setPushValue] = useState('');
   const missCount = useRef(0);
@@ -119,6 +119,16 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
     api.linearStatus().then((r) => setLinearEnabled(r.enabled)).catch(() => {});
   }, []);
 
+  // Show the subscription popup once when a moderator enters, unless already
+  // subscribed or dismissed this session.
+  useEffect(() => {
+    if (subChecked.current || !isModerator) return;
+    if (!isSubscribed() && !sessionStorage.getItem('sprintdeck.sub.dismissed')) {
+      subChecked.current = true;
+      setShowSubscribe(true);
+    }
+  }, [isModerator]);
+
   // On a freshly revealed Linear-backed round, prefill the push value with the
   // median-nearest deck value — once per entry, so polling doesn't clobber a
   // manual selection.
@@ -160,19 +170,6 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
     if (titles.length === 0) return;
     setQueueDraft('');
     moderatorAction(() => api.addToQueue(code, participantId, titles));
-  }
-
-  function dropOnQueueItem(targetIndex: number) {
-    if (!session || dragIndex === null || dragIndex === targetIndex) {
-      setDragIndex(null);
-      return;
-    }
-    const items = [...session.queue];
-    const [moved] = items.splice(dragIndex, 1);
-    items.splice(targetIndex, 0, moved);
-    setDragIndex(null);
-    setSession({ ...session, queue: items }); // optimistic
-    moderatorAction(() => api.reorderQueue(code, participantId, items.map((q) => q.id)));
   }
 
   async function importLinear() {
@@ -352,6 +349,11 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
         </div>
         <div className="room-actions">
           <ThemeToggle />
+          {isModerator && !isSubscribed() && (
+            <button className="ghost" onClick={() => setShowSubscribe(true)}>
+              Upgrade
+            </button>
+          )}
           <span className={`status-pill ${session.status}`}>
             {session.status === 'waiting' && 'Not started'}
             {session.status === 'voting' && `Voting · ${voted}/${total}`}
@@ -433,14 +435,6 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
       {isModerator && (
         <>
           <div className="panel">
-            {SHOW_QUEUE && (
-              <input
-                className="story-input"
-                value={session.story}
-                placeholder="Current story — add tickets to the queue, then Start"
-                readOnly
-              />
-            )}
             <div className="panel-buttons">
               {session.status === 'waiting' && (
                 <button
@@ -526,53 +520,6 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
               </div>
             )}
           </div>
-
-          {/* Story queue */}
-          {SHOW_QUEUE && (
-          <div className="queue-panel">
-            <div className="queue-head">
-              <span className="queue-title">Story queue</span>
-              <span className="muted">{session.queue.length} queued</span>
-            </div>
-            {session.queue.length > 0 && (
-              <ul className="queue-list">
-                {session.queue.map((q, i) => (
-                  <li
-                    key={q.id}
-                    draggable
-                    onDragStart={() => setDragIndex(i)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => dropOnQueueItem(i)}
-                    onDragEnd={() => setDragIndex(null)}
-                    className={dragIndex === i ? 'dragging' : ''}
-                  >
-                    <span className="q-handle" title="Drag to reorder">⠿</span>
-                    <span className="q-num">{i + 1}</span>
-                    <span className="q-title">{q.title}</span>
-                    <button
-                      className="q-remove"
-                      title="Remove"
-                      onClick={() => moderatorAction(() => api.removeFromQueue(code, participantId, q.id))}
-                    >
-                      ×
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="queue-add">
-              <textarea
-                value={queueDraft}
-                placeholder="Paste stories — one per line — to add to the queue"
-                rows={2}
-                onChange={(e) => setQueueDraft(e.target.value)}
-              />
-              <button className="ghost" disabled={!queueDraft.trim()} onClick={addQueue}>
-                Add to queue
-              </button>
-            </div>
-          </div>
-          )}
 
           {/* Linear — Connect (OAuth) + Estimation-view tickets */}
           <div className="queue-panel linear-panel">
@@ -739,6 +686,16 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
           onBack={backToPicker}
           onClose={() => setPendingTool(null)}
           onConnected={onToolConnected}
+        />
+      )}
+
+      {showSubscribe && (
+        <SubscriptionModal
+          onClose={() => {
+            sessionStorage.setItem('sprintdeck.sub.dismissed', '1');
+            setShowSubscribe(false);
+          }}
+          onSubscribed={() => setShowSubscribe(false)}
         />
       )}
     </div>

@@ -59,7 +59,7 @@ shared provider adapter (T10); cross-sprint velocity analytics (T9).
 | T4 | Security hardening (headers, Dependabot, room-create rate limit) | ✅ done |
 | T5 | Observability (client errors → App Insights; Sentry/staging external) | ✅ done (partial) |
 | T6 | Legal & compliance (Terms + Security pages; DPA later) | ✅ done (partial) |
-| T7 | Monetization (PhonePe UPI, tiers) | pending |
+| T7 | Monetization — subscription popup + UPI QR (tiers Pro/Expert/Master; VPA via `UPI_ID` secret) | ✅ done (partial — manual activation) |
 | T8 | Accessibility & polish (focus, reduced-motion, ARIA, SVG icons) | ✅ done |
 | T9 | Differentiation — session analytics done; cross-sprint velocity deferred | ✅ partial |
 | T10 | Additional integrations (Jira, Azure DevOps) | pending |
