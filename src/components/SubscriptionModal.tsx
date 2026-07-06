@@ -75,11 +75,6 @@ export default function SubscriptionModal({ onClose }: Props) {
           </span>
         )}
       </p>
-      {upgrade && tier && (
-        <p className="pay-formula">
-          Reduced: ₹{tier.price} − ₹{upgrade.curr} = ₹{upgrade.diff}
-        </p>
-      )}
     </>
   );
 
