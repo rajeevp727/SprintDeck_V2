@@ -11,7 +11,9 @@
 // tolerant. When a bank tweaks its wording, adjust here (and add a test case).
 
 const CREDIT_RE = /\b(credited|received|deposited)\b/i;
-const DEBIT_RE = /\b(debited|spent|withdrawn|debit)\b/i;
+// Only the debit VERBS — NOT the bare noun "debit", which appears in footers
+// ("debit card", "credit/debit") and would wrongly reject genuine credits.
+const DEBIT_RE = /\b(debited|withdrawn|spent)\b/i;
 
 // INR 499.02 | Rs. 499.02 | Rs 499 | ₹499.02  (thousands separators allowed)
 const AMOUNT_RE = /(?:INR|Rs\.?|₹)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i;
