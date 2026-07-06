@@ -26,14 +26,20 @@ export default function SubscriptionModal({ onClose }: Props) {
   const [errMsg, setErrMsg] = useState('');
   const tier = TIERS.find((t) => t.id === selected) ?? null;
 
-  // Esc closes the modal.
+  // Esc: on the pay step go BACK to the plans list; on the plans list, close.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      if (selected) {
+        setSelected(null);
+        setOrder(null);
+      } else {
+        onClose();
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [selected, onClose]);
 
   // Countdown while a QR is showing. When it hits 0 the QR expires (Retry to reset).
   useEffect(() => {
