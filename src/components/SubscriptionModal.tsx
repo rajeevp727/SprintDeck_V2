@@ -52,6 +52,12 @@ export default function SubscriptionModal({ onClose, onSubscribed }: Props) {
                 </button>
               ))}
             </div>
+            <div className="sub-free">
+              <span className="sub-free-label">Just need plain planning poker?</span>
+              <a className="sub-free-link" href="https://sprintdeck.rajeevstech.in">
+                Use SprintDeck Free →
+              </a>
+            </div>
             <button className="ghost sub-later" onClick={onClose}>
               Maybe later
             </button>
