@@ -435,6 +435,10 @@ a.room-code:hover {
   color: var(--accent);
   border-color: var(--accent);
 }
+.upgrade-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
 .status-pill {
   font-size: 0.85rem;
   padding: 0.35rem 0.7rem;

@@ -10,7 +10,7 @@ import SubscriptionModal from './SubscriptionModal';
 import AdBanner from './AdBanner';
 import { CrownIcon } from './icons';
 import { nearestDeckValue } from '../estimate';
-import { isSubscribed, getSubscription, TIERS } from '../subscription';
+import { isSubscribed, getActiveSubscription, TIERS } from '../subscription';
 
 const POLL_MS = 1500;
 // Only leave the room after this many CONSECUTIVE "not found" polls — tolerates
@@ -360,16 +360,21 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
         </div>
         <div className="room-actions">
           <ThemeToggle />
-          {isModerator && (
-            <button
-              className={`ghost upgrade-btn${isSubscribed() ? ' current-plan' : ''}`}
-              onClick={() => setShowSubscribe(true)}
-              title={isSubscribed() ? 'Your plan — tap to change' : 'Upgrade'}
-            >
-              <CrownIcon />
-              {isSubscribed() ? TIERS.find((t) => t.id === getSubscription()?.tier)?.name ?? 'Plan' : 'Upgrade'}
-            </button>
-          )}
+          {isModerator &&
+            (() => {
+              const active = getActiveSubscription();
+              const plan = active ? TIERS.find((t) => t.id === active.tier) : null;
+              return (
+                <button
+                  className={`ghost upgrade-btn${plan ? ' current-plan' : ''}`}
+                  onClick={() => setShowSubscribe(true)}
+                  title={plan ? 'Your plan — tap to change' : 'Upgrade'}
+                >
+                  {plan ? <span className="upgrade-icon" aria-hidden>{plan.icon}</span> : <CrownIcon />}
+                  {plan ? plan.name : 'Upgrade'}
+                </button>
+              );
+            })()}
           <span className={`status-pill ${session.status}`}>
             {session.status === 'waiting' && 'Not started'}
             {session.status === 'voting' && `Voting · ${voted}/${total}`}
