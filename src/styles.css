@@ -1366,17 +1366,27 @@ a.room-code:hover {
   align-items: center;
   justify-content: center;
 }
-.qr-spinner {
-  width: 44px;
-  height: 44px;
-  border: 4px solid #c9d3e4;
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: qrSpin 0.8s linear infinite;
+/* Determinate ring that fills from empty to full over ~1.5s, then the QR shows. */
+.qr-loader {
+  transform: rotate(-90deg); /* start the fill from the top */
 }
-@keyframes qrSpin {
+.qr-loader-track {
+  fill: none;
+  stroke: #c9d3e4;
+  stroke-width: 4;
+}
+.qr-loader-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 125.6; /* 2πr, r=20 */
+  stroke-dashoffset: 125.6;
+  animation: qrFill 1.5s ease-in-out forwards;
+}
+@keyframes qrFill {
   to {
-    transform: rotate(360deg);
+    stroke-dashoffset: 0;
   }
 }
 .upi-vpa {

@@ -24,7 +24,10 @@ const REGEN_MS = 5000; // how long the "regenerating" state shows before a fresh
 function QrSkeleton() {
   return (
     <div className="qr-skeleton" aria-label="Loading QR code" role="img">
-      <span className="qr-spinner" aria-hidden />
+      <svg className="qr-loader" viewBox="0 0 48 48" width="54" height="54" aria-hidden>
+        <circle className="qr-loader-track" cx="24" cy="24" r="20" />
+        <circle className="qr-loader-fill" cx="24" cy="24" r="20" />
+      </svg>
     </div>
   );
 }
@@ -114,7 +117,12 @@ export default function SubscriptionModal({ onClose }: Props) {
     setErrMsg('');
     setPayState('loading');
     try {
-      const o = await createOrder(id, price);
+      // Wait for the order AND let the loader ring fill fully (~1.5s) before
+      // revealing the QR.
+      const [o] = await Promise.all([
+        createOrder(id, price),
+        new Promise((resolve) => setTimeout(resolve, 1500)),
+      ]);
       setOrder(o);
       setPendingOrder(o.orderId, id); // persist so it activates even after the modal closes
       setPayState('pending');
