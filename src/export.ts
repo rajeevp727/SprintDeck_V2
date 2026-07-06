@@ -63,3 +63,26 @@ export function exportCsv(history: HistoryEntry[]) {
   // BOM so Excel detects UTF-8 correctly.
   downloadBlob('﻿' + rows.join('\r\n'), `${APP_NAME}.csv`, 'text/csv;charset=utf-8');
 }
+
+// Full session data as JSON — for archival / data portability.
+export function exportJson(sessionName: string, history: HistoryEntry[]) {
+  const data = {
+    app: APP_NAME,
+    session: sessionName,
+    exportedAt: new Date().toISOString(),
+    rounds: history.map((h, i) => ({
+      index: i + 1,
+      title: h.title,
+      identifier: h.identifier ?? null,
+      average: h.average,
+      median: h.median,
+      min: h.min,
+      max: h.max,
+      consensus: h.consensus,
+      pushedEstimate: h.pushedEstimate ?? null,
+      votes: h.votes,
+      at: h.at,
+    })),
+  };
+  downloadBlob(JSON.stringify(data, null, 2), `${APP_NAME}.json`, 'application/json;charset=utf-8');
+}

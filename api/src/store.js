@@ -116,9 +116,11 @@ const DECK = buildFibonacciDeck(DECK_MAX);
 // Limits
 // ───────────────────────────────────────────────────────────────────────────
 // A session is treated as gone when EITHER it has had no activity for
-// SESSION_IDLE_MS (2h) or its total age exceeds SESSION_MAX_AGE_MS (5h).
-const SESSION_MAX_AGE_MS = 5 * 60 * 60 * 1000; // 5h
-const SESSION_IDLE_MS = 2 * 60 * 60 * 1000; // 2h
+// SESSION_IDLE_MS or its total age exceeds SESSION_MAX_AGE_MS. Retention is a
+// configurable policy: override via app settings SESSION_IDLE_HOURS (default 2)
+// and SESSION_MAX_AGE_HOURS (default 5). Cosmos native TTL uses SESSION_IDLE_MS.
+const SESSION_IDLE_MS = (Number(process.env.SESSION_IDLE_HOURS) || 2) * 60 * 60 * 1000;
+const SESSION_MAX_AGE_MS = (Number(process.env.SESSION_MAX_AGE_HOURS) || 5) * 60 * 60 * 1000;
 const MAX_PARTICIPANTS = 20; // moderator included
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L ambiguity

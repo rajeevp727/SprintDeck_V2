@@ -53,6 +53,16 @@ npm run dev:all          # web :5273 + Functions :7072
 - Env vars (SWA → Configuration): `COSMOS_CONNECTION_STRING` (persistence).
 - Custom domain: `sprintdeckv2.rajeevstech.in` (CNAME → `…azurestaticapps.net`).
 
+## Data & retention
+- **Retention (configurable):** rooms auto-expire after idle/max windows —
+  `SESSION_IDLE_HOURS` (default 2) and `SESSION_MAX_AGE_HOURS` (default 5), set as
+  app settings. Cosmos native TTL enforces idle expiry server-side.
+- **Export / portability:** the Results modal exports the session as **`.txt`,
+  `.csv`, or `.json`** (full round data).
+- **Delete on request:** the moderator's **End room** deletes the room immediately.
+- **Backups:** enable **Cosmos DB periodic/continuous backup** in the Azure Cosmos
+  account (an Azure-side setting, not app code).
+
 ## Integration API (current)
 | Method | Route | Purpose |
 |---|---|---|

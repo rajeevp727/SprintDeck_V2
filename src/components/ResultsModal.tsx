@@ -1,5 +1,5 @@
 import type { HistoryEntry } from '../types';
-import { exportCsv, exportText } from '../export';
+import { exportCsv, exportText, exportJson } from '../export';
 
 interface Props {
   sessionName: string;
@@ -73,6 +73,13 @@ export default function ResultsModal({ sessionName, history, onClose }: Props) {
               onClick={() => exportCsv(history)}
             >
               Export Excel (.csv)
+            </button>
+            <button
+              className="ghost"
+              disabled={history.length === 0}
+              onClick={() => exportJson(sessionName, history)}
+            >
+              Export .json
             </button>
           </div>
         </footer>
