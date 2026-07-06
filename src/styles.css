@@ -1353,6 +1353,29 @@ a.room-code:hover {
   margin: 0.5rem 0;
   display: inline-block;
 }
+/* Shimmer placeholder shown while the QR (order) is being created. */
+.qr-shimmer {
+  width: 176px;
+  height: 176px;
+  border-radius: 6px;
+  background: #e9edf3;
+  background-image: linear-gradient(100deg, #e9edf3 30%, #f6f8fb 50%, #e9edf3 70%);
+  background-size: 200% 100%;
+  animation: qrShimmer 1.2s ease-in-out infinite;
+}
+@keyframes qrShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qr-shimmer {
+    animation: none;
+  }
+}
 .upi-vpa {
   font-family: ui-monospace, monospace;
   font-size: 0.85rem;

@@ -191,7 +191,15 @@ export default function SubscriptionModal({ onClose }: Props) {
                 <p className="auth-sub">{tier.name} plan activated — enjoy SprintDeck Enterprise!</p>
               </div>
             ) : payState === 'loading' ? (
-              <p className="auth-sub">Preparing your payment…</p>
+              <>
+                <p className="auth-sub">Preparing your payment…</p>
+                <div className="qr-wrap">
+                  <div className="qr-shimmer" aria-label="Loading QR code" role="img" />
+                </div>
+                <p className="pay-amount">
+                  Pay <strong>₹{tier.price}.00</strong>
+                </p>
+              </>
             ) : payState === 'error' ? (
               <div className="pay-expired">
                 <div className="pay-expired-icon" aria-hidden>⚠</div>
