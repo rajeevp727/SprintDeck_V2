@@ -1,130 +1,80 @@
-# SprintDeck
+# SprintDeck — Enterprise Edition (V2)
 
-Real-time sprint estimation (planning poker) for distributed teams. A moderator
-creates a room, shares the code/link, the team queues stories and votes with
-Fibonacci cards — votes stay hidden until everyone's in, then the average and
-consensus reveal instantly. Runs **free/near-free** on Azure.
+The **paid, integrations-focused** edition of SprintDeck: real-time planning poker
+that connects to your **project management tool** (Linear, Jira, Azure DevOps),
+pulls the tickets you need to estimate, and **writes the agreed story points back**
+after the team votes. No login — you connect a tool with your own key.
 
-**Live:** https://sprintdeck.rajeevstech.in (also `…azurestaticapps.net`)
+- **Live:** https://sprintdeckv2.rajeevstech.in
+- **Free sibling (plain poker, no integrations):** https://sprintdeck.rajeevstech.in (repo `SprintDeck`)
 
+> **Status:** the integration layer is currently **mock/preview** — connecting a
+> tool loads sample estimation tickets and the push-back is simulated. The real
+> read/write (roadmap **T1/T10**) is not wired yet. See `CHANGELOG.md` and `PRD.md`.
+
+## Stack
 - **Frontend:** React + TypeScript + Vite
 - **API:** Azure Functions (Node v4), served at `/api` by Static Web Apps
-- **Storage:** Azure Cosmos DB (serverless) — shared across instances, durable across cold starts
+- **Storage:** Azure Cosmos DB (serverless) with in-memory fallback for local dev
 - **Sync:** short polling every 1.5s (no extra real-time infra)
-- **Join model:** shareable room code / invite link, no login
+- **Join model:** shareable room code / invite link, **no login**
 
 ## Features
-
-- **Story queue** — moderator pastes tickets (one per line) and works through them in order.
-- **Hidden voting** — others' votes are never sent to the client until reveal (can't be peeked).
-- **Reveal** — shows the average + a "Consensus 🎯" badge when everyone agrees.
-- **Results history + export** — every estimated story is saved; export to `.txt` or Excel `.csv`.
-- **Moderator controls** — start/reveal/clear, **Save & next**, **Finish**, **End room**.
-- **Moderator-only** Invite + Results; Results unlocks once all queued stories are estimated.
-- **Resilience** — survives tab focus-loss and transient blips; an error boundary replaces blank screens with a reload prompt.
-- **Ads** (optional) — Google AdSense slots, dormant until a publisher slot id is set.
-
-## Architecture
-
-```
-Browsers ──poll /api/session/{code}──▶ Azure Static Web App ──▶ Azure Functions ──▶ Cosmos DB
-   ▲  vote / reveal / queue (POST)        (static site + /api)      (poker.js)        (one doc per room,
-   └─────────── JSON state ◀──────────────────────────────────────────────────────   /code partition, 2h TTL)
-```
-
-- **One document per room** in Cosmos (`db: sprintdeck`, container: `sessions`, partition key `/code`).
-- **Native TTL** auto-expires idle rooms (2h idle; 5h hard cap).
-- `api/src/store.js` is backend-agnostic: uses Cosmos when `COSMOS_CONNECTION_STRING` is set, else an in-memory `Map` fallback (single-instance, for local dev).
+- **Connect a project management tool** — picker (Linear · Jira · Azure DevOps) →
+  paste a **read/write API key** → pull the tool's estimation view into the queue.
+  *(mock today; real per provider adapter later.)*
+- **Estimation flow** — start a ticket → hidden Fibonacci voting → reveal →
+  moderator confirms the agreed value → **push story points back** to the ticket.
+- **Story states** — current ticket highlighted ("Estimating…"), estimated ones
+  greyed out with their points.
+- **Manual tasks** — add ad-hoc tasks (one per line) without any tool.
+- **Light / dark theme** — defaults to the system theme; header toggle.
+- **Results history + export** — every estimated story saved; export `.txt` / `.csv`.
+- **Unviewed-results nudge** — the Results badge + close warning only fire when
+  there are results you haven't opened.
 
 ## Run locally
-
-Two terminals. The API falls back to in-memory storage locally (no Cosmos needed),
-or set `COSMOS_CONNECTION_STRING` in `api/local.settings.json` to use Cosmos.
+V2 runs on its **own ports** (so it can run beside V1): web **5273**, API **7072**.
 
 ```bash
-# 1. API (needs Azure Functions Core Tools v4)
-cd api && npm install && npm start     # -> http://localhost:7071
-
-# 2. Frontend (Vite dev server proxies /api -> :7071)
-npm install && npm run dev             # -> http://localhost:5173
+npm install && npm --prefix api install
+npm run dev:all          # web :5273 + Functions :7072
 ```
 
-Or run both at once from the repo root:
+- API falls back to in-memory storage locally; set `COSMOS_CONNECTION_STRING` in
+  `api/local.settings.json` to use Cosmos.
+- **Local dev note:** `npm run build` emits a `vite.config.js` (gitignored). If it
+  appears, delete it before `dev:all` or Vite may load the wrong ports.
 
-```bash
-npm run dev:all     # web + API together
-npm run dev:lan     # same, but exposes the web server on your LAN for phone testing
-```
+## Deploy (Azure Static Web Apps, Free)
+- Repo `rajeevp727/SprintDeck_V2`, branch `main` → auto-deploys via
+  `.github/workflows/azure-static-web-apps-green-desert-0f2350910.yml`.
+- Build config: App `/`, **Api `api`**, **Output `dist`**.
+- Env vars (SWA → Configuration): `COSMOS_CONNECTION_STRING` (persistence).
+- Custom domain: `sprintdeckv2.rajeevstech.in` (CNAME → `…azurestaticapps.net`).
 
-Open the URL, create a session, and open the invite link in another browser/incognito
-window to simulate a teammate.
-
-## Deploy (Azure Static Web Apps, free)
-
-1. Push to GitHub (auto-deploys via `.github/workflows/`).
-2. Azure Portal → **Static Web App** (Free): source = this repo/branch `main`,
-   **App location** `/`, **Api location** `api`, **Output location** `dist`.
-3. **Configure storage** (required for persistence) — Static Web App → **Settings →
-   Environment variables** → add `COSMOS_CONNECTION_STRING` = your Cosmos
-   **primary/secondary connection string** (`AccountEndpoint=…;AccountKey=…;`).
-   Without it the app runs in-memory (rooms vanish on cold start / across instances).
-4. Every push to `main` rebuilds and deploys.
-
-### Custom domain
-Static Web App → **Custom domains → Add → "Custom domain on other DNS"**. For a
-subdomain, create a `CNAME` at your DNS host pointing to the `…azurestaticapps.net`
-host, then validate. Azure issues free SSL automatically.
-
-## Configuration
-
-| Setting | Where | Purpose |
+## Integration API (current)
+| Method | Route | Purpose |
 |---|---|---|
-| `COSMOS_CONNECTION_STRING` | SWA env var | Cosmos connection (enables persistence) |
-| `DECK_MAX` | `api/src/store.js` | Top of the Fibonacci deck (default 21 → `1,2,3,5,8,13,21`) |
-| `MAX_PARTICIPANTS` | `api/src/store.js` | Room cap (default 20) |
-| `SESSION_IDLE_MS` / `SESSION_MAX_AGE_MS` | `api/src/store.js` | Room expiry (2h idle / 5h max) |
-| `ADSENSE_CLIENT` / `ADSENSE_SLOT` | `src/adsConfig.ts` | AdSense publisher + slot ids (ads off until both set) |
+| GET | `/api/linear/status` | Is a server-side Linear key configured? |
+| POST | `/api/session/{code}/linear/import` | Resolve pasted ticket IDs → queue |
+| POST | `/api/session/{code}/linear/import-estimation` | Load the estimation view (mock) → queue |
+| POST | `/api/session/{code}/linear/push` | Write the agreed estimate back to the issue |
 
-## API reference
+Plus the core room API (`/api/session…` create/join/vote/start/reveal/reset/queue/next/end).
 
-| Method | Route | Who | Purpose |
-|---|---|---|---|
-| GET | `/api/health` | anyone | Keep-warm / liveness check |
-| POST | `/api/session` | anyone | Create a room (optional custom `code`); caller is moderator |
-| POST | `/api/session/{code}/join` | anyone | Join with a name (max 20) |
-| GET | `/api/session/{code}?participantId=` | anyone | Poll state (votes hidden until revealed) |
-| POST | `/api/session/{code}/vote` | participant | Cast/clear a vote |
-| POST | `/api/session/{code}/start` | moderator | Start a story (explicit or next in queue) |
-| POST | `/api/session/{code}/reveal` | moderator | Reveal cards + average |
-| POST | `/api/session/{code}/reset` | moderator | Clear votes, vote again |
-| POST | `/api/session/{code}/story` | moderator | Rename current story |
-| POST | `/api/session/{code}/queue` | moderator | Add stories to the queue |
-| DELETE | `/api/session/{code}/queue/{storyId}` | moderator | Remove a queued story |
-| POST | `/api/session/{code}/next` | moderator | Save result to history, advance queue |
-| POST | `/api/session/{code}/end` | moderator | End the room for everyone |
-
-## Project layout
-
+## Project layout (V2-specific additions)
 ```
-sprintdeck/
-├─ api/                          # Azure Functions (Node v4)
-│  ├─ src/store.js               # Cosmos-backed store (+ in-memory fallback), domain logic
-│  ├─ src/functions/poker.js     # all HTTP endpoints
-│  └─ host.json, package.json
-├─ src/                          # React app
-│  ├─ components/Home.tsx        # create / join + footer
-│  ├─ components/Room.tsx        # table: seats, deck, queue, reveal, moderator panel
-│  ├─ components/ResultsModal.tsx# history table + export
-│  ├─ components/Privacy.tsx     # privacy policy + about (for AdSense)
-│  ├─ components/AdBanner.tsx, StickyAd.tsx, ErrorBoundary.tsx
-│  ├─ api.ts                     # typed fetch client (cache: no-store)
-│  ├─ export.ts                  # .txt / .csv export
-│  ├─ storage.ts                 # per-room identity (localStorage)
-│  ├─ adsConfig.ts               # AdSense ids
-│  ├─ App.tsx                    # hash router (#/room/CODE, #/privacy)
-│  └─ types.ts
-├─ public/ads.txt                # AdSense ownership
-├─ staticwebapp.config.json      # SPA fallback + no-store on /api
-├─ vite.config.ts                # dev proxy /api -> :7071
-└─ .github/workflows/            # SWA deploy
+src/components/
+  ConnectToolModal.tsx   # picker: Linear / Jira / Azure DevOps (+ TOOL_META)
+  ToolConnectModal.tsx   # per-tool read/write API-key entry (back + close)
+  LinearLogo.tsx         # inline Linear logomark
+  ThemeToggle.tsx        # light/dark toggle
+  Room.tsx               # estimation list, connect flow, push-back
+src/theme.ts             # system/light/dark theme handling
+api/src/linear.js        # provider helper: resolveIssues / setEstimate / mock estimation
 ```
+
+## Docs (kept up to date)
+- **`PRD.md`** — product vision, scope, tiers, roadmap.
+- **`CHANGELOG.md`** — dated log of what changed each working day.

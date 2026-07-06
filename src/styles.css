@@ -794,6 +794,26 @@ a.room-code:hover {
   padding: 1.6rem 1.5rem;
   text-align: center;
 }
+.auth-back {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--text);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.auth-back:hover {
+  background: var(--panel-2);
+}
 .auth-close {
   position: absolute;
   top: 0.6rem;

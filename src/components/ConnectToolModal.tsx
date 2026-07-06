@@ -47,8 +47,8 @@ export default function ConnectToolModal({ onClose, onSelect }: Props) {
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        <h3>Connect a tool</h3>
-        <p className="auth-sub">Pick the tracker to pull estimation tickets from.</p>
+        <h3>Connect a project management tool</h3>
+        <p className="auth-sub">Pick the tool to pull estimation tickets from.</p>
         <div className="tool-list">
           {ORDER.map((id) => {
             const t = TOOL_META[id];

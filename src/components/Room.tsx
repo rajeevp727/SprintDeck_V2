@@ -212,10 +212,16 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
     }
   }
 
-  // Tool picked from the "Connect a tool" list → open its key-entry modal.
+  // Tool picked from the picker → open its key-entry modal.
   function selectTool(tool: ToolId) {
     setShowToolPicker(false);
     setPendingTool(tool);
+  }
+
+  // Closing the key-entry modal steps back to the tool picker (not a full close).
+  function backToPicker() {
+    setPendingTool(null);
+    setShowToolPicker(true);
   }
 
   // Read/write key entered → (mock) connect and load the estimation tickets. The
@@ -581,7 +587,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
                 onClick={() => setShowToolPicker(true)}
                 disabled={linearConnected}
               >
-                {linearConnected ? 'Connected · sample data' : 'Connect a tool'}
+                {linearConnected ? 'Connected · sample data' : 'Connect a project tool'}
               </button>
             </div>
 
@@ -654,7 +660,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
               </ul>
             ) : (
               <p className="linear-empty">
-                Connect Linear to load the Estimation view, or add tasks manually below — then Start to estimate each one.
+                Connect a project management tool to load its estimation tickets, or add tasks manually below — then Start to estimate each one.
               </p>
             )}
 
@@ -732,6 +738,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
       {pendingTool && (
         <ToolConnectModal
           tool={pendingTool}
+          onBack={backToPicker}
           onClose={() => setPendingTool(null)}
           onConnected={onToolConnected}
         />

@@ -3,6 +3,7 @@ import { TOOL_META, type ToolId } from './ConnectToolModal';
 
 interface Props {
   tool: ToolId;
+  onBack: () => void;
   onClose: () => void;
   onConnected: (tool: ToolId, key: string) => void;
 }
@@ -15,7 +16,7 @@ interface Props {
  * Once the provider adapter (roadmap T1/T10) lands, the key goes to the server
  * (encrypted) and drives the real read/write calls.
  */
-export default function ToolConnectModal({ tool, onClose, onConnected }: Props) {
+export default function ToolConnectModal({ tool, onBack, onClose, onConnected }: Props) {
   const meta = TOOL_META[tool];
   const [key, setKey] = useState('');
   const [shake, setShake] = useState(false);
@@ -29,6 +30,11 @@ export default function ToolConnectModal({ tool, onClose, onConnected }: Props) 
   return (
     <div className="modal-overlay" onClick={refuseOutsideClose}>
       <div className={`auth-modal${shake ? ' shake' : ''}`} onClick={(e) => e.stopPropagation()}>
+        <button className="auth-back" onClick={onBack} aria-label="Back" title="Back to tools">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+        </button>
         <button
           className={`auth-close${shake ? ' attn' : ''}`}
           onClick={onClose}
