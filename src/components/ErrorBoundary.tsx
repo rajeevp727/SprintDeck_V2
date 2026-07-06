@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react';
+import { captureError } from '../telemetry';
 
 interface Props {
   children: ReactNode;
@@ -18,6 +19,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: unknown) {
     console.error('SprintDeck error:', error);
+    captureError(error);
   }
 
   render() {

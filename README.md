@@ -63,6 +63,14 @@ npm run dev:all          # web :5273 + Functions :7072
 - **Backups:** enable **Cosmos DB periodic/continuous backup** in the Azure Cosmos
   account (an Azure-side setting, not app code).
 
+## Observability
+- **Error tracking:** uncaught client errors (+ React error boundary) are POSTed to
+  **`/api/log`**, which logs them to **Azure Application Insights** (enabled in
+  `api/host.json`) — no external service required. `src/telemetry.ts` is the single
+  place to later add Sentry (set `VITE_SENTRY_DSN`).
+- **External / next:** a dedicated Sentry project and a **staging** SWA environment
+  are the follow-ups (need accounts/Azure setup).
+
 ## Integration API (current)
 | Method | Route | Purpose |
 |---|---|---|

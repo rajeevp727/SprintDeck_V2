@@ -56,6 +56,23 @@ app.http('health', {
   handler: async () => ok({ status: 'ok', service: 'sprintdeck' }),
 });
 
+// POST /api/log — client error sink. Logs to Application Insights (via context)
+// for observability. Rate-limited and size-capped to prevent log spam/abuse.
+app.http('clientLog', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'log',
+  handler: async (req, context) => {
+    if (rateLimited(req, 'log', 30, 60_000)) return { status: 429, headers: NO_CACHE };
+    const body = await readBody(req);
+    const msg = String(body.message || '').slice(0, 1000);
+    const url = String(body.url || '').slice(0, 500);
+    const stack = String(body.stack || '').slice(0, 4000);
+    context.error(`[client-error] ${msg} @ ${url}${stack ? `\n${stack}` : ''}`);
+    return { status: 204, headers: NO_CACHE };
+  },
+});
+
 // POST /api/session  { name, moderatorName }
 app.http('createSession', {
   methods: ['POST'],
