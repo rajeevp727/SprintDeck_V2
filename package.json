@@ -8,7 +8,8 @@
     "dev:all": "concurrently -k -n WEB,API -c cyan,magenta \"vite\" \"npm --prefix api start -- --port 7072\"",
     "dev:lan": "concurrently -k -n WEB,API -c cyan,magenta \"vite --host\" \"npm --prefix api start -- --port 7072\"",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -20,6 +21,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.1.0",
     "typescript": "^5.6.3",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "vitest": "^4.1.10"
   }
 }

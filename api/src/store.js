@@ -1,6 +1,7 @@
 'use strict';
 
-const { CosmosClient } = require('@azure/cosmos');
+// @azure/cosmos is required lazily inside getContainer() so this module can be
+// imported (e.g. by unit tests) without the dependency being installed/loaded.
 
 // ───────────────────────────────────────────────────────────────────────────
 // Backend selection.
@@ -22,6 +23,7 @@ let containerPromise = null;
 function getContainer() {
   if (!CONN) return null;
   if (!containerPromise) {
+    const { CosmosClient } = require('@azure/cosmos');
     const client = new CosmosClient(CONN);
     containerPromise = (async () => {
       // Provisioned (free-tier) accounts need shared throughput; serverless

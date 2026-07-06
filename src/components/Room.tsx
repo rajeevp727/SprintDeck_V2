@@ -7,6 +7,7 @@ import ConnectToolModal, { TOOL_META, type ToolId } from './ConnectToolModal';
 import ToolConnectModal from './ToolConnectModal';
 import ThemeToggle from './ThemeToggle';
 import AdBanner from './AdBanner';
+import { nearestDeckValue } from '../estimate';
 
 const POLL_MS = 1500;
 // Only leave the room after this many CONSECUTIVE "not found" polls — tolerates
@@ -16,16 +17,6 @@ const MAX_MISSES = 6;
 // Story planning (the queue + per-story field) is hidden for now — teams just
 // join and vote. Flip to true to bring back queued, per-story estimation.
 const SHOW_QUEUE = false;
-
-// Snap a round's median to the nearest deck value — the prefilled suggestion the
-// moderator confirms before pushing an estimate to Linear (V1 Linear flow).
-function nearestDeckValue(median: number | null, deck: string[]): string {
-  const nums = deck.map(Number).filter(Number.isFinite);
-  if (median == null || nums.length === 0) return deck[0] ?? '';
-  let best = nums[0];
-  for (const n of nums) if (Math.abs(n - median) < Math.abs(best - median)) best = n;
-  return String(best);
-}
 
 interface Props {
   code: string;
