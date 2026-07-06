@@ -119,14 +119,13 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
     api.linearStatus().then((r) => setLinearEnabled(r.enabled)).catch(() => {});
   }, []);
 
-  // Show the subscription popup once when a moderator enters, unless already
-  // subscribed or dismissed this session.
+  // Show the subscription popup on every moderator login (unless already
+  // subscribed), 2 seconds after entering the room so it zooms in over the UI.
   useEffect(() => {
-    if (subChecked.current || !isModerator) return;
-    if (!isSubscribed() && !sessionStorage.getItem('sprintdeck.sub.dismissed')) {
-      subChecked.current = true;
-      setShowSubscribe(true);
-    }
+    if (subChecked.current || !isModerator || isSubscribed()) return;
+    subChecked.current = true;
+    const t = setTimeout(() => setShowSubscribe(true), 2000);
+    return () => clearTimeout(t);
   }, [isModerator]);
 
   // On a freshly revealed Linear-backed round, prefill the push value with the
@@ -691,10 +690,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
 
       {showSubscribe && (
         <SubscriptionModal
-          onClose={() => {
-            sessionStorage.setItem('sprintdeck.sub.dismissed', '1');
-            setShowSubscribe(false);
-          }}
+          onClose={() => setShowSubscribe(false)}
           onSubscribed={() => setShowSubscribe(false)}
         />
       )}
