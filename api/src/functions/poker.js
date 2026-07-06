@@ -23,6 +23,20 @@ async function readBody(req) {
   }
 }
 
+// Best-effort in-memory per-IP rate limit (per Function instance) to curb abuse
+// like room-creation spam. Applied ONLY to low-frequency write actions — never to
+// the 1.5s poll or voting, which would false-positive for teams behind one NAT IP.
+const _rlHits = new Map();
+function rateLimited(req, bucket, max, windowMs) {
+  const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+  const key = `${bucket}:${ip}`;
+  const now = Date.now();
+  const recent = (_rlHits.get(key) || []).filter((t) => now - t < windowMs);
+  recent.push(now);
+  _rlHits.set(key, recent);
+  return recent.length > max;
+}
+
 // Load a session and verify the caller is its moderator. Returns the session
 // or a ready-to-return error response.
 async function requireModerator(code, participantId) {
@@ -48,6 +62,9 @@ app.http('createSession', {
   authLevel: 'anonymous',
   route: 'session',
   handler: async (req) => {
+    if (rateLimited(req, 'create', 10, 60_000)) {
+      return bad('Too many rooms created from here — wait a moment and try again', 429);
+    }
     const { name, moderatorName, code } = await readBody(req);
     const result = await store.createSession(name, moderatorName, code);
     if (result.error === 'invalid') {
