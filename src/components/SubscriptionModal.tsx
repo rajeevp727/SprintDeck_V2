@@ -1,19 +1,30 @@
 import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { TIERS, UPI_ID, upiLink, type TierId } from '../subscription';
+import { TIERS, UPI_ID, upiLink, setSubscription, type TierId } from '../subscription';
+import { verifierEnabled, createOrder, getStatus, type PaymentOrder } from '../verifier';
 import { CloseIcon } from './icons';
 
 interface Props {
   onClose: () => void;
 }
 
-type PayState = 'pending' | 'expired';
+// 'loading'  — creating the order
+// 'pending'  — QR shown, polling for payment
+// 'confirmed'— verifier matched the payment → plan activated
+// 'expired'  — payment window elapsed → Retry
+// 'error'    — couldn't reach the verifier
+// 'static'   — no verifier configured: display-only QR, no auto-activation
+type PayState = 'loading' | 'pending' | 'confirmed' | 'expired' | 'error' | 'static';
+
 const PAY_WINDOW = 120; // seconds the QR stays valid before it must be regenerated
+const POLL_MS = 3000;
 
 export default function SubscriptionModal({ onClose }: Props) {
   const [selected, setSelected] = useState<TierId | null>(null);
-  const [payState, setPayState] = useState<PayState>('pending');
+  const [payState, setPayState] = useState<PayState>('loading');
+  const [order, setOrder] = useState<PaymentOrder | null>(null);
   const [seconds, setSeconds] = useState(PAY_WINDOW);
+  const [errMsg, setErrMsg] = useState('');
   const tier = TIERS.find((t) => t.id === selected) ?? null;
 
   // Esc closes the modal.
@@ -27,24 +38,69 @@ export default function SubscriptionModal({ onClose }: Props) {
 
   // Countdown while a QR is showing. When it hits 0 the QR expires (Retry to reset).
   useEffect(() => {
-    if (!tier || payState !== 'pending') return;
+    if (payState !== 'pending') return;
     if (seconds <= 0) {
       setPayState('expired');
       return;
     }
     const id = setTimeout(() => setSeconds((s) => s - 1), 1000);
     return () => clearTimeout(id);
-  }, [tier, payState, seconds]);
+  }, [payState, seconds]);
 
-  function pickTier(id: TierId) {
+  // Poll the verifier for payment while the QR is live. On a match, activate the
+  // plan locally and show the success screen.
+  useEffect(() => {
+    if (payState !== 'pending' || !order || !selected) return;
+    const id = setInterval(async () => {
+      try {
+        const { status } = await getStatus(order.orderId);
+        if (status === 'confirmed') {
+          setSubscription(selected);
+          setPayState('confirmed');
+        } else if (status === 'expired') {
+          setPayState('expired');
+        }
+      } catch {
+        /* transient — keep polling until the window elapses */
+      }
+    }, POLL_MS);
+    return () => clearInterval(id);
+  }, [payState, order, selected]);
+
+  // After the success screen, close.
+  useEffect(() => {
+    if (payState !== 'confirmed') return;
+    const id = setTimeout(onClose, 1800);
+    return () => clearTimeout(id);
+  }, [payState, onClose]);
+
+  // Pick a tier → create a verifier order (or fall back to a static QR).
+  async function startPayment(id: TierId, price: number) {
     setSelected(id);
     setSeconds(PAY_WINDOW);
-    setPayState('pending');
+    setErrMsg('');
+    if (!verifierEnabled) {
+      setPayState('static');
+      return;
+    }
+    setPayState('loading');
+    try {
+      const o = await createOrder(id, price);
+      setOrder(o);
+      setPayState('pending');
+    } catch (e) {
+      setErrMsg((e as Error).message);
+      setPayState('error');
+    }
   }
 
   function retry() {
-    setSeconds(PAY_WINDOW);
-    setPayState('pending');
+    if (tier) startPayment(tier.id, tier.price);
+  }
+
+  function backToPlans() {
+    setSelected(null);
+    setOrder(null);
   }
 
   const mmss = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
@@ -62,7 +118,12 @@ export default function SubscriptionModal({ onClose }: Props) {
             <h3>Choose a plan</h3>
             <p className="auth-sub">SprintDeck Enterprise — pick a plan to unlock the workspace.</p>
             <div className="tier-grid tier-grid-4">
-              <a className="tier-card tier-free" href="https://sprintdeck.rajeevstech.in">
+              <a
+                className="tier-card tier-free"
+                href="https://sprintdeck.rajeevstech.in"
+                target="_blank"
+                rel="noreferrer"
+              >
                 <span className="tier-name">Free</span>
                 <span className="tier-price">
                   ₹0<small>/mo</small>
@@ -80,7 +141,7 @@ export default function SubscriptionModal({ onClose }: Props) {
                 <button
                   key={t.id}
                   className={`tier-card${t.highlight ? ' tier-hot' : ''}`}
-                  onClick={() => pickTier(t.id)}
+                  onClick={() => startPayment(t.id, t.price)}
                 >
                   {t.highlight && <span className="tier-badge">Popular</span>}
                   <span className="tier-name">{t.name}</span>
@@ -104,15 +165,32 @@ export default function SubscriptionModal({ onClose }: Props) {
           </>
         ) : (
           <div className="pay-step">
-            <button className="ghost pay-back" onClick={() => setSelected(null)}>
+            <button className="ghost pay-back" onClick={backToPlans}>
               ← Plans
             </button>
             <h3>
               {tier.name} · ₹{tier.price}/mo
             </h3>
 
-            {!UPI_ID ? (
-              <p className="linear-notice">Payments aren&rsquo;t configured yet (set VITE_UPI_ID).</p>
+            {!UPI_ID && !verifierEnabled ? (
+              <p className="linear-notice">Payments aren&rsquo;t configured yet (set VITE_UPI_ID / VITE_VERIFIER_URL).</p>
+            ) : payState === 'confirmed' ? (
+              <div className="pay-success">
+                <div className="pay-check" aria-hidden>✓</div>
+                <p className="pay-success-title">Payment received</p>
+                <p className="auth-sub">{tier.name} plan activated — enjoy SprintDeck Enterprise!</p>
+              </div>
+            ) : payState === 'loading' ? (
+              <p className="auth-sub">Preparing your payment…</p>
+            ) : payState === 'error' ? (
+              <div className="pay-expired">
+                <div className="pay-expired-icon" aria-hidden>⚠</div>
+                <p className="pay-expired-title">Couldn&rsquo;t start payment</p>
+                <p className="auth-sub">{errMsg || 'The payment service is unavailable. Try again.'}</p>
+                <button className="primary auth-wide" onClick={retry}>
+                  Try again
+                </button>
+              </div>
             ) : payState === 'expired' ? (
               <div className="pay-expired">
                 <div className="pay-expired-icon" aria-hidden>⏱</div>
@@ -122,17 +200,30 @@ export default function SubscriptionModal({ onClose }: Props) {
                   Retry payment
                 </button>
               </div>
+            ) : payState === 'pending' && order ? (
+              <>
+                <p className="auth-sub">Scan with any UPI app. We&rsquo;ll confirm automatically.</p>
+                <div className="qr-wrap">
+                  <QRCodeSVG value={order.upiLink} size={176} marginSize={2} />
+                </div>
+                <p className={`pay-timer ${timerClass}`}>
+                  Waiting for payment · <strong>{mmss}</strong>
+                </p>
+                <p className="pay-amount">
+                  Pay exactly <strong>₹{order.payAmount.toFixed(2)}</strong>
+                </p>
+                <p className="upi-vpa">{order.vpa}</p>
+                <p className="auth-hint">Pay the exact amount (incl. paise) so we can auto-confirm your plan.</p>
+              </>
             ) : (
+              /* 'static' — no verifier: display-only QR, no auto-activation */
               <>
                 <p className="auth-sub">Scan with any UPI app to pay.</p>
                 <div className="qr-wrap">
                   <QRCodeSVG value={upiLink(tier.price, `SprintDeck ${tier.name}`)} size={176} marginSize={2} />
                 </div>
-                <p className={`pay-timer ${timerClass}`}>
-                  Expires in <strong>{mmss}</strong>
-                </p>
                 <p className="upi-vpa">{UPI_ID}</p>
-                <p className="auth-hint">Scan the QR with any UPI app to pay ₹{tier.price}.</p>
+                <p className="auth-hint">Payment auto-confirmation isn&rsquo;t enabled here.</p>
               </>
             )}
           </div>
