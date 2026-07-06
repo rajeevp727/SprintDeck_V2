@@ -152,13 +152,14 @@ export default function SubscriptionModal({ onClose, onSubscribed }: Props) {
                   Expires in <strong>{mmss}</strong>
                 </p>
                 <p className="upi-vpa">{UPI_ID}</p>
-                <a className="primary auth-wide" href={upiLink(tier.price, `SprintDeck ${tier.name}`)}>
+                <a
+                  className="primary auth-wide"
+                  href={upiLink(tier.price, `SprintDeck ${tier.name}`)}
+                  onClick={activate}
+                >
                   Pay ₹{tier.price} via UPI
                 </a>
-                <button className="ghost auth-wide" onClick={activate}>
-                  I&rsquo;ve paid — activate
-                </button>
-                <p className="auth-hint">Activation is manual for now (UPI has no auto-confirmation).</p>
+                <p className="auth-hint">Your plan activates once you tap Pay (UPI has no auto-confirmation).</p>
               </>
             )}
           </div>
