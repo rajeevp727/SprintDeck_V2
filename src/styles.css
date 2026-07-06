@@ -1411,6 +1411,22 @@ a.room-code:hover {
   color: var(--muted);
   margin: 0 0 0.75rem;
 }
+.pay-amount {
+  margin: 0.25rem 0 0.1rem;
+}
+/* Info icon next to a reduced (prorated) upgrade amount + its formula caption. */
+.pay-info {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 0.35rem;
+  color: var(--muted);
+  cursor: help;
+}
+.pay-formula {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0 0 0.6rem;
+}
 
 /* Payment countdown — colour shifts as the window runs down. */
 .pay-timer {

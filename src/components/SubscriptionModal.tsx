@@ -13,7 +13,7 @@ import {
   type TierId,
 } from '../subscription';
 import { createOrder, getStatus, type PaymentOrder } from '../verifier';
-import { CloseIcon } from './icons';
+import { CloseIcon, InfoIcon } from './icons';
 
 interface Props {
   onClose: () => void;
@@ -47,6 +47,41 @@ export default function SubscriptionModal({ onClose }: Props) {
   const [seconds, setSeconds] = useState(PAY_WINDOW);
   const [errMsg, setErrMsg] = useState('');
   const tier = TIERS.find((t) => t.id === selected) ?? null;
+
+  // When the selected tier is a mid-subscription upgrade, the amount is reduced
+  // to the balance (new − current). Details drive the info icon + formula.
+  const activeSub = getActiveSubscription();
+  const upgrade =
+    tier && activeSub && tier.price > tierPrice(activeSub.tier)
+      ? {
+          curr: tierPrice(activeSub.tier),
+          currName: TIERS.find((x) => x.id === activeSub.tier)?.name ?? activeSub.tier,
+          diff: tier.price - tierPrice(activeSub.tier),
+        }
+      : null;
+
+  // "Pay ₹X" line — with an info icon + formula when the amount is a reduced upgrade balance.
+  const renderPayAmount = (amount: number) => (
+    <>
+      <p className="pay-amount">
+        Pay <strong>₹{amount.toFixed(2)}</strong>
+        {upgrade && tier && (
+          <span
+            className="pay-info"
+            title={`Reduced upgrade balance: ${tier.name} ₹${tier.price} − ${upgrade.currName} ₹${upgrade.curr} = ₹${upgrade.diff}`}
+            aria-label="Why this amount is reduced"
+          >
+            <InfoIcon />
+          </span>
+        )}
+      </p>
+      {upgrade && tier && (
+        <p className="pay-formula">
+          Reduced: ₹{tier.price} − ₹{upgrade.curr} = ₹{upgrade.diff}
+        </p>
+      )}
+    </>
+  );
 
   // Esc: on the pay step go BACK to the plans list; on the plans list, close.
   useEffect(() => {
@@ -246,9 +281,7 @@ export default function SubscriptionModal({ onClose }: Props) {
                 <div className="qr-wrap">
                   <QrSkeleton />
                 </div>
-                <p className="pay-amount">
-                  Pay <strong>₹{amountForTier(tier.id).toFixed(2)}</strong>
-                </p>
+                {renderPayAmount(amountForTier(tier.id))}
               </>
             ) : payState === 'regenerating' ? (
               <>
@@ -256,9 +289,7 @@ export default function SubscriptionModal({ onClose }: Props) {
                 <div className="qr-wrap">
                   <QrSkeleton />
                 </div>
-                <p className="pay-amount">
-                  Pay <strong>₹{amountForTier(tier.id).toFixed(2)}</strong>
-                </p>
+                {renderPayAmount(amountForTier(tier.id))}
                 <p className="auth-hint">A fresh QR appears in a moment.</p>
               </>
             ) : payState === 'error' ? (
@@ -279,9 +310,7 @@ export default function SubscriptionModal({ onClose }: Props) {
                 <p className={`pay-timer ${timerClass}`}>
                   Waiting for payment · <strong>{mmss}</strong>
                 </p>
-                <p className="pay-amount">
-                  Pay <strong>₹{order.payAmount.toFixed(2)}</strong>
-                </p>
+                {renderPayAmount(order.payAmount)}
                 <p className="upi-vpa">{UPI_ID}</p>
                 <p className="auth-hint">Once your payment lands, this confirms automatically.</p>
               </>

@@ -11,6 +11,15 @@ export const BackIcon = () => (
   </svg>
 );
 
+// Info — explains the reduced (prorated) upgrade amount.
+export const InfoIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5" />
+    <path d="M12 8h.01" />
+  </svg>
+);
+
 // Crown — marks the paid/upgrade action.
 export const CrownIcon = () => (
   <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden>
