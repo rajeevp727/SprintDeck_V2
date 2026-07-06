@@ -15,7 +15,7 @@ interface Props {
 // 'error'    — couldn't reach the verifier / payments not configured
 type PayState = 'loading' | 'pending' | 'confirmed' | 'expired' | 'error';
 
-const PAY_WINDOW = 300; // seconds the QR stays valid (email→ingest can take a few min)
+const PAY_WINDOW = 90; // seconds the QR stays visible (1:30); the background watcher still confirms late payments
 const POLL_MS = 3000;
 
 export default function SubscriptionModal({ onClose }: Props) {
