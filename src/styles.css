@@ -1353,46 +1353,36 @@ a.room-code:hover {
   margin: 0.5rem 0;
   display: inline-block;
 }
-/* QR skeleton shown while the real QR (order) is being created: dark modules
-   twinkle in/out with staggered delays, with the three QR "finder" squares so
-   it reads as a loading QR. Replaced by the real QR on load. */
+/* Static QR-sized placeholder while the real QR (order) is being created:
+   exactly the QR's 176x176 footprint (no layout shift on load), a calm light
+   background, and the three QR "finder" squares so it reads as a QR. No
+   animation / shimmer. */
 .qr-skeleton {
   position: relative;
   width: 176px;
   height: 176px;
-}
-.qr-grid {
-  display: grid;
-  grid-template-columns: repeat(11, 1fr);
-  grid-template-rows: repeat(11, 1fr);
-  gap: 2px;
-  width: 100%;
-  height: 100%;
-}
-.qr-cell {
-  border-radius: 1px;
-  background: #0b1020;
-  opacity: 0.35; /* static placeholder — no shimmer */
+  background: #eef1f6;
+  border-radius: 6px;
 }
 .qr-finder {
   position: absolute;
-  width: 40px;
-  height: 40px;
-  border: 6px solid #0b1020;
+  width: 44px;
+  height: 44px;
+  border: 7px solid #0b1020;
   border-radius: 6px;
   background: #fff;
 }
 .qr-tl {
-  top: 0;
-  left: 0;
+  top: 8px;
+  left: 8px;
 }
 .qr-tr {
-  top: 0;
-  right: 0;
+  top: 8px;
+  right: 8px;
 }
 .qr-bl {
-  bottom: 0;
-  left: 0;
+  bottom: 8px;
+  left: 8px;
 }
 .upi-vpa {
   font-family: ui-monospace, monospace;

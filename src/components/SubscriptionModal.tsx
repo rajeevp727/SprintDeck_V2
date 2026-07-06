@@ -19,15 +19,11 @@ const PAY_WINDOW = 90; // seconds the QR stays visible (1:30); the background wa
 const POLL_MS = 3000;
 const REGEN_MS = 5000; // how long the "regenerating" state shows before a fresh QR
 
-// Static QR-shaped placeholder (reserves the QR's space while loading/regenerating).
+// Static QR-shaped placeholder (reserves the QR's exact space while
+// loading/regenerating — no animation, no layout shift on load).
 function QrSkeleton() {
   return (
     <div className="qr-skeleton" aria-label="Loading QR code" role="img">
-      <div className="qr-grid">
-        {Array.from({ length: 441 }).map((_, i) => (
-          <span key={i} className="qr-cell" />
-        ))}
-      </div>
       <span className="qr-finder qr-tl" />
       <span className="qr-finder qr-tr" />
       <span className="qr-finder qr-bl" />
