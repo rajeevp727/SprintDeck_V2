@@ -83,7 +83,9 @@ export default function App() {
       }
     }
     check();
-    const id = setInterval(check, 15000);
+    const id = setInterval(() => {
+      if (!document.hidden) check(); // pause while the tab is backgrounded
+    }, 15000);
     return () => {
       active = false;
       clearInterval(id);

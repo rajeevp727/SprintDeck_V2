@@ -50,7 +50,8 @@ export default function SubscriptionModal({ onClose }: Props) {
   // plan locally and show the success screen.
   useEffect(() => {
     if (payState !== 'pending' || !order || !selected) return;
-    const id = setInterval(async () => {
+    const poll = async () => {
+      if (document.hidden) return; // pause while backgrounded (e.g. in your UPI app)
       try {
         const { status } = await getStatus(order.orderId);
         if (status === 'confirmed') {
@@ -63,8 +64,16 @@ export default function SubscriptionModal({ onClose }: Props) {
       } catch {
         /* transient — keep polling until the window elapses */
       }
-    }, POLL_MS);
-    return () => clearInterval(id);
+    };
+    const id = setInterval(poll, POLL_MS);
+    const onVisible = () => {
+      if (!document.hidden) poll(); // check immediately on returning from the UPI app
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [payState, order, selected]);
 
   // After the success screen, close.

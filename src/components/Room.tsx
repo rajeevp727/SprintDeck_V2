@@ -98,8 +98,19 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
 
   useEffect(() => {
     refresh();
-    const id = setInterval(refresh, POLL_MS);
-    return () => clearInterval(id);
+    // Pause polling while the tab is backgrounded (no point syncing an unseen
+    // room); refresh immediately when it becomes visible again.
+    const id = setInterval(() => {
+      if (!document.hidden) refresh();
+    }, POLL_MS);
+    const onVisible = () => {
+      if (!document.hidden) refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [refresh]);
 
   // Remind the moderator to review results before they close/refresh/navigate away.
