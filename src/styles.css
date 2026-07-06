@@ -1359,3 +1359,71 @@ a.room-code:hover {
   color: var(--muted);
   margin: 0 0 0.75rem;
 }
+
+/* Payment countdown — colour shifts as the window runs down. */
+.pay-timer {
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  margin: 0 0 0.5rem;
+  transition: color var(--transition);
+}
+.pay-timer strong {
+  font-weight: 700;
+}
+.timer-ok {
+  color: #22c55e;
+}
+.timer-warn {
+  color: #f59e0b;
+}
+.timer-danger {
+  color: #ef4444;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+/* QR expired → retry */
+.pay-expired {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1.5rem 0 0.5rem;
+}
+.pay-expired-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+.pay-expired-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #f59e0b;
+  margin: 0;
+}
+
+/* Payment success confirmation */
+.pay-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1.5rem 0;
+  animation: zoomIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.pay-check {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #22c55e;
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pay-success-title {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: #22c55e;
+  margin: 0;
+}
