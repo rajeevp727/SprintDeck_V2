@@ -83,20 +83,20 @@ export function setSubscription(tier: TierId) {
   }
 }
 
-// Owner bypass — since there's no login, the owner unlocks the paid plan for
-// their own browser by visiting `?unlock=<OWNER_UNLOCK_CODE>`. It activates the
-// top (Master) tier and is invisible to normal users. Change the code to rotate.
-export const OWNER_UNLOCK_CODE = 'sd-owner-2f5a91';
+// Payee VPA, injected at build from the GitHub secret UPI_ID (workflow maps
+// secrets.UPI_ID → VITE_UPI_ID; .env.local for local dev). Never hardcoded.
+export const UPI_ID: string = import.meta.env.VITE_UPI_ID || '';
 
-export function applyOwnerUnlock(): boolean {
-  try {
-    const code = new URLSearchParams(window.location.search).get('unlock');
-    if (code && code === OWNER_UNLOCK_CODE) {
-      setSubscription('master');
-      return true;
-    }
-  } catch {
-    /* ignore */
-  }
-  return false;
+// UPI intent link. The VPA (`pa`) is left LITERAL — several UPI apps throw a
+// "temporary technical issue" if `@` is percent-encoded (%40). Only the human
+// note is encoded, with %20 for spaces (encodeURIComponent), not `+`.
+export function upiLink(amount: number, note: string): string {
+  const parts = [
+    `pa=${UPI_ID}`,
+    `pn=${encodeURIComponent('SprintDeck')}`,
+    `am=${amount.toFixed(2)}`,
+    'cu=INR',
+    `tn=${encodeURIComponent(note)}`,
+  ];
+  return `upi://pay?${parts.join('&')}`;
 }

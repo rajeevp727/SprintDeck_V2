@@ -6,9 +6,7 @@ const BASE = '/api';
 
 export interface PaymentOrder {
   orderId: string;
-  payAmount: number; // exact rupee amount to pay (unique per pending order)
-  vpa: string;
-  upiLink: string; // upi://pay?… encoding payAmount — render this as the QR
+  payAmount: number; // rupee amount to pay (the plan price)
 }
 
 export type PayStatus = 'pending' | 'confirmed' | 'expired';

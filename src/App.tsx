@@ -11,7 +11,6 @@ import {
   setCurrentRoom,
   clearCurrentRoom,
 } from './storage';
-import { applyOwnerUnlock } from './subscription';
 
 type Route =
   | { kind: 'room'; code: string }
@@ -56,11 +55,6 @@ export default function App() {
   const [route, setRoute] = useState<Route>(computeRoute);
 
   useEffect(() => {
-    // Owner bypass: ?unlock=<code> activates the paid plan for this browser
-    // (read before the search string is stripped just below).
-    if (applyOwnerUnlock()) {
-      window.alert('Owner plan activated — subscription unlocked on this browser.');
-    }
     // Strip the code (query param or legacy path) out of the address bar.
     if (window.location.search || /^\/room-/.test(window.location.pathname)) {
       window.history.replaceState({}, '', '/');

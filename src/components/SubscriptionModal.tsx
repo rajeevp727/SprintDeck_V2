@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { TIERS, setSubscription, type TierId } from '../subscription';
+import { TIERS, UPI_ID, upiLink, setSubscription, type TierId } from '../subscription';
 import { createOrder, getStatus, type PaymentOrder } from '../verifier';
 import { CloseIcon } from './icons';
 
@@ -193,21 +193,23 @@ export default function SubscriptionModal({ onClose }: Props) {
                   Retry payment
                 </button>
               </div>
-            ) : payState === 'pending' && order ? (
+            ) : payState === 'pending' && order && UPI_ID ? (
               <>
                 <p className="auth-sub">Scan with any UPI app. We&rsquo;ll confirm automatically.</p>
                 <div className="qr-wrap">
-                  <QRCodeSVG value={order.upiLink} size={176} marginSize={2} />
+                  <QRCodeSVG value={upiLink(order.payAmount, `SprintDeck ${tier.name}`)} size={176} marginSize={2} />
                 </div>
                 <p className={`pay-timer ${timerClass}`}>
                   Waiting for payment · <strong>{mmss}</strong>
                 </p>
                 <p className="pay-amount">
-                  Pay exactly <strong>₹{order.payAmount.toFixed(2)}</strong>
+                  Pay <strong>₹{order.payAmount.toFixed(2)}</strong>
                 </p>
-                <p className="upi-vpa">{order.vpa}</p>
-                <p className="auth-hint">Pay the exact amount (incl. paise) so we can auto-confirm your plan.</p>
+                <p className="upi-vpa">{UPI_ID}</p>
+                <p className="auth-hint">Once your payment lands, this confirms automatically.</p>
               </>
+            ) : payState === 'pending' ? (
+              <p className="linear-notice">Payments aren&rsquo;t configured yet (set VITE_UPI_ID / the UPI_ID secret).</p>
             ) : null}
           </div>
         )}

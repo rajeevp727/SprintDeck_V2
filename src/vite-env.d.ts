@@ -1,4 +1,11 @@
 /// <reference types="vite/client" />
 
-// Payment config now lives server-side (SWA Application Settings: UPI_VPA /
-// INGEST_SECRET) and the client calls same-origin /api — no build-time env vars.
+interface ImportMetaEnv {
+  // Payee VPA for the UPI QR — injected at build from the GitHub secret UPI_ID
+  // (workflow maps secrets.UPI_ID → VITE_UPI_ID; .env.local for local dev).
+  readonly VITE_UPI_ID?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}

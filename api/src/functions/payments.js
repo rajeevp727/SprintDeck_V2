@@ -45,35 +45,20 @@ function rateLimited(req, bucket, max, windowMs) {
   return recent.length > max;
 }
 
-const VPA = process.env.UPI_VPA || '';
-const PAYEE = process.env.PAYEE_NAME || 'SprintDeck';
 // Base plan prices the client may request — guards a tampered request asking to
 // "pay" ₹1 for a ₹999 plan. Keep in sync with the frontend tiers.
 const ALLOWED_AMOUNTS = new Set([199, 499, 999]);
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-// Build a UPI intent link. NOTE: the VPA (`pa`) is left LITERAL — several UPI
-// apps throw a "temporary technical issue" if the `@` is percent-encoded
-// (%40), which is what URLSearchParams would do. Only the human-text fields are
-// encoded, and with %20 (encodeURIComponent) rather than `+` for spaces.
-function upiLink(payAmount, note) {
-  const parts = [
-    `pa=${VPA}`,
-    `pn=${encodeURIComponent(PAYEE)}`,
-    `am=${payAmount.toFixed(2)}`,
-    'cu=INR',
-    `tn=${encodeURIComponent(note)}`,
-  ];
-  return `upi://pay?${parts.join('&')}`;
-}
-
 // POST /api/order  { tier, email?, baseAmount }
+// Creates a pending order to match a payment against. The UPI QR/link (and the
+// payee VPA) is built client-side from the VITE_UPI_ID build secret — the
+// backend only needs the amount to match the incoming credit.
 app.http('createOrder', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'order',
   handler: async (req) => {
-    if (!VPA) return bad('Payments not configured (set UPI_VPA)', 503);
     if (rateLimited(req, 'order', 20, 60_000)) return bad('Too many requests — slow down', 429);
 
     const { tier, email, baseAmount } = await readBody(req);
@@ -82,13 +67,7 @@ app.http('createOrder', {
     if (email && !EMAIL_RE.test(String(email))) return bad('Invalid email');
 
     const { order } = await store.createOrder({ tier: String(tier || '').slice(0, 40), email, baseAmount: base });
-    const note = `${PAYEE} ${order.tier || ''}`.trim();
-    return ok({
-      orderId: order.id,
-      payAmount: order.payAmount,
-      vpa: VPA,
-      upiLink: upiLink(order.payAmount, note),
-    });
+    return ok({ orderId: order.id, payAmount: order.payAmount });
   },
 });
 
