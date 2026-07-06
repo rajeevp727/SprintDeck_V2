@@ -196,7 +196,7 @@ export default function SubscriptionModal({ onClose }: Props) {
                 <div className="qr-wrap">
                   <div className="qr-skeleton" aria-label="Loading QR code" role="img">
                     <div className="qr-grid">
-                      {Array.from({ length: 121 }).map((_, i) => (
+                      {Array.from({ length: 441 }).map((_, i) => (
                         <span key={i} className="qr-cell" style={{ animationDelay: `${((i * 37) % 100) / 100}s` }} />
                       ))}
                     </div>
