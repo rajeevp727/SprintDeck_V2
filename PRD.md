@@ -54,14 +54,14 @@ shared provider adapter (T10); cross-sprint velocity analytics (T9).
 | ID | Item | Status |
 |---|---|---|
 | T1 | Real Linear integration (live fetch + write-back) | **blocked** — needs OAuth app / org re-enabling API keys |
-| T2 | Automated tests (unit + e2e in CI) | pending |
-| T3 | Persistence policy (retention/export/delete/backups) | pending |
-| T4 | Security hardening (rate limit, headers, scanning) | pending |
-| T5 | Observability & ops (error tracking, alerts, staging) | pending |
-| T6 | Legal & compliance (ToS, DPA, security page) | pending |
+| T2 | Automated tests (unit in CI; e2e later) | ✅ done (2026-07-06) |
+| T3 | Persistence policy (configurable retention, export, delete; backups=Azure) | ✅ done |
+| T4 | Security hardening (headers, Dependabot, room-create rate limit) | ✅ done |
+| T5 | Observability (client errors → App Insights; Sentry/staging external) | ✅ done (partial) |
+| T6 | Legal & compliance (Terms + Security pages; DPA later) | ✅ done (partial) |
 | T7 | Monetization (PhonePe UPI, tiers) | pending |
-| T8 | Accessibility & polish (WCAG AA, real icons) | pending |
-| T9 | Differentiation (velocity/estimation analytics) | pending |
+| T8 | Accessibility & polish (focus, reduced-motion, ARIA, SVG icons) | ✅ done |
+| T9 | Differentiation — session analytics done; cross-sprint velocity deferred | ✅ partial |
 | T10 | Additional integrations (Jira, Azure DevOps) | pending |
 
 _(Full detail + report-card grades tracked in the assistant's project memory.)_

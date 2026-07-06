@@ -3,6 +3,19 @@
 Dated log of changes, updated each working day. Newest first.
 See `PRD.md` for product direction and `README.md` for setup.
 
+## 2026-07-06 (later) — report-card remediation batch
+Hardening pass toward the due-diligence report card (each its own commit):
+
+- **T2 · Tests** — vitest unit tests (estimate/store/linear, 14 total) + `.github/workflows/test.yml` CI.
+- **T4 · Security** — global security headers (nosniff/frame-deny/HSTS/referrer/permissions) in `staticwebapp.config.json`; Dependabot (npm + actions); per-IP rate limit on room creation.
+- **T8 · Accessibility** — keyboard `:focus-visible` ring, `prefers-reduced-motion` support, aria-labels/aria-hidden on icons, deck cards `aria-label`+`aria-pressed`, SVG sun/moon theme icons.
+- **T6 · Legal** — Terms (`/terms`) + Security (`/security`) pages, linked in the footer.
+- **T3 · Persistence** — configurable retention (`SESSION_IDLE_HOURS`/`SESSION_MAX_AGE_HOURS`), full-session **JSON export**, documented backup/delete policy.
+- **T5 · Observability** — client error tracking → `/api/log` → Azure Application Insights (`src/telemetry.ts`, ErrorBoundary hook); Sentry-ready.
+- **T9 · Differentiation** — session estimation analytics (total points / consensus % / avg spread / contested / distribution) in the Results modal. Cross-sprint velocity deferred (needs persistence + identity).
+
+Not done: **T1** (real Linear integration — blocked on OAuth app + org policy), **T7** (PhonePe UPI monetization), **T10** (Jira/ADO integrations).
+
 ## 2026-07-06
 **Integrations-hub UI + product docs (all integration data is mock/preview).**
 
