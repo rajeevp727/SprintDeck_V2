@@ -10,9 +10,9 @@ import {
   getCurrentRoom,
   setCurrentRoom,
   clearCurrentRoom,
-} from './storage';
-import { getPendingOrder, clearPendingOrder, setSubscription, isSubscribed } from './subscription';
-import { getStatus } from './verifier';
+} from './lib/storage';
+import { getPendingOrder, clearPendingOrder, setSubscription, isSubscribed } from './lib/subscription';
+import { getStatus } from './lib/verifier';
 
 type Route =
   | { kind: 'room'; code: string }

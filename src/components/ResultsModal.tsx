@@ -1,6 +1,6 @@
-import type { HistoryEntry } from '../types';
-import { exportCsv, exportText, exportJson } from '../export';
-import { sessionAnalytics } from '../analytics';
+import type { HistoryEntry } from '../lib/types';
+import { exportCsv, exportText, exportJson } from '../lib/export';
+import { sessionAnalytics } from '../lib/analytics';
 
 interface Props {
   sessionName: string;

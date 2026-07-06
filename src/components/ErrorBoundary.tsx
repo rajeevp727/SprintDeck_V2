@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from 'react';
-import { captureError } from '../telemetry';
+import { captureError } from '../lib/telemetry';
 
 interface Props {
   children: ReactNode;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { api } from '../api';
-import { saveIdentity } from '../storage';
+import { api } from '../lib/api';
+import { saveIdentity } from '../lib/storage';
 import AdBanner from './AdBanner';
 
 interface Props {

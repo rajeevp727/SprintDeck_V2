@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
-import { api } from '../api';
-import { clearIdentity, getIdentity } from '../storage';
-import type { Session } from '../types';
+import { api } from '../lib/api';
+import { clearIdentity, getIdentity } from '../lib/storage';
+import type { Session } from '../lib/types';
 import ResultsModal from './ResultsModal';
 import ConnectToolModal, { toolMeta, type ToolId } from './ConnectToolModal';
 import ToolConnectModal from './ToolConnectModal';
@@ -9,8 +9,8 @@ import ThemeToggle from './ThemeToggle';
 import SubscriptionModal from './SubscriptionModal';
 import AdBanner from './AdBanner';
 import { CrownIcon } from './icons';
-import { nearestDeckValue } from '../estimate';
-import { isSubscribed, getActiveSubscription, tiers } from '../subscription';
+import { nearestDeckValue } from '../lib/estimate';
+import { isSubscribed, getActiveSubscription, tiers } from '../lib/subscription';
 
 const pollMs = 1500;
 // Only leave the room after this many CONSECUTIVE "not found" polls — tolerates

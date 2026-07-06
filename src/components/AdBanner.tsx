@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ADSENSE_CLIENT, ADSENSE_SLOT } from '../adsConfig';
+import { ADSENSE_CLIENT, ADSENSE_SLOT } from '../lib/adsConfig';
 
 interface Props {
   // Use a distinct AdSense ad-unit slot id per placement for best reporting;

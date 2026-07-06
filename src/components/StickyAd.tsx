@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import AdBanner from './AdBanner';
-import { adsEnabled } from '../adsConfig';
+import { adsEnabled } from '../lib/adsConfig';
 
 // Dismissible sticky footer ad — highest-viewability placement, and
 // AdSense-compliant because the user can close it.

@@ -12,8 +12,8 @@ import {
   amountForTier,
   platformFee,
   type TierId,
-} from '../subscription';
-import { createOrder, getStatus, type PaymentOrder } from '../verifier';
+} from '../lib/subscription';
+import { createOrder, getStatus, type PaymentOrder } from '../lib/verifier';
 import { CloseIcon, InfoIcon } from './icons';
 
 interface Props {

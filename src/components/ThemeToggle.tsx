@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getTheme, setTheme } from '../theme';
+import { getTheme, setTheme } from '../lib/theme';
 
 // The effective theme right now: an explicit choice if made, else whatever the
 // OS prefers (the default is still "system" until the user toggles).
