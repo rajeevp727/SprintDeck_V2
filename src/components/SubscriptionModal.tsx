@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { TIERS, UPI_ID, upiLink, setSubscription, type TierId } from '../subscription';
 import { CloseIcon } from './icons';
@@ -11,6 +11,15 @@ interface Props {
 export default function SubscriptionModal({ onClose, onSubscribed }: Props) {
   const [selected, setSelected] = useState<TierId | null>(null);
   const tier = TIERS.find((t) => t.id === selected) ?? null;
+
+  // Esc closes the modal.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   function activate() {
     if (!tier) return;
