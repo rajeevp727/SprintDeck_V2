@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { TIERS, UPI_ID, upiLink, setSubscription, setPendingOrder, clearPendingOrder, getSubscription, type TierId } from '../subscription';
+import {
+  TIERS,
+  UPI_ID,
+  upiLink,
+  setSubscription,
+  setPendingOrder,
+  clearPendingOrder,
+  getActiveSubscription,
+  tierPrice,
+  amountForTier,
+  type TierId,
+} from '../subscription';
 import { createOrder, getStatus, type PaymentOrder } from '../verifier';
 import { CloseIcon } from './icons';
 
@@ -66,7 +77,7 @@ export default function SubscriptionModal({ onClose }: Props) {
   // After the window elapses, show "regenerating" briefly, then auto-create a fresh QR.
   useEffect(() => {
     if (payState !== 'regenerating' || !tier) return;
-    const id = setTimeout(() => startPayment(tier.id, tier.price), REGEN_MS);
+    const id = setTimeout(() => startPayment(tier.id, amountForTier(tier.id)), REGEN_MS);
     return () => clearTimeout(id);
   }, [payState, tier]);
 
@@ -107,8 +118,8 @@ export default function SubscriptionModal({ onClose }: Props) {
     return () => clearTimeout(id);
   }, [payState, onClose]);
 
-  // Pick a tier → create an order and show its QR.
-  async function startPayment(id: TierId, price: number) {
+  // Pick a tier → create an order for `amount` (full price, or upgrade balance).
+  async function startPayment(id: TierId, amount: number) {
     setSelected(id);
     setSeconds(PAY_WINDOW);
     setErrMsg('');
@@ -117,7 +128,7 @@ export default function SubscriptionModal({ onClose }: Props) {
       // Wait for the order AND let the loader ring fill fully (~1.5s) before
       // revealing the QR.
       const [o] = await Promise.all([
-        createOrder(id, price),
+        createOrder(id, amount),
         new Promise((resolve) => setTimeout(resolve, 1500)),
       ]);
       setOrder(o);
@@ -130,7 +141,7 @@ export default function SubscriptionModal({ onClose }: Props) {
   }
 
   function retry() {
-    if (tier) startPayment(tier.id, tier.price);
+    if (tier) startPayment(tier.id, amountForTier(tier.id));
   }
 
   function backToPlans() {
@@ -174,13 +185,23 @@ export default function SubscriptionModal({ onClose }: Props) {
                 <span className="tier-cta">Use SprintDeck Free →</span>
               </a>
               {TIERS.map((t) => {
-                const isCurrent = t.id === getSubscription()?.tier;
+                const active = getActiveSubscription();
+                const isCurrent = active?.tier === t.id;
+                const isLower = !!active && t.price < tierPrice(active.tier);
+                const amount = amountForTier(t.id);
+                const cta = isCurrent
+                  ? 'Current plan'
+                  : isLower
+                    ? 'Included'
+                    : active
+                      ? `Upgrade · pay ₹${amount}`
+                      : `Choose ${t.name}`;
                 return (
                   <button
                     key={t.id}
                     className={`tier-card${t.highlight ? ' tier-hot' : ''}${isCurrent ? ' tier-current' : ''}`}
-                    disabled={isCurrent}
-                    onClick={() => startPayment(t.id, t.price)}
+                    disabled={isCurrent || isLower}
+                    onClick={() => startPayment(t.id, amount)}
                   >
                     {t.highlight && <span className="tier-badge">Popular</span>}
                     <span className="tier-icon" aria-hidden>{t.icon}</span>
@@ -195,7 +216,7 @@ export default function SubscriptionModal({ onClose }: Props) {
                         <li key={f}>{f}</li>
                       ))}
                     </ul>
-                    <span className="tier-cta">{isCurrent ? 'Current plan' : `Choose ${t.name}`}</span>
+                    <span className="tier-cta">{cta}</span>
                   </button>
                 );
               })}
@@ -226,7 +247,7 @@ export default function SubscriptionModal({ onClose }: Props) {
                   <QrSkeleton />
                 </div>
                 <p className="pay-amount">
-                  Pay <strong>₹{tier.price}.00</strong>
+                  Pay <strong>₹{amountForTier(tier.id).toFixed(2)}</strong>
                 </p>
               </>
             ) : payState === 'regenerating' ? (
@@ -236,7 +257,7 @@ export default function SubscriptionModal({ onClose }: Props) {
                   <QrSkeleton />
                 </div>
                 <p className="pay-amount">
-                  Pay <strong>₹{tier.price}.00</strong>
+                  Pay <strong>₹{amountForTier(tier.id).toFixed(2)}</strong>
                 </p>
                 <p className="auth-hint">A fresh QR appears in a moment.</p>
               </>

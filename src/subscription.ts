@@ -75,8 +75,32 @@ export function getSubscription(): Subscription | null {
   }
 }
 
+// A subscription is active for 30 days from purchase; after that it lapses
+// (the plan popup returns for renewal).
+const ACTIVE_DAYS = 30;
+
+export function getActiveSubscription(): Subscription | null {
+  const s = getSubscription();
+  if (!s) return null;
+  const ageMs = Date.now() - new Date(s.at).getTime();
+  return ageMs <= ACTIVE_DAYS * 24 * 60 * 60 * 1000 ? s : null;
+}
+
 export function isSubscribed(): boolean {
-  return !!getSubscription();
+  return !!getActiveSubscription();
+}
+
+export function tierPrice(id: TierId): number {
+  return TIERS.find((t) => t.id === id)?.price ?? 0;
+}
+
+// What a user pays to move to tier `to`: the full price normally, or just the
+// balance (new − current) when upgrading within an active subscription.
+export function amountForTier(to: TierId): number {
+  const active = getActiveSubscription();
+  const target = tierPrice(to);
+  if (active && target > tierPrice(active.tier)) return target - tierPrice(active.tier);
+  return target;
 }
 
 export function setSubscription(tier: TierId) {

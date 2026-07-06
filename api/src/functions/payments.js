@@ -45,9 +45,9 @@ function rateLimited(req, bucket, max, windowMs) {
   return recent.length > max;
 }
 
-// Base plan prices the client may request — guards a tampered request asking to
-// "pay" ₹1 for a ₹999 plan. Keep in sync with the frontend tiers.
-const ALLOWED_AMOUNTS = new Set([199, 499, 999]);
+// Amounts the client may request — full plan prices PLUS valid upgrade balances
+// (499-199=300, 999-499=500, 999-199=800). Guards a tampered request.
+const ALLOWED_AMOUNTS = new Set([199, 499, 999, 300, 500, 800]);
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 // POST /api/order  { tier, email?, baseAmount }
