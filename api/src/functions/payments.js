@@ -6,8 +6,16 @@
 // client polls /api/upi/status until it flips to 'confirmed'.
 
 const { app } = require('@azure/functions');
+const crypto = require('crypto');
 const store = require('../payments-store');
 const { parse } = require('../parse');
+
+// Constant-time secret comparison (hash to a fixed length so neither the value
+// nor its length leaks via timing). Guards the ingest endpoint.
+function secretMatches(provided, expected) {
+  const h = (x) => crypto.createHash('sha256').update(String(x)).digest();
+  return crypto.timingSafeEqual(h(provided), h(expected));
+}
 
 const NO_CACHE = { 'Cache-Control': 'no-store' };
 
@@ -44,15 +52,19 @@ const PAYEE = process.env.PAYEE_NAME || 'SprintDeck';
 const ALLOWED_AMOUNTS = new Set([199, 499, 999]);
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
+// Build a UPI intent link. NOTE: the VPA (`pa`) is left LITERAL — several UPI
+// apps throw a "temporary technical issue" if the `@` is percent-encoded
+// (%40), which is what URLSearchParams would do. Only the human-text fields are
+// encoded, and with %20 (encodeURIComponent) rather than `+` for spaces.
 function upiLink(payAmount, note) {
-  const params = new URLSearchParams({
-    pa: VPA,
-    pn: PAYEE,
-    cu: 'INR',
-    am: payAmount.toFixed(2),
-    tn: note,
-  });
-  return `upi://pay?${params.toString()}`;
+  const parts = [
+    `pa=${VPA}`,
+    `pn=${encodeURIComponent(PAYEE)}`,
+    `am=${payAmount.toFixed(2)}`,
+    'cu=INR',
+    `tn=${encodeURIComponent(note)}`,
+  ];
+  return `upi://pay?${parts.join('&')}`;
 }
 
 // POST /api/order  { tier, email?, baseAmount }
@@ -69,11 +81,7 @@ app.http('createOrder', {
     if (!Number.isInteger(base) || !ALLOWED_AMOUNTS.has(base)) return bad('Invalid amount');
     if (email && !EMAIL_RE.test(String(email))) return bad('Invalid email');
 
-    const result = await store.createOrder({ tier: String(tier || '').slice(0, 40), email, baseAmount: base });
-    if (result.error === 'no_slot') {
-      return bad('Too many pending payments for this plan right now — try again in a minute', 503);
-    }
-    const { order } = result;
+    const { order } = await store.createOrder({ tier: String(tier || '').slice(0, 40), email, baseAmount: base });
     const note = `${PAYEE} ${order.tier || ''}`.trim();
     return ok({
       orderId: order.id,
@@ -92,7 +100,7 @@ app.http('upiIngest', {
   handler: async (req, context) => {
     const secret = process.env.INGEST_SECRET || '';
     if (!secret) return bad('Ingest not configured (set INGEST_SECRET)', 503);
-    if (req.headers.get('x-ingest-secret') !== secret) return bad('Unauthorized', 401);
+    if (!secretMatches(req.headers.get('x-ingest-secret') || '', secret)) return bad('Unauthorized', 401);
 
     const { text, source } = await readBody(req);
     const parsed = parse(text);

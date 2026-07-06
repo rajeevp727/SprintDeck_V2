@@ -18,6 +18,7 @@ const ORDER_TTL_MS = (Number(process.env.ORDER_TTL_MINUTES) || 30) * 60 * 1000;
 
 const memory = new Map(); // id → record (fallback)
 let containerPromise = null;
+let seq = 0; // monotonic tiebreaker for orders created in the same millisecond
 
 function getContainer() {
   if (!CONN) return null;
@@ -85,38 +86,22 @@ async function pendingOrders() {
   return [...memory.values()].filter(fresh);
 }
 
-// Pick the smallest unused paise offset (0..99) for this base among pending
-// orders. The first/only order for a price gets the CLEAN amount (offset 0, e.g.
-// ₹199.00); paise are only added to disambiguate genuine concurrent duplicates
-// (₹199.01, .02 …). Offsets free up as orders confirm/expire. Returns null when
-// all 100 slots for a base are in use.
-function pickUniqueAmount(base, pending) {
-  const used = new Set(
-    pending
-      .filter((o) => o.baseAmount === base)
-      .map((o) => Math.round((o.payAmount - o.baseAmount) * 100)),
-  );
-  for (let off = 0; off <= 99; off++) {
-    if (!used.has(off)) return Math.round((base + off / 100) * 100) / 100;
-  }
-  return null;
-}
-
 async function createOrder({ tier, email, baseAmount }) {
-  const pending = await pendingOrders();
-  const payAmount = pickUniqueAmount(baseAmount, pending);
-  if (payAmount == null) return { error: 'no_slot' };
+  // The payable amount is exactly the plan price (clean ₹199 / ₹499 / ₹999).
+  // Incoming credits are matched to the most-recent pending order of that
+  // amount (see ingestCredit) — no paise-tagging.
   const order = {
     id: genId(),
     type: 'order',
     tier,
     email: email || null,
     baseAmount,
-    payAmount,
+    payAmount: baseAmount,
     status: 'pending', // 'pending' | 'confirmed' | 'expired'
     utr: null,
     receiptId: null,
     createdAt: Date.now(),
+    seq: (seq += 1),
     confirmedAt: null,
   };
   await putRecord(order);
@@ -172,8 +157,13 @@ async function ingestCredit({ amount, utr, rawText, source }) {
     return { receipt, order: null, duplicate: true };
   }
 
+  // Match the MOST RECENT pending order of this amount — that's the one the
+  // payer is most likely settling now. Older unpaid orders for the same price
+  // stay pending and expire on their own.
   const pending = await pendingOrders();
-  const match = pending.find((o) => sameAmount(o.payAmount, amount));
+  const match = pending
+    .filter((o) => sameAmount(o.payAmount, amount))
+    .sort((a, b) => b.createdAt - a.createdAt || (b.seq || 0) - (a.seq || 0))[0] || null;
   await putRecord(receipt);
 
   if (!match) return { receipt, order: null };
@@ -194,5 +184,4 @@ module.exports = {
   createOrder,
   getOrder,
   ingestCredit,
-  pickUniqueAmount, // exported for tests
 };
