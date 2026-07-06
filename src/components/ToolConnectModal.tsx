@@ -1,0 +1,71 @@
+import { useState } from 'react';
+import { TOOL_META, type ToolId } from './ConnectToolModal';
+
+interface Props {
+  tool: ToolId;
+  onClose: () => void;
+  onConnected: (tool: ToolId, key: string) => void;
+}
+
+/**
+ * Per-tool API-key connect. The user pastes a read/write key/token; we use it to
+ * pull estimation tickets and to write agreed story points back after planning.
+ *
+ * MOCK for now: the key isn't sent anywhere yet — connecting loads sample tickets.
+ * Once the provider adapter (roadmap T1/T10) lands, the key goes to the server
+ * (encrypted) and drives the real read/write calls.
+ */
+export default function ToolConnectModal({ tool, onClose, onConnected }: Props) {
+  const meta = TOOL_META[tool];
+  const [key, setKey] = useState('');
+  const [shake, setShake] = useState(false);
+
+  // Outside-click must NOT close — shake the card and flash the ✕.
+  function refuseOutsideClose() {
+    setShake(true);
+    setTimeout(() => setShake(false), 500);
+  }
+
+  return (
+    <div className="modal-overlay" onClick={refuseOutsideClose}>
+      <div className={`auth-modal${shake ? ' shake' : ''}`} onClick={(e) => e.stopPropagation()}>
+        <button
+          className={`auth-close${shake ? ' attn' : ''}`}
+          onClick={onClose}
+          aria-label="Close"
+          title="Close"
+        >
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+
+        <div className="auth-brand">
+          {meta.logo} {meta.name}
+        </div>
+        <h3>Connect {meta.name}</h3>
+        <p className="auth-sub">
+          Paste an API key with <strong>read &amp; write</strong> access — used to pull your
+          estimation tickets and write the agreed story points back.
+        </p>
+
+        <input
+          className="auth-key"
+          type="password"
+          placeholder={meta.keyPlaceholder}
+          value={key}
+          onChange={(e) => setKey(e.target.value)}
+          autoFocus
+        />
+        <p className="auth-hint">{meta.keyHelp}</p>
+
+        <button className="primary auth-wide" disabled={!key.trim()} onClick={() => onConnected(tool, key.trim())}>
+          Connect {meta.name}
+        </button>
+        <button className="ghost auth-wide" onClick={onClose}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}

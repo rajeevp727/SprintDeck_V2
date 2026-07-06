@@ -79,7 +79,14 @@ export default function App() {
   if (route.kind === 'privacy') {
     page = <Privacy onBack={goHome} />;
   } else if (route.kind === 'room') {
-    page = <Room code={route.code} onLeave={goHome} onMissingIdentity={goHome} />;
+    page = (
+      <Room
+        code={route.code}
+        onLeave={goHome}
+        onMissingIdentity={goHome}
+        onGoRoom={() => goRoom(route.code)}
+      />
+    );
   } else {
     page = <Home initialCode={route.joinCode} onEnter={goRoom} onPrivacy={goPrivacy} />;
   }

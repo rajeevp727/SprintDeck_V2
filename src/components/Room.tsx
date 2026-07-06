@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { api } from '../api';
 import { clearIdentity, getIdentity } from '../storage';
 import type { Session } from '../types';
 import ResultsModal from './ResultsModal';
+import ConnectToolModal, { TOOL_META, type ToolId } from './ConnectToolModal';
+import ToolConnectModal from './ToolConnectModal';
+import ThemeToggle from './ThemeToggle';
 import AdBanner from './AdBanner';
 
 const POLL_MS = 1500;
@@ -28,9 +31,10 @@ interface Props {
   code: string;
   onLeave: () => void;
   onMissingIdentity: () => void;
+  onGoRoom: () => void;
 }
 
-export default function Room({ code, onLeave, onMissingIdentity }: Props) {
+export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Props) {
   const identity = getIdentity(code);
   const participantId = identity?.participantId ?? '';
 
@@ -40,10 +44,15 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   const [queueDraft, setQueueDraft] = useState('');
   const [copied, setCopied] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [viewedCount, setViewedCount] = useState(0); // history entries the moderator has opened
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [linearEnabled, setLinearEnabled] = useState(false);
   const [linearDraft, setLinearDraft] = useState('');
   const [linearMissing, setLinearMissing] = useState<string[]>([]);
+  const [linearNotice, setLinearNotice] = useState('');
+  const [linearConnected, setLinearConnected] = useState(false);
+  const [showToolPicker, setShowToolPicker] = useState(false);
+  const [pendingTool, setPendingTool] = useState<ToolId | null>(null);
   const [pushEntryId, setPushEntryId] = useState<string | null>(null);
   const [pushValue, setPushValue] = useState('');
   const missCount = useRef(0);
@@ -54,6 +63,14 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   }, [participantId, onMissingIdentity]);
 
   const isModerator = session?.moderatorId === participantId;
+
+  // Results the moderator hasn't opened yet (new rounds since they last viewed).
+  const unviewedCount = session ? Math.max(0, session.history.length - viewedCount) : 0;
+  const hasUnviewed = unviewedCount > 0;
+  // Mirror into a ref so the beforeunload handler reads the latest value without
+  // needing to re-register the listener on every change.
+  const hasUnviewedRef = useRef(false);
+  hasUnviewedRef.current = hasUnviewed;
 
   const refresh = useCallback(async () => {
     if (!participantId) return;
@@ -98,8 +115,9 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
   useEffect(() => {
     if (!isModerator) return;
     const handler = (e: BeforeUnloadEvent) => {
+      if (!hasUnviewedRef.current) return; // only warn when unviewed results exist
       e.preventDefault();
-      e.returnValue = 'Please check the sprint planning results';
+      e.returnValue = 'You have unviewed sprint results — review them before leaving.';
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
@@ -182,6 +200,35 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
     }
   }
 
+  // Load the Linear "Estimation" view tickets into the queue (mock data for now;
+  // becomes a live fetch once OAuth credentials are configured server-side).
+  async function loadEstimation() {
+    try {
+      const { session: s } = await api.linearImportEstimation(code, participantId);
+      setSession(s);
+      setLinearConnected(true);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  // Tool picked from the "Connect a tool" list → open its key-entry modal.
+  function selectTool(tool: ToolId) {
+    setShowToolPicker(false);
+    setPendingTool(tool);
+  }
+
+  // Read/write key entered → (mock) connect and load the estimation tickets. The
+  // key isn't sent anywhere yet; real read/write lands with the provider adapter.
+  function onToolConnected(tool: ToolId) {
+    setPendingTool(null);
+    setLinearConnected(true);
+    setLinearNotice(
+      `Connected to ${TOOL_META[tool].name} (demo — sample tickets loaded; live read/write once the integration is wired).`,
+    );
+    loadEstimation();
+  }
+
   async function pushToLinear(entryId: string) {
     const estimate = Number(pushValue);
     if (!Number.isInteger(estimate)) return;
@@ -198,13 +245,23 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
     moderatorAction(() => api.kick(code, participantId, targetId));
   }
 
+  // Header links are real anchors (to the invite URL) so Ctrl/Cmd/middle-click
+  // opens a new tab. A plain left-click stays in-app via SPA navigation.
+  function roomLinkClick(e: ReactMouseEvent) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // allow open-in-new-tab
+    e.preventDefault();
+    onGoRoom();
+  }
+
   function leave() {
     clearIdentity(code);
     onLeave();
   }
 
   async function endRoom() {
-    window.alert('Please check the sprint planning results');
+    if (hasUnviewed) {
+      window.alert('You have unviewed results — please review them before closing the room.');
+    }
     if (!window.confirm('End this room for everyone? This cannot be undone.')) return;
     try {
       await api.end(code, participantId);
@@ -242,8 +299,23 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
 
   // The just-revealed round — used by the Linear "confirm & push estimate" control.
   const currentEntry = session.history.find((h) => h.id === session.currentEntryId);
-  const showLinearPush =
-    linearEnabled && session.status === 'revealed' && !!currentEntry?.linearId;
+  const showLinearPush = session.status === 'revealed' && !!currentEntry?.linearId;
+
+  // Estimation list state: the story being voted now (selected), the pending
+  // queue, and the already-estimated stories (greyed). Works for both Linear
+  // tickets and manually-added tasks. The active story only appears as "current"
+  // while voting, then moves to "done" once revealed.
+  const currentStory =
+    session.status === 'voting' && session.story
+      ? {
+          identifier: session.currentLinear?.identifier ?? null,
+          title: session.currentLinear?.title ?? session.story,
+          url: session.currentLinear?.url ?? null,
+        }
+      : null;
+  const doneStories = session.history;
+  const linearUrl = (identifier?: string | null, url?: string | null) =>
+    url ?? (identifier ? `https://linear.app/trivinna/issue/${identifier}` : undefined);
 
   // Position-aware label for the Start button (first / next / last / only),
   // based purely on the queue — stories are always pulled from it.
@@ -256,17 +328,33 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
     else if (queued === 1) startLabel = 'Start last story';
     else startLabel = 'Start next story';
   }
+  // Don't allow starting a round with nothing to estimate — require either a
+  // Linear connection or at least one queued ticket.
+  const canStart = linearConnected || queued > 0;
 
   return (
     <div className="room">
       <header className="room-header">
         <div className="room-meta">
-          <span className="room-code" title="Room code">
+          <a
+            className="brand-link"
+            href={`/?room=${session.code}`}
+            title="Go to your room"
+            onClick={roomLinkClick}
+          >
+            <span className="brand-mark-sm">♠</span> SprintDeck
+          </a>
+          <a
+            className="room-code"
+            href={`/?room=${session.code}`}
+            title="Go to your room"
+            onClick={roomLinkClick}
+          >
             {session.code}
-          </span>
-          <h2>{session.name}</h2>
+          </a>
         </div>
         <div className="room-actions">
+          <ThemeToggle />
           <span className={`status-pill ${session.status}`}>
             {session.status === 'waiting' && 'Not started'}
             {session.status === 'voting' && `Voting · ${voted}/${total}`}
@@ -276,10 +364,13 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
             <button
               className="ghost"
               title="View results"
-              onClick={() => setShowResults(true)}
+              onClick={() => {
+                setShowResults(true);
+                setViewedCount(session.history.length); // mark all current results viewed
+              }}
             >
               Results
-              {session.history.length > 0 && <span className="badge">{session.history.length}</span>}
+              {hasUnviewed && <span className="badge">{unviewedCount}</span>}
             </button>
           )}
           {isModerator && (
@@ -352,6 +443,8 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
               {session.status === 'waiting' && (
                 <button
                   className="primary"
+                  disabled={!canStart}
+                  title={canStart ? undefined : 'Connect Linear or load tickets to estimate first'}
                   onClick={() => moderatorAction(() => api.start(code, participantId, ''))}
                 >
                   {startLabel}
@@ -479,31 +572,94 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
           </div>
           )}
 
-          {/* Linear V1 flow — paste ticket IDs, estimate, write points back */}
-          {linearEnabled && (
-            <div className="queue-panel linear-panel">
-              <div className="queue-head">
-                <span className="queue-title">Linear tickets</span>
-                <span className="muted">{session.queue.length} queued</span>
-              </div>
-              {session.queue.length > 0 && (
-                <ul className="queue-list">
-                  {session.queue.map((q, i) => (
-                    <li key={q.id}>
-                      <span className="q-num">{i + 1}</span>
-                      {q.identifier && <span className="q-badge">{q.identifier}</span>}
-                      <span className="q-title">{q.title}</span>
-                      <button
-                        className="q-remove"
-                        title="Remove"
-                        onClick={() => moderatorAction(() => api.removeFromQueue(code, participantId, q.id))}
-                      >
-                        ×
-                      </button>
+          {/* Linear — Connect (OAuth) + Estimation-view tickets */}
+          <div className="queue-panel linear-panel">
+            <div className="queue-head">
+              <span className="queue-title">Linear · Estimation</span>
+              <button
+                className="linear-connect"
+                onClick={() => setShowToolPicker(true)}
+                disabled={linearConnected}
+              >
+                {linearConnected ? 'Connected · sample data' : 'Connect a tool'}
+              </button>
+            </div>
+
+            {linearNotice && <p className="linear-notice">{linearNotice}</p>}
+
+            {currentStory || session.queue.length > 0 || doneStories.length > 0 ? (
+              <ul className="queue-list est-list">
+                {/* Story being estimated right now — selected/highlighted */}
+                {currentStory && (
+                  <li className="est-current">
+                    <span className="est-dot" aria-hidden />
+                    {currentStory.identifier &&
+                      (() => {
+                        const url = linearUrl(currentStory.identifier, currentStory.url);
+                        return url ? (
+                          <a className="q-badge q-link" href={url} target="_blank" rel="noreferrer">
+                            {currentStory.identifier}
+                          </a>
+                        ) : (
+                          <span className="q-badge">{currentStory.identifier}</span>
+                        );
+                      })()}
+                    <span className="q-title">{currentStory.title}</span>
+                    <span className="est-tag">Estimating…</span>
+                  </li>
+                )}
+
+                {/* Up next — pending tickets */}
+                {session.queue.map((q, i) => (
+                  <li key={q.id}>
+                    <span className="q-num">{i + 1}</span>
+                    {q.identifier &&
+                      (q.url ? (
+                        <a className="q-badge q-link" href={q.url} target="_blank" rel="noreferrer">
+                          {q.identifier}
+                        </a>
+                      ) : (
+                        <span className="q-badge">{q.identifier}</span>
+                      ))}
+                    <span className="q-title">{q.title}</span>
+                    {q.status && <span className="q-status">{q.status}</span>}
+                    <button
+                      className="q-remove"
+                      title="Remove"
+                      onClick={() => moderatorAction(() => api.removeFromQueue(code, participantId, q.id))}
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+
+                {/* Already estimated — greyed out with the agreed points */}
+                {doneStories.map((h) => {
+                  const url = linearUrl(h.identifier, h.url);
+                  return (
+                    <li key={h.id} className="est-done">
+                      {h.identifier &&
+                        (url ? (
+                          <a className="q-badge q-link" href={url} target="_blank" rel="noreferrer">
+                            {h.identifier}
+                          </a>
+                        ) : (
+                          <span className="q-badge">{h.identifier}</span>
+                        ))}
+                      <span className="q-title">{h.title}</span>
+                      <span className="q-est">{h.pushedEstimate ?? h.median ?? '—'} pts</span>
                     </li>
-                  ))}
-                </ul>
-              )}
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="linear-empty">
+                Connect Linear to load the Estimation view, or add tasks manually below — then Start to estimate each one.
+              </p>
+            )}
+
+            {/* Live paste-ID import — only when a server API key is configured */}
+            {linearEnabled && (
               <div className="queue-add">
                 <textarea
                   value={linearDraft}
@@ -515,11 +671,24 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
                   Import from Linear
                 </button>
               </div>
-              {linearMissing.length > 0 && (
-                <p className="linear-missing">Not found: {linearMissing.join(', ')}</p>
-              )}
+            )}
+            {linearMissing.length > 0 && (
+              <p className="linear-missing">Not found: {linearMissing.join(', ')}</p>
+            )}
+
+            {/* Manual entry — add tasks to estimate without Linear */}
+            <div className="queue-add">
+              <textarea
+                value={queueDraft}
+                placeholder="Add tasks manually — one per line (no Linear needed)"
+                rows={2}
+                onChange={(e) => setQueueDraft(e.target.value)}
+              />
+              <button className="ghost" disabled={!queueDraft.trim()} onClick={addQueue}>
+                Add task
+              </button>
             </div>
-          )}
+          </div>
         </>
       )}
 
@@ -553,6 +722,18 @@ export default function Room({ code, onLeave, onMissingIdentity }: Props) {
           sessionName={session.name}
           history={session.history}
           onClose={() => setShowResults(false)}
+        />
+      )}
+
+      {showToolPicker && (
+        <ConnectToolModal onClose={() => setShowToolPicker(false)} onSelect={selectTool} />
+      )}
+
+      {pendingTool && (
+        <ToolConnectModal
+          tool={pendingTool}
+          onClose={() => setPendingTool(null)}
+          onConnected={onToolConnected}
         />
       )}
     </div>

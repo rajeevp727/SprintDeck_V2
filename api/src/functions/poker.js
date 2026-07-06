@@ -296,6 +296,24 @@ app.http('linearImport', {
   },
 });
 
+// POST /api/session/{code}/linear/import-estimation  { participantId }  (moderator)
+// Loads the Linear "Estimation" view's tickets into the queue. MOCK data for now
+// (see linear.getEstimationTickets); no API key needed until the real fetch lands.
+app.http('linearImportEstimation', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'session/{code}/linear/import-estimation',
+  handler: async (req) => {
+    const { participantId } = await readBody(req);
+    const { session, error } = await requireModerator(req.params.code, participantId);
+    if (error) return error;
+
+    store.addLinearToQueue(session, linear.getEstimationTickets());
+    await store.saveSession(session);
+    return ok({ session: store.publicView(session, participantId) });
+  },
+});
+
 // POST /api/session/{code}/linear/push  { participantId, entryId, estimate }  (moderator)
 // Writes the moderator-confirmed estimate back onto the entry's Linear issue.
 app.http('linearPush', {
@@ -303,7 +321,6 @@ app.http('linearPush', {
   authLevel: 'anonymous',
   route: 'session/{code}/linear/push',
   handler: async (req) => {
-    if (!linear.isEnabled()) return bad('Linear is not configured', 400);
     const { participantId, entryId, estimate } = await readBody(req);
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
@@ -315,10 +332,16 @@ app.http('linearPush', {
       return bad('Estimate must be a value from the deck');
     }
 
-    try {
-      await linear.setEstimate(entry.linearId, estimate);
-    } catch (err) {
-      return bad(`Linear update failed: ${err.message}`, 502);
+    // Mock tickets aren't backed by a real issue — record the estimate locally,
+    // skip the API call. Real tickets require a configured key + write to Linear.
+    const isMock = linear.isMockId(entry.linearId);
+    if (!isMock) {
+      if (!linear.isEnabled()) return bad('Linear is not configured', 400);
+      try {
+        await linear.setEstimate(entry.linearId, estimate);
+      } catch (err) {
+        return bad(`Linear update failed: ${err.message}`, 502);
+      }
     }
     store.markPushed(session, entryId, estimate);
     await store.saveSession(session);

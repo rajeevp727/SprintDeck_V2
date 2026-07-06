@@ -245,16 +245,20 @@ function addToQueue(session, titles) {
 }
 
 // Queue resolved Linear issues, carrying the linkage needed to write estimates
-// back later. Title reads "ENG-876 — Some story" so it's recognisable in the UI.
+// back later. Title is the plain description; the identifier is stored separately
+// so the UI can render it as a clickable "ENG-876" link before the description.
 function addLinearToQueue(session, issues) {
   for (const issue of Array.isArray(issues) ? issues : []) {
     if (!issue?.linearId || !issue?.identifier) continue;
     const label = String(issue.title || '').trim();
     session.queue.push({
       id: genId(),
-      title: label ? `${issue.identifier} — ${label}` : issue.identifier,
+      title: label || issue.identifier,
       linearId: issue.linearId,
       identifier: issue.identifier,
+      url: issue.url ?? `https://linear.app/trivinna/issue/${issue.identifier}`,
+      estimate: issue.estimate ?? null,
+      status: issue.status ?? null,
     });
   }
 }
@@ -292,7 +296,12 @@ function startStory(session, explicitTitle) {
     const next = session.queue.shift();
     title = next.title;
     if (next.linearId && next.identifier) {
-      session.currentLinear = { linearId: next.linearId, identifier: next.identifier };
+      session.currentLinear = {
+        linearId: next.linearId,
+        identifier: next.identifier,
+        title: next.title,
+        url: next.url ?? null,
+      };
     }
   }
   // Starting fresh after a finished session (results were viewed) wipes the old
@@ -319,6 +328,7 @@ function revealAndSave(session) {
     ...stats,
     linearId: linear.linearId ?? null,
     identifier: linear.identifier ?? null,
+    url: linear.url ?? null,
     pushedEstimate: null,
     at: Date.now(),
   };
@@ -394,6 +404,7 @@ function publicView(session, requesterId) {
     status: session.status,
     finished: !!session.finished,
     currentEntryId: session.currentEntryId ?? null,
+    currentLinear: session.currentLinear ?? null,
     deck: session.deck,
     moderatorId: session.moderatorId,
     participants,

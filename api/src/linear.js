@@ -80,6 +80,42 @@ async function resolveIssues(identifiers) {
   return { resolved, missing };
 }
 
+// ─── MOCK: Estimation view ──────────────────────────────────────────────────
+// Stand-in for the Linear "Estimation" custom view
+// (https://linear.app/trivinna/team/ENG/view/estimation-809d590ffc82) until the
+// OAuth "Connect Linear" flow is wired. Once it is, replace getEstimationTickets()
+// with a real customView(id).issues query — the returned shape already matches
+// what store.addLinearToQueue() expects, so nothing downstream changes.
+const WORKSPACE = 'trivinna';
+const MOCK_ESTIMATION_TICKETS = [
+  { identifier: 'ENG-1023', title: '"View All Data" full-screen expansion grouped by section', project: 'Rent Roll Table UI/UX', status: 'Blocked' },
+  { identifier: 'ENG-1053', title: 'Lease rollover chart', project: 'Retail Rent Rolls', status: 'Todo' },
+  { identifier: 'ENG-1048', title: 'Retail Rent Roll Dashboard', project: 'Retail Rent Rolls', status: 'Todo' },
+  { identifier: 'ENG-1041', title: 'Stacking plan card polish for Office type', project: 'Rent Roll Table UI/UX', status: 'Todo' },
+  { identifier: 'ENG-1037', title: 'Cumulative rollover summary tiles', project: 'Rent Roll Table UI/UX', status: 'In Review' },
+  { identifier: 'ENG-1029', title: 'Multifamily KPI header from rent roll', project: 'Rent Roll Table UI/UX', status: 'Todo' },
+];
+
+// Tickets awaiting estimation. Shaped like resolveIssues() output so the same
+// store.addLinearToQueue() path handles both. `linearId` is a mock id; the push
+// endpoint recognises the "mock-" prefix and skips the real Linear API call.
+function getEstimationTickets() {
+  return MOCK_ESTIMATION_TICKETS.map((t) => ({
+    identifier: t.identifier,
+    linearId: `mock-${t.identifier}`,
+    title: t.title,
+    estimate: null,
+    status: t.status,
+    project: t.project,
+    url: `https://linear.app/${WORKSPACE}/issue/${t.identifier}`,
+  }));
+}
+
+// True for a placeholder ticket that isn't backed by a real Linear issue yet.
+function isMockId(linearId) {
+  return typeof linearId === 'string' && linearId.startsWith('mock-');
+}
+
 // Write a story-point estimate onto a Linear issue (by UUID). Returns the
 // updated { identifier, estimate }.
 async function setEstimate(linearId, estimate) {
@@ -95,4 +131,4 @@ async function setEstimate(linearId, estimate) {
   return { identifier: result.issue?.identifier, estimate: result.issue?.estimate };
 }
 
-module.exports = { isEnabled, resolveIssues, setEstimate };
+module.exports = { isEnabled, resolveIssues, setEstimate, getEstimationTickets, isMockId };

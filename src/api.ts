@@ -83,6 +83,11 @@ export const api = {
       identifiers,
     }),
 
+  linearImportEstimation: (code: string, participantId: string) =>
+    request<{ session: Session }>(`/api/session/${code}/linear/import-estimation`, 'POST', {
+      participantId,
+    }),
+
   linearPush: (code: string, participantId: string, entryId: string, estimate: number) =>
     request<{ session: Session }>(`/api/session/${code}/linear/push`, 'POST', {
       participantId,
