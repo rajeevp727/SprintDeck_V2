@@ -1,0 +1,19 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "AzureWebJobsStorage": "",
+
+    "COSMOS_CONNECTION_STRING": "",
+
+    "UPI_VPA": "7032075893-groww@axisbank",
+    "PAYEE_NAME": "SprintDeck",
+
+    "INGEST_SECRET": "change-me-to-a-long-random-string",
+
+    "ORDER_TTL_MINUTES": "30"
+  },
+  "Host": {
+    "CORS": "*"
+  }
+}
