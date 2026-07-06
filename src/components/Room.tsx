@@ -10,7 +10,7 @@ import SubscriptionModal from './SubscriptionModal';
 import AdBanner from './AdBanner';
 import { CrownIcon } from './icons';
 import { nearestDeckValue } from '../estimate';
-import { isSubscribed } from '../subscription';
+import { isSubscribed, getSubscription, TIERS } from '../subscription';
 
 const POLL_MS = 1500;
 // Only leave the room after this many CONSECUTIVE "not found" polls — tolerates
@@ -360,12 +360,18 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
         </div>
         <div className="room-actions">
           <ThemeToggle />
-          {isModerator && !isSubscribed() && (
-            <button className="ghost upgrade-btn" onClick={() => setShowSubscribe(true)}>
-              <CrownIcon />
-              Upgrade
-            </button>
-          )}
+          {isModerator &&
+            (isSubscribed() ? (
+              <button className="ghost upgrade-btn current-plan" disabled title="Your current plan">
+                <CrownIcon />
+                {TIERS.find((t) => t.id === getSubscription()?.tier)?.name ?? 'Subscribed'}
+              </button>
+            ) : (
+              <button className="ghost upgrade-btn" onClick={() => setShowSubscribe(true)}>
+                <CrownIcon />
+                Upgrade
+              </button>
+            ))}
           <span className={`status-pill ${session.status}`}>
             {session.status === 'waiting' && 'Not started'}
             {session.status === 'voting' && `Voting · ${voted}/${total}`}

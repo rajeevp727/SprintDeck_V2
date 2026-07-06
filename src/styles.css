@@ -429,6 +429,13 @@ a.room-code:hover {
   border-color: transparent;
   color: #fff;
 }
+/* Subscribed: show the current plan as a non-interactive badge (readable, not greyed). */
+.upgrade-btn.current-plan:disabled {
+  opacity: 1;
+  cursor: default;
+  color: var(--accent);
+  border-color: var(--accent);
+}
 .status-pill {
   font-size: 0.85rem;
   padding: 0.35rem 0.7rem;
