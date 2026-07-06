@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { TIERS, UPI_ID, upiLink, setSubscription, type TierId } from '../subscription';
+import { TIERS, UPI_ID, upiLink, setSubscription, setPendingOrder, clearPendingOrder, type TierId } from '../subscription';
 import { createOrder, getStatus, type PaymentOrder } from '../verifier';
 import { CloseIcon } from './icons';
 
@@ -15,7 +15,7 @@ interface Props {
 // 'error'    — couldn't reach the verifier / payments not configured
 type PayState = 'loading' | 'pending' | 'confirmed' | 'expired' | 'error';
 
-const PAY_WINDOW = 120; // seconds the QR stays valid before it must be regenerated
+const PAY_WINDOW = 300; // seconds the QR stays valid (email→ingest can take a few min)
 const POLL_MS = 3000;
 
 export default function SubscriptionModal({ onClose }: Props) {
@@ -55,6 +55,7 @@ export default function SubscriptionModal({ onClose }: Props) {
         const { status } = await getStatus(order.orderId);
         if (status === 'confirmed') {
           setSubscription(selected);
+          clearPendingOrder();
           setPayState('confirmed');
         } else if (status === 'expired') {
           setPayState('expired');
@@ -82,6 +83,7 @@ export default function SubscriptionModal({ onClose }: Props) {
     try {
       const o = await createOrder(id, price);
       setOrder(o);
+      setPendingOrder(o.orderId, id); // persist so it activates even after the modal closes
       setPayState('pending');
     } catch (e) {
       setErrMsg((e as Error).message);

@@ -11,6 +11,8 @@ import {
   setCurrentRoom,
   clearCurrentRoom,
 } from './storage';
+import { getPendingOrder, clearPendingOrder, setSubscription, isSubscribed } from './subscription';
+import { getStatus } from './verifier';
 
 type Route =
   | { kind: 'room'; code: string }
@@ -53,6 +55,40 @@ function computeRoute(): Route {
 
 export default function App() {
   const [route, setRoute] = useState<Route>(computeRoute);
+
+  // Background payment watcher: a bank email → ingest confirm can land minutes
+  // after the modal closed. While a pending order exists (persisted in storage),
+  // poll its status and activate the plan the moment it confirms — surviving the
+  // QR window elapsing and page reloads.
+  useEffect(() => {
+    let active = true;
+    async function check() {
+      if (isSubscribed()) {
+        clearPendingOrder();
+        return;
+      }
+      const pending = getPendingOrder();
+      if (!pending) return;
+      try {
+        const { status } = await getStatus(pending.orderId);
+        if (status === 'confirmed') {
+          setSubscription(pending.tier);
+          clearPendingOrder();
+          if (active) setRoute(computeRoute()); // re-render so the Upgrade button / popup update
+        } else if (status === 'expired') {
+          clearPendingOrder();
+        }
+      } catch {
+        /* transient — try again next tick */
+      }
+    }
+    check();
+    const id = setInterval(check, 15000);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
+  }, []);
 
   useEffect(() => {
     // Strip the code (query param or legacy path) out of the address bar.

@@ -83,6 +83,43 @@ export function setSubscription(tier: TierId) {
   }
 }
 
+// A payment can confirm minutes after the modal closes (bank email → ingest is
+// async). We persist the pending order so a background watcher can keep checking
+// its status — across the QR window elapsing and even across reloads — and
+// activate the plan whenever it finally confirms.
+const PENDING_KEY = 'sprintdeck.pendingOrder';
+
+export interface PendingOrder {
+  orderId: string;
+  tier: TierId;
+  at: string;
+}
+
+export function setPendingOrder(orderId: string, tier: TierId) {
+  try {
+    localStorage.setItem(PENDING_KEY, JSON.stringify({ orderId, tier, at: new Date().toISOString() }));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getPendingOrder(): PendingOrder | null {
+  try {
+    const raw = localStorage.getItem(PENDING_KEY);
+    return raw ? (JSON.parse(raw) as PendingOrder) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingOrder() {
+  try {
+    localStorage.removeItem(PENDING_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 // Payee VPA, injected at build from the GitHub secret UPI_ID (workflow maps
 // secrets.UPI_ID → VITE_UPI_ID; .env.local for local dev). Never hardcoded.
 export const UPI_ID: string = import.meta.env.VITE_UPI_ID || '';
