@@ -1193,7 +1193,7 @@ a.room-code:hover {
 /* Subscription modal + tiers */
 .sub-modal {
   position: relative;
-  width: min(720px, 94vw);
+  width: min(940px, 94vw);
   max-height: 88vh;
   overflow-y: auto;
   background: var(--panel);
@@ -1228,8 +1228,17 @@ a.room-code:hover {
   gap: 0.8rem;
   margin: 1rem 0 0.75rem;
 }
+.tier-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 880px) {
+  .tier-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 @media (max-width: 640px) {
-  .tier-grid {
+  .tier-grid,
+  .tier-grid-4 {
     grid-template-columns: 1fr;
   }
 }
@@ -1305,28 +1314,13 @@ a.room-code:hover {
   padding: 0.45rem;
   border-radius: 8px;
 }
-.sub-free {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-top: 0.9rem;
-  padding-top: 0.9rem;
-  border-top: 1px solid var(--line);
-}
-.sub-free-label {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-.sub-free-link {
-  color: var(--accent);
-  font-weight: 600;
-  font-size: 0.9rem;
+.tier-free {
   text-decoration: none;
 }
-.sub-free-link:hover {
-  text-decoration: underline;
+.tier-free .tier-cta {
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
 }
 .sub-later {
   margin-top: 0.6rem;

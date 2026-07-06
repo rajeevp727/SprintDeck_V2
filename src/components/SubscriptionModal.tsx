@@ -29,7 +29,21 @@ export default function SubscriptionModal({ onClose, onSubscribed }: Props) {
           <>
             <h3>Choose a plan</h3>
             <p className="auth-sub">SprintDeck Enterprise — pick a plan to unlock the workspace.</p>
-            <div className="tier-grid">
+            <div className="tier-grid tier-grid-4">
+              <a className="tier-card tier-free" href="https://sprintdeck.rajeevstech.in">
+                <span className="tier-name">Free</span>
+                <span className="tier-price">
+                  ₹0<small>/mo</small>
+                </span>
+                <span className="tier-tagline">Plain planning poker</span>
+                <ul className="tier-feats">
+                  <li>Unlimited rooms &amp; voters</li>
+                  <li>Vote, reveal &amp; consensus</li>
+                  <li>Light / dark theme</li>
+                  <li>No tool integrations</li>
+                </ul>
+                <span className="tier-cta">Use SprintDeck Free →</span>
+              </a>
               {TIERS.map((t) => (
                 <button
                   key={t.id}
@@ -51,12 +65,6 @@ export default function SubscriptionModal({ onClose, onSubscribed }: Props) {
                   <span className="tier-cta">Choose {t.name}</span>
                 </button>
               ))}
-            </div>
-            <div className="sub-free">
-              <span className="sub-free-label">Just need plain planning poker?</span>
-              <a className="sub-free-link" href="https://sprintdeck.rajeevstech.in">
-                Use SprintDeck Free →
-              </a>
             </div>
             <button className="ghost sub-later" onClick={onClose}>
               Maybe later
