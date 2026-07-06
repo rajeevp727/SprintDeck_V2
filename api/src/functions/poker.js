@@ -101,7 +101,7 @@ app.http('joinSession', {
   handler: async (req) => {
     const { name } = await readBody(req);
     const result = await store.joinSession(req.params.code, name);
-    if (result.error === 'not_found') return bad('Session not found', 404);
+    if (result.error === 'notFound') return bad('Session not found', 404);
     if (result.error === 'full') {
       return bad(`This room is full (max ${store.MAX_PARTICIPANTS} members)`, 409);
     }

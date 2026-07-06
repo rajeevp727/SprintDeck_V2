@@ -215,7 +215,7 @@ async function createSession(name, moderatorName, desiredCode) {
 
 async function joinSession(code, name) {
   const session = await loadSession(code);
-  if (!session) return { error: 'not_found' };
+  if (!session) return { error: 'notFound' };
   if (Object.keys(session.participants).length >= MAX_PARTICIPANTS) {
     return { error: 'full' };
   }

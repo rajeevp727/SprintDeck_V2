@@ -83,8 +83,8 @@ app.http('upiIngest', {
 
     const { text, source } = await readBody(req);
     const parsed = parse(text);
-    if (!parsed.isCredit) return ok({ matched: false, reason: 'not_a_credit' });
-    if (parsed.amount == null) return ok({ matched: false, reason: 'no_amount' });
+    if (!parsed.isCredit) return ok({ matched: false, reason: 'notACredit' });
+    if (parsed.amount == null) return ok({ matched: false, reason: 'noAmount' });
 
     const { order, duplicate } = await store.ingestCredit({
       amount: parsed.amount,
@@ -93,10 +93,10 @@ app.http('upiIngest', {
       source,
     });
 
-    if (duplicate) return ok({ matched: false, reason: 'duplicate_utr' });
+    if (duplicate) return ok({ matched: false, reason: 'duplicateUtr' });
     if (!order) {
       context.log(`[ingest] unmatched credit ₹${parsed.amount} utr=${parsed.utr || '-'}`);
-      return ok({ matched: false, reason: 'no_pending_order', amount: parsed.amount });
+      return ok({ matched: false, reason: 'noPendingOrder', amount: parsed.amount });
     }
     context.log(`[ingest] confirmed order ${order.id} (${order.tier}) ₹${parsed.amount}`);
     return ok({ matched: true, orderId: order.id, tier: order.tier });
