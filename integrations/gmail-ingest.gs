@@ -27,34 +27,36 @@ const INGEST_SECRET = 'PASTE_YOUR_INGEST_SECRET_HERE'; // must equal the Azure I
 //   from:(alerts@axisbank.com OR noreply@phonepe.com OR *@canarabank.com)
 const GMAIL_QUERY = 'newer_than:2d (credited OR "received" OR "deposited")';
 
-const PROCESSED_LABEL = 'sd-ingested'; // threads get this label so they aren't resent
-
 // ── Poller (runs on the timer) ────────────────────────────────────────────────
+// Dedups per MESSAGE (not per thread) via Script Properties, so a second alert
+// in an existing thread is still forwarded. The backend also dedups by UTR, so
+// a rare double-send never double-confirms.
 function pollBankAlerts() {
-  const label = getOrCreateLabel_(PROCESSED_LABEL);
-  const threads = GmailApp.search(GMAIL_QUERY + ' -label:' + PROCESSED_LABEL, 0, 25);
+  const props = PropertiesService.getScriptProperties();
+  const seen = new Set(JSON.parse(props.getProperty('seenMsgIds') || '[]'));
+  const threads = GmailApp.search(GMAIL_QUERY, 0, 25);
+  let changed = false;
   for (const thread of threads) {
     for (const msg of thread.getMessages()) {
-      const text = msg.getPlainBody();
+      const id = msg.getId();
+      if (seen.has(id)) continue;
       try {
         const res = UrlFetchApp.fetch(INGEST_URL, {
           method: 'post',
           contentType: 'application/json',
           headers: { 'x-ingest-secret': INGEST_SECRET },
-          payload: JSON.stringify({ text: text, source: 'email' }),
+          payload: JSON.stringify({ text: msg.getPlainBody(), source: 'email' }),
           muteHttpExceptions: true,
         });
         console.log(msg.getSubject() + ' → ' + res.getResponseCode() + ' ' + res.getContentText());
       } catch (e) {
         console.error('ingest failed: ' + e);
       }
+      seen.add(id);
+      changed = true;
     }
-    thread.addLabel(label); // mark processed
   }
-}
-
-function getOrCreateLabel_(name) {
-  return GmailApp.getUserLabelByName(name) || GmailApp.createLabel(name);
+  if (changed) props.setProperty('seenMsgIds', JSON.stringify([...seen].slice(-800)));
 }
 
 // ── Run ONCE to schedule the poller every minute ──────────────────────────────
