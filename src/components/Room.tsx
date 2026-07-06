@@ -1,16 +1,27 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from 'react';
 import { api } from '../lib/api';
 import { clearIdentity, getIdentity } from '../lib/storage';
 import type { Session } from '../lib/types';
-import ResultsModal from './ResultsModal';
 import ConnectToolModal, { toolMeta, type ToolId } from './ConnectToolModal';
-import ToolConnectModal from './ToolConnectModal';
 import ThemeToggle from './ThemeToggle';
-import SubscriptionModal from './SubscriptionModal';
 import AdBanner from './AdBanner';
 import { CrownIcon } from './icons';
 import { nearestDeckValue } from '../lib/estimate';
 import { isSubscribed, getActiveSubscription, tiers } from '../lib/subscription';
+
+// Modals loaded on demand — SubscriptionModal pulls in qrcode.react, so keeping
+// it out of the initial bundle speeds first load (esp. for non-moderators).
+const ResultsModal = lazy(() => import('./ResultsModal'));
+const ToolConnectModal = lazy(() => import('./ToolConnectModal'));
+const SubscriptionModal = lazy(() => import('./SubscriptionModal'));
 
 const pollMs = 1500;
 // Only leave the room after this many CONSECUTIVE "not found" polls — tolerates
@@ -689,30 +700,30 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
       {/* Page-level ad */}
       <AdBanner className="ad-page" />
 
-      {showResults && (
-        <ResultsModal
-          sessionName={session.name}
-          history={session.history}
-          onClose={() => setShowResults(false)}
-        />
-      )}
+      <Suspense fallback={null}>
+        {showResults && (
+          <ResultsModal
+            sessionName={session.name}
+            history={session.history}
+            onClose={() => setShowResults(false)}
+          />
+        )}
 
-      {showToolPicker && (
-        <ConnectToolModal onClose={() => setShowToolPicker(false)} onSelect={selectTool} />
-      )}
+        {showToolPicker && (
+          <ConnectToolModal onClose={() => setShowToolPicker(false)} onSelect={selectTool} />
+        )}
 
-      {pendingTool && (
-        <ToolConnectModal
-          tool={pendingTool}
-          onBack={backToPicker}
-          onClose={() => setPendingTool(null)}
-          onConnected={onToolConnected}
-        />
-      )}
+        {pendingTool && (
+          <ToolConnectModal
+            tool={pendingTool}
+            onBack={backToPicker}
+            onClose={() => setPendingTool(null)}
+            onConnected={onToolConnected}
+          />
+        )}
 
-      {showSubscribe && (
-        <SubscriptionModal onClose={() => setShowSubscribe(false)} />
-      )}
+        {showSubscribe && <SubscriptionModal onClose={() => setShowSubscribe(false)} />}
+      </Suspense>
     </div>
   );
 }

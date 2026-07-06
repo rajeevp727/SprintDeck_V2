@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import Home from './components/Home';
 import Room from './components/Room';
-import Privacy from './components/Privacy';
-import Terms from './components/Terms';
-import Security from './components/Security';
 import StickyAd from './components/StickyAd';
+
+// Rarely-visited legal pages — code-split out of the initial bundle.
+const Privacy = lazy(() => import('./components/Privacy'));
+const Terms = lazy(() => import('./components/Terms'));
+const Security = lazy(() => import('./components/Security'));
 import {
   getIdentity,
   getCurrentRoom,
@@ -155,7 +157,7 @@ export default function App() {
 
   return (
     <>
-      {page}
+      <Suspense fallback={null}>{page}</Suspense>
       <StickyAd />
     </>
   );

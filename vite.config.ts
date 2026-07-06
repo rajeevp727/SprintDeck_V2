@@ -6,7 +6,11 @@ import react from '@vitejs/plugin-react';
 // In production on Static Web Apps, /api is served from the same origin.
 export default defineConfig({
   plugins: [react()],
-  build: { outDir: 'dist' },
+  build: {
+    outDir: 'dist',
+    // Split the rarely-changing React runtime into its own long-cached chunk.
+    rollupOptions: { output: { manualChunks: { react: ['react', 'react-dom'] } } },
+  },
   server: {
     port: 5273,
     proxy: {
