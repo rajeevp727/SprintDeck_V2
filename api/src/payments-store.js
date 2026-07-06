@@ -85,16 +85,18 @@ async function pendingOrders() {
   return [...memory.values()].filter(fresh);
 }
 
-// Pick the smallest unused paise offset (1..99) for this base among pending
-// orders, so every live order has a distinct amount (e.g. 499.01, 499.02 …).
-// Returns null when all 99 offsets for this base are in use.
+// Pick the smallest unused paise offset (0..99) for this base among pending
+// orders. The first/only order for a price gets the CLEAN amount (offset 0, e.g.
+// ₹199.00); paise are only added to disambiguate genuine concurrent duplicates
+// (₹199.01, .02 …). Offsets free up as orders confirm/expire. Returns null when
+// all 100 slots for a base are in use.
 function pickUniqueAmount(base, pending) {
   const used = new Set(
     pending
       .filter((o) => o.baseAmount === base)
       .map((o) => Math.round((o.payAmount - o.baseAmount) * 100)),
   );
-  for (let off = 1; off <= 99; off++) {
+  for (let off = 0; off <= 99; off++) {
     if (!used.has(off)) return Math.round((base + off / 100) * 100) / 100;
   }
   return null;
