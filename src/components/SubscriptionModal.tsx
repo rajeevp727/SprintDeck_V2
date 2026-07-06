@@ -8,15 +8,32 @@ interface Props {
   onClose: () => void;
 }
 
-// 'loading'  — creating the order
-// 'pending'  — QR shown, polling for payment
-// 'confirmed'— verifier matched the payment → plan activated
-// 'expired'  — payment window elapsed → Retry
-// 'error'    — couldn't reach the verifier / payments not configured
-type PayState = 'loading' | 'pending' | 'confirmed' | 'expired' | 'error';
+// 'loading'      — creating the order
+// 'pending'      — QR shown, polling for payment
+// 'confirmed'    — verifier matched the payment → plan activated
+// 'regenerating' — window elapsed → show "regenerating" for 5s, then auto-new QR
+// 'error'        — couldn't reach the verifier / payments not configured
+type PayState = 'loading' | 'pending' | 'confirmed' | 'regenerating' | 'error';
 
 const PAY_WINDOW = 90; // seconds the QR stays visible (1:30); the background watcher still confirms late payments
 const POLL_MS = 3000;
+const REGEN_MS = 5000; // how long the "regenerating" state shows before a fresh QR
+
+// Static QR-shaped placeholder (reserves the QR's space while loading/regenerating).
+function QrSkeleton() {
+  return (
+    <div className="qr-skeleton" aria-label="Loading QR code" role="img">
+      <div className="qr-grid">
+        {Array.from({ length: 441 }).map((_, i) => (
+          <span key={i} className="qr-cell" />
+        ))}
+      </div>
+      <span className="qr-finder qr-tl" />
+      <span className="qr-finder qr-tr" />
+      <span className="qr-finder qr-bl" />
+    </div>
+  );
+}
 
 export default function SubscriptionModal({ onClose }: Props) {
   const [selected, setSelected] = useState<TierId | null>(null);
@@ -41,16 +58,23 @@ export default function SubscriptionModal({ onClose }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [selected, onClose]);
 
-  // Countdown while a QR is showing. When it hits 0 the QR expires (Retry to reset).
+  // Countdown while a QR is showing. When it hits 0, go to 'regenerating'.
   useEffect(() => {
     if (payState !== 'pending') return;
     if (seconds <= 0) {
-      setPayState('expired');
+      setPayState('regenerating');
       return;
     }
     const id = setTimeout(() => setSeconds((s) => s - 1), 1000);
     return () => clearTimeout(id);
   }, [payState, seconds]);
+
+  // After the window elapses, show "regenerating" briefly, then auto-create a fresh QR.
+  useEffect(() => {
+    if (payState !== 'regenerating' || !tier) return;
+    const id = setTimeout(() => startPayment(tier.id, tier.price), REGEN_MS);
+    return () => clearTimeout(id);
+  }, [payState, tier]);
 
   // Poll the verifier for payment while the QR is live. On a match, activate the
   // plan locally and show the success screen.
@@ -65,7 +89,7 @@ export default function SubscriptionModal({ onClose }: Props) {
           clearPendingOrder();
           setPayState('confirmed');
         } else if (status === 'expired') {
-          setPayState('expired');
+          setPayState('regenerating');
         }
       } catch {
         /* transient — keep polling until the window elapses */
@@ -194,20 +218,22 @@ export default function SubscriptionModal({ onClose }: Props) {
               <>
                 <p className="auth-sub">Preparing your payment…</p>
                 <div className="qr-wrap">
-                  <div className="qr-skeleton" aria-label="Loading QR code" role="img">
-                    <div className="qr-grid">
-                      {Array.from({ length: 441 }).map((_, i) => (
-                        <span key={i} className="qr-cell" />
-                      ))}
-                    </div>
-                    <span className="qr-finder qr-tl" />
-                    <span className="qr-finder qr-tr" />
-                    <span className="qr-finder qr-bl" />
-                  </div>
+                  <QrSkeleton />
                 </div>
                 <p className="pay-amount">
                   Pay <strong>₹{tier.price}.00</strong>
                 </p>
+              </>
+            ) : payState === 'regenerating' ? (
+              <>
+                <p className="auth-sub">QR expired — regenerating…</p>
+                <div className="qr-wrap">
+                  <QrSkeleton />
+                </div>
+                <p className="pay-amount">
+                  Pay <strong>₹{tier.price}.00</strong>
+                </p>
+                <p className="auth-hint">A fresh QR appears in a moment.</p>
               </>
             ) : payState === 'error' ? (
               <div className="pay-expired">
@@ -216,15 +242,6 @@ export default function SubscriptionModal({ onClose }: Props) {
                 <p className="auth-sub">{errMsg || 'The payment service is unavailable. Try again.'}</p>
                 <button className="primary auth-wide" onClick={retry}>
                   Try again
-                </button>
-              </div>
-            ) : payState === 'expired' ? (
-              <div className="pay-expired">
-                <div className="pay-expired-icon" aria-hidden>⏱</div>
-                <p className="pay-expired-title">QR expired</p>
-                <p className="auth-sub">The payment window timed out. Generate a fresh QR to try again.</p>
-                <button className="primary auth-wide" onClick={retry}>
-                  Retry payment
                 </button>
               </div>
             ) : payState === 'pending' && order && UPI_ID ? (
