@@ -299,6 +299,7 @@ export default function SubscriptionModal({ onClose }: Props) {
             ) : payState === 'pending' && order && UPI_ID ? (
               <>
                 <p className="auth-sub">Scan with any UPI app. We&rsquo;ll confirm automatically.</p>
+                <p className="upi-vpa">{UPI_ID}</p>
                 <div className="qr-wrap">
                   <QRCodeSVG value={upiLink(order.payAmount, `SprintDeck ${tier.name}`)} size={176} marginSize={2} />
                 </div>
@@ -306,7 +307,6 @@ export default function SubscriptionModal({ onClose }: Props) {
                   Waiting for payment · <strong>{mmss}</strong>
                 </p>
                 {renderPayAmount(order.payAmount)}
-                <p className="upi-vpa">{UPI_ID}</p>
                 <p className="auth-hint">Once your payment lands, this confirms automatically.</p>
               </>
             ) : payState === 'pending' ? (
