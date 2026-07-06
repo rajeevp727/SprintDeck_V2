@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { TIERS, UPI_ID, upiLink, setSubscription, type TierId } from '../subscription';
+import { TIERS, UPI_ID, upiLink, type TierId } from '../subscription';
 import { CloseIcon } from './icons';
 
 interface Props {
   onClose: () => void;
-  onSubscribed: (tier: TierId) => void;
 }
 
-type PayState = 'pending' | 'expired' | 'success';
+type PayState = 'pending' | 'expired';
 const PAY_WINDOW = 120; // seconds the QR stays valid before it must be regenerated
 
-export default function SubscriptionModal({ onClose, onSubscribed }: Props) {
+export default function SubscriptionModal({ onClose }: Props) {
   const [selected, setSelected] = useState<TierId | null>(null);
   const [payState, setPayState] = useState<PayState>('pending');
   const [seconds, setSeconds] = useState(PAY_WINDOW);
@@ -37,13 +36,6 @@ export default function SubscriptionModal({ onClose, onSubscribed }: Props) {
     return () => clearTimeout(id);
   }, [tier, payState, seconds]);
 
-  // After showing the success screen, activate the plan and close.
-  useEffect(() => {
-    if (payState !== 'success' || !tier) return;
-    const id = setTimeout(() => onSubscribed(tier.id), 1800);
-    return () => clearTimeout(id);
-  }, [payState, tier, onSubscribed]);
-
   function pickTier(id: TierId) {
     setSelected(id);
     setSeconds(PAY_WINDOW);
@@ -53,12 +45,6 @@ export default function SubscriptionModal({ onClose, onSubscribed }: Props) {
   function retry() {
     setSeconds(PAY_WINDOW);
     setPayState('pending');
-  }
-
-  function activate() {
-    if (!tier) return;
-    setSubscription(tier.id);
-    setPayState('success');
   }
 
   const mmss = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
@@ -125,13 +111,7 @@ export default function SubscriptionModal({ onClose, onSubscribed }: Props) {
               {tier.name} · ₹{tier.price}/mo
             </h3>
 
-            {payState === 'success' ? (
-              <div className="pay-success">
-                <div className="pay-check" aria-hidden>✓</div>
-                <p className="pay-success-title">Payment successful</p>
-                <p className="auth-sub">{tier.name} plan activated — enjoy SprintDeck Enterprise!</p>
-              </div>
-            ) : !UPI_ID ? (
+            {!UPI_ID ? (
               <p className="linear-notice">Payments aren&rsquo;t configured yet (set VITE_UPI_ID).</p>
             ) : payState === 'expired' ? (
               <div className="pay-expired">
@@ -144,7 +124,7 @@ export default function SubscriptionModal({ onClose, onSubscribed }: Props) {
               </div>
             ) : (
               <>
-                <p className="auth-sub">Scan with any UPI app to pay, then confirm below.</p>
+                <p className="auth-sub">Scan with any UPI app to pay.</p>
                 <div className="qr-wrap">
                   <QRCodeSVG value={upiLink(tier.price, `SprintDeck ${tier.name}`)} size={176} marginSize={2} />
                 </div>
@@ -152,14 +132,7 @@ export default function SubscriptionModal({ onClose, onSubscribed }: Props) {
                   Expires in <strong>{mmss}</strong>
                 </p>
                 <p className="upi-vpa">{UPI_ID}</p>
-                <a
-                  className="primary auth-wide"
-                  href={upiLink(tier.price, `SprintDeck ${tier.name}`)}
-                  onClick={activate}
-                >
-                  Pay ₹{tier.price} via UPI
-                </a>
-                <p className="auth-hint">Your plan activates once you tap Pay (UPI has no auto-confirmation).</p>
+                <p className="auth-hint">Scan the QR with any UPI app to pay ₹{tier.price}.</p>
               </>
             )}
           </div>

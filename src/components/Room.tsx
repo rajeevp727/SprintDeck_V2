@@ -691,10 +691,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
       )}
 
       {showSubscribe && (
-        <SubscriptionModal
-          onClose={() => setShowSubscribe(false)}
-          onSubscribed={() => setShowSubscribe(false)}
-        />
+        <SubscriptionModal onClose={() => setShowSubscribe(false)} />
       )}
     </div>
   );
