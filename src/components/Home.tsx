@@ -7,9 +7,11 @@ interface Props {
   initialCode?: string;
   onEnter: (code: string) => void;
   onPrivacy: () => void;
+  onTerms: () => void;
+  onSecurity: () => void;
 }
 
-export default function Home({ initialCode = '', onEnter, onPrivacy }: Props) {
+export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, onSecurity }: Props) {
   const [mode, setMode] = useState<'create' | 'join'>(initialCode ? 'join' : 'create');
   const [name, setName] = useState('');
   const [sessionName, setSessionName] = useState('');
@@ -122,14 +124,16 @@ export default function Home({ initialCode = '', onEnter, onPrivacy }: Props) {
       <AdBanner />
 
       <footer className="home-footer">
-        <a
-          href="/privacy"
-          onClick={(e) => {
-            e.preventDefault();
-            onPrivacy();
-          }}
-        >
+        <a href="/privacy" onClick={(e) => { e.preventDefault(); onPrivacy(); }}>
           Privacy &amp; About
+        </a>
+        <span className="foot-sep">·</span>
+        <a href="/terms" onClick={(e) => { e.preventDefault(); onTerms(); }}>
+          Terms
+        </a>
+        <span className="foot-sep">·</span>
+        <a href="/security" onClick={(e) => { e.preventDefault(); onSecurity(); }}>
+          Security
         </a>
       </footer>
     </div>

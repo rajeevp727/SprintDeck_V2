@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import Home from './components/Home';
 import Room from './components/Room';
 import Privacy from './components/Privacy';
+import Terms from './components/Terms';
+import Security from './components/Security';
 import StickyAd from './components/StickyAd';
 import {
   getIdentity,
@@ -13,6 +15,8 @@ import {
 type Route =
   | { kind: 'room'; code: string }
   | { kind: 'privacy' }
+  | { kind: 'terms' }
+  | { kind: 'security' }
   | { kind: 'home'; joinCode?: string };
 
 // The room code is NOT kept in the URL — it lives in storage (see storage.ts).
@@ -30,6 +34,8 @@ function codeFromUrl(): string {
 function computeRoute(): Route {
   const path = window.location.pathname;
   if (path === '/privacy' || path === '/privacy/') return { kind: 'privacy' };
+  if (path === '/terms' || path === '/terms/') return { kind: 'terms' };
+  if (path === '/security' || path === '/security/') return { kind: 'security' };
 
   const code = codeFromUrl();
   if (code) {
@@ -74,10 +80,20 @@ export default function App() {
   function goPrivacy() {
     go('/privacy', { kind: 'privacy' });
   }
+  function goTerms() {
+    go('/terms', { kind: 'terms' });
+  }
+  function goSecurity() {
+    go('/security', { kind: 'security' });
+  }
 
   let page;
   if (route.kind === 'privacy') {
     page = <Privacy onBack={goHome} />;
+  } else if (route.kind === 'terms') {
+    page = <Terms onBack={goHome} />;
+  } else if (route.kind === 'security') {
+    page = <Security onBack={goHome} />;
   } else if (route.kind === 'room') {
     page = (
       <Room
@@ -88,7 +104,15 @@ export default function App() {
       />
     );
   } else {
-    page = <Home initialCode={route.joinCode} onEnter={goRoom} onPrivacy={goPrivacy} />;
+    page = (
+      <Home
+        initialCode={route.joinCode}
+        onEnter={goRoom}
+        onPrivacy={goPrivacy}
+        onTerms={goTerms}
+        onSecurity={goSecurity}
+      />
+    );
   }
 
   return (

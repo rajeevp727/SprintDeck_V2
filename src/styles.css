@@ -1183,3 +1183,7 @@ a.room-code:hover {
     scroll-behavior: auto !important;
   }
 }
+.foot-sep {
+  margin: 0 0.5rem;
+  color: var(--muted);
+}
