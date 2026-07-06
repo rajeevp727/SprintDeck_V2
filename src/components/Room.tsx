@@ -360,18 +360,16 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
         </div>
         <div className="room-actions">
           <ThemeToggle />
-          {isModerator &&
-            (isSubscribed() ? (
-              <button className="ghost upgrade-btn current-plan" disabled title="Your current plan">
-                <CrownIcon />
-                {TIERS.find((t) => t.id === getSubscription()?.tier)?.name ?? 'Subscribed'}
-              </button>
-            ) : (
-              <button className="ghost upgrade-btn" onClick={() => setShowSubscribe(true)}>
-                <CrownIcon />
-                Upgrade
-              </button>
-            ))}
+          {isModerator && (
+            <button
+              className={`ghost upgrade-btn${isSubscribed() ? ' current-plan' : ''}`}
+              onClick={() => setShowSubscribe(true)}
+              title={isSubscribed() ? 'Your plan — tap to change' : 'Upgrade'}
+            >
+              <CrownIcon />
+              {isSubscribed() ? TIERS.find((t) => t.id === getSubscription()?.tier)?.name ?? 'Plan' : 'Upgrade'}
+            </button>
+          )}
           <span className={`status-pill ${session.status}`}>
             {session.status === 'waiting' && 'Not started'}
             {session.status === 'voting' && `Voting · ${voted}/${total}`}

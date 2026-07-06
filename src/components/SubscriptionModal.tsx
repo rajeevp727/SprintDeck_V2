@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { TIERS, UPI_ID, upiLink, setSubscription, setPendingOrder, clearPendingOrder, type TierId } from '../subscription';
+import { TIERS, UPI_ID, upiLink, setSubscription, setPendingOrder, clearPendingOrder, getSubscription, type TierId } from '../subscription';
 import { createOrder, getStatus, type PaymentOrder } from '../verifier';
 import { CloseIcon } from './icons';
 
@@ -172,27 +172,31 @@ export default function SubscriptionModal({ onClose }: Props) {
                 </ul>
                 <span className="tier-cta">Use SprintDeck Free →</span>
               </a>
-              {TIERS.map((t) => (
-                <button
-                  key={t.id}
-                  className={`tier-card${t.highlight ? ' tier-hot' : ''}`}
-                  onClick={() => startPayment(t.id, t.price)}
-                >
-                  {t.highlight && <span className="tier-badge">Popular</span>}
-                  <span className="tier-name">{t.name}</span>
-                  <span className="tier-price">
-                    ₹{t.price}
-                    <small>/mo</small>
-                  </span>
-                  <span className="tier-tagline">{t.tagline}</span>
-                  <ul className="tier-feats">
-                    {t.features.map((f) => (
-                      <li key={f}>{f}</li>
-                    ))}
-                  </ul>
-                  <span className="tier-cta">Choose {t.name}</span>
-                </button>
-              ))}
+              {TIERS.map((t) => {
+                const isCurrent = t.id === getSubscription()?.tier;
+                return (
+                  <button
+                    key={t.id}
+                    className={`tier-card${t.highlight ? ' tier-hot' : ''}${isCurrent ? ' tier-current' : ''}`}
+                    disabled={isCurrent}
+                    onClick={() => startPayment(t.id, t.price)}
+                  >
+                    {t.highlight && <span className="tier-badge">Popular</span>}
+                    <span className="tier-name">{t.name}</span>
+                    <span className="tier-price">
+                      ₹{t.price}
+                      <small>/mo</small>
+                    </span>
+                    <span className="tier-tagline">{t.tagline}</span>
+                    <ul className="tier-feats">
+                      {t.features.map((f) => (
+                        <li key={f}>{f}</li>
+                      ))}
+                    </ul>
+                    <span className="tier-cta">{isCurrent ? 'Current plan' : `Choose ${t.name}`}</span>
+                  </button>
+                );
+              })}
             </div>
             <button className="ghost sub-later" onClick={onClose}>
               Maybe later

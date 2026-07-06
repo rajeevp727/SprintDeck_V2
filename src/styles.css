@@ -429,10 +429,9 @@ a.room-code:hover {
   border-color: transparent;
   color: #fff;
 }
-/* Subscribed: show the current plan as a non-interactive badge (readable, not greyed). */
-.upgrade-btn.current-plan:disabled {
-  opacity: 1;
-  cursor: default;
+/* Subscribed: header button shows the current plan (still clickable → opens the
+   modal to change plan). */
+.upgrade-btn.current-plan {
   color: var(--accent);
   border-color: var(--accent);
 }
@@ -1278,9 +1277,22 @@ a.room-code:hover {
   color: var(--text);
   transition: border-color var(--transition), transform var(--transition);
 }
-.tier-card:hover {
+.tier-card:hover:not(:disabled) {
   border-color: var(--accent);
   transform: translateY(-2px);
+}
+/* Current plan — disabled, can't be re-bought (upgrade to a higher tier instead). */
+.tier-card:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.tier-current {
+  border-color: var(--accent);
+}
+.tier-current .tier-cta {
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
 }
 .tier-hot {
   border-color: var(--accent);
