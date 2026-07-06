@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { TOOL_META, type ToolId } from './ConnectToolModal';
+import { BackIcon, CloseIcon } from './icons';
 
 interface Props {
   tool: ToolId;
@@ -31,9 +32,7 @@ export default function ToolConnectModal({ tool, onBack, onClose, onConnected }:
     <div className="modal-overlay" onClick={refuseOutsideClose}>
       <div className={`auth-modal${shake ? ' shake' : ''}`} onClick={(e) => e.stopPropagation()}>
         <button className="auth-back" onClick={onBack} aria-label="Back" title="Back to tools">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M15 6l-6 6 6 6" />
-          </svg>
+          <BackIcon />
         </button>
         <button
           className={`auth-close${shake ? ' attn' : ''}`}
@@ -41,9 +40,7 @@ export default function ToolConnectModal({ tool, onBack, onClose, onConnected }:
           aria-label="Close"
           title="Close"
         >
-          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg>
+          <CloseIcon />
         </button>
 
         <div className="auth-brand">

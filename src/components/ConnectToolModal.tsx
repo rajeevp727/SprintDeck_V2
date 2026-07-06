@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import LinearLogo from './LinearLogo';
+import { CloseIcon } from './icons';
 
 export type ToolId = 'linear' | 'jira' | 'ado';
 
@@ -43,9 +44,7 @@ export default function ConnectToolModal({ onClose, onSelect }: Props) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="tool-modal" onClick={(e) => e.stopPropagation()}>
         <button className="auth-close" onClick={onClose} aria-label="Close" title="Close">
-          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg>
+          <CloseIcon />
         </button>
         <h3>Connect a project management tool</h3>
         <p className="auth-sub">Pick the tool to pull estimation tickets from.</p>
