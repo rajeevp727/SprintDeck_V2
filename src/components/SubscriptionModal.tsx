@@ -24,10 +24,7 @@ const REGEN_MS = 5000; // how long the "regenerating" state shows before a fresh
 function QrSkeleton() {
   return (
     <div className="qr-skeleton" aria-label="Loading QR code" role="img">
-      <svg className="qr-loader" viewBox="0 0 48 48" width="54" height="54" aria-hidden>
-        <circle className="qr-loader-track" cx="24" cy="24" r="20" />
-        <circle className="qr-loader-fill" cx="24" cy="24" r="20" />
-      </svg>
+      <span className="qr-loader" aria-hidden />
     </div>
   );
 }
