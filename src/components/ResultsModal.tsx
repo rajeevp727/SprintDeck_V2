@@ -1,5 +1,6 @@
 import type { HistoryEntry } from '../types';
 import { exportCsv, exportText, exportJson } from '../export';
+import { sessionAnalytics } from '../analytics';
 
 interface Props {
   sessionName: string;
@@ -12,6 +13,7 @@ function cell(n: number | null) {
 }
 
 export default function ResultsModal({ sessionName, history, onClose }: Props) {
+  const stats = sessionAnalytics(history);
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -21,6 +23,16 @@ export default function ResultsModal({ sessionName, history, onClose }: Props) {
             ×
           </button>
         </header>
+
+        {stats.count > 0 && (
+          <div className="session-summary">
+            <div className="sum-stat"><b>{stats.totalPoints}</b><span>total points</span></div>
+            <div className="sum-stat"><b>{stats.count}</b><span>estimated</span></div>
+            <div className="sum-stat"><b>{stats.consensusRate}%</b><span>consensus</span></div>
+            <div className="sum-stat"><b>{stats.avgSpread}</b><span>avg spread</span></div>
+            <div className="sum-stat"><b>{stats.contested}</b><span>contested</span></div>
+          </div>
+        )}
 
         {history.length === 0 ? (
           <p className="muted modal-empty">No stories estimated yet. Reveal a story and click “Save &amp; next”.</p>
