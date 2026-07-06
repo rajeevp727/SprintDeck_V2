@@ -51,7 +51,7 @@ export default function Home({ initialCode = '', onEnter, onPrivacy }: Props) {
   return (
     <div className="home">
       <header className="brand">
-        <span className="brand-mark">♠</span>
+        <span className="brand-mark" aria-hidden>♠</span>
         <h1>SprintDeck</h1>
       </header>
       <p className="tagline">Estimate together, across every time zone.</p>

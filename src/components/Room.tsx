@@ -339,7 +339,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
             title="Go to your room"
             onClick={roomLinkClick}
           >
-            <span className="brand-mark-sm">♠</span> SprintDeck
+            <span className="brand-mark-sm" aria-hidden>♠</span> SprintDeck
           </a>
           <a
             className="room-code"
@@ -355,7 +355,11 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
           <span className={`status-pill ${session.status}`}>
             {session.status === 'waiting' && 'Not started'}
             {session.status === 'voting' && `Voting · ${voted}/${total}`}
-            {session.status === 'revealed' && 'Revealed 🎉'}
+            {session.status === 'revealed' && (
+              <>
+                Revealed <span aria-hidden>🎉</span>
+              </>
+            )}
           </span>
           {isModerator && (
             <button
@@ -393,7 +397,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
           return (
             <div key={p.id} className={`seat ${p.hasVoted ? 'voted' : ''}`}>
               <div className="seat-name">
-                {p.isModerator && <span className="crown" title="Moderator">★</span>}
+                {p.isModerator && <span className="crown" role="img" aria-label="Moderator" title="Moderator">★</span>}
                 {p.name}
                 {p.id === participantId && <span className="you"> (you)</span>}
               </div>
@@ -402,6 +406,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
                   <button
                     className="seat-kick"
                     title={`Remove ${p.name}`}
+                    aria-label={`Remove ${p.name}`}
                     onClick={() => kickMember(p.id, p.name)}
                   >
                     ×
@@ -410,9 +415,9 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
                 {session.status === 'revealed' ? (
                   <span className="seat-value">{p.vote ?? '–'}</span>
                 ) : p.hasVoted ? (
-                  <span className="seat-back">✓</span>
+                  <span className="seat-back" role="img" aria-label="Voted">✓</span>
                 ) : (
-                  <span className="seat-thinking">{showFace ? '🤔' : ''}</span>
+                  <span className="seat-thinking" aria-hidden>{showFace ? '🤔' : ''}</span>
                 )}
               </div>
             </div>
@@ -700,6 +705,8 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
             key={card}
             className={`poker-card ${myVote === card ? 'selected' : ''}`}
             disabled={session.status !== 'voting'}
+            aria-label={`Vote ${card}`}
+            aria-pressed={myVote === card}
             onClick={() => castVote(card)}
           >
             <span className="corner tl">{card}</span>

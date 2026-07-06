@@ -1164,3 +1164,22 @@ a.room-code:hover {
     font-size: 1.2rem;
   }
 }
+
+/* ── Accessibility ─────────────────────────────────────────────────────────── */
+/* Visible keyboard-focus ring on every interactive element (both themes). */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+/* Respect users who prefer reduced motion — kill the pulse/shake/transitions. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
