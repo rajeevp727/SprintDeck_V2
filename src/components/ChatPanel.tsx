@@ -46,15 +46,15 @@ export default function ChatPanel({ code, participantId }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [replyTo, setReplyTo] = useState<ChatReply | null>(null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [unread, setUnread] = useState(0);
   const seen = useRef<Set<string>>(new Set());
-  const openRef = useRef(false);
+  const openRef = useRef(true);
   const listRef = useRef<HTMLDivElement | null>(null);
   openRef.current = open;
 
   // Append a message unless already shown (server echoes our own send back over
-  // the group). Bumps the unread badge while the panel is closed.
+  // the group). Bumps the unread badge while the panel is collapsed.
   const addMessage = useCallback((message: ChatMessage) => {
     if (seen.current.has(message.id)) return;
     seen.current.add(message.id);
@@ -118,21 +118,19 @@ export default function ChatPanel({ code, participantId }: Props) {
   }
 
   return (
-    <div className={`chat ${open ? 'open' : ''}`}>
-      <button className="chat-toggle" onClick={toggle} aria-label="Team chat">
-        <span aria-hidden>💬</span> Chat
-        {unread > 0 && <span className="chat-unread">{unread}</span>}
+    <section className={`chat ${open ? 'open' : ''}`}>
+      <button className="chat-head" onClick={toggle} aria-expanded={open}>
+        <span className="chat-title">
+          <span aria-hidden>💬</span> Team chat
+        </span>
+        {!open && unread > 0 && <span className="chat-unread">{unread}</span>}
+        <span className="chat-chevron" aria-hidden>
+          {open ? '▾' : '▸'}
+        </span>
       </button>
 
       {open && (
-        <div className="chat-window">
-          <div className="chat-head">
-            <span>Team chat</span>
-            <button className="chat-close" onClick={toggle} aria-label="Close chat">
-              ×
-            </button>
-          </div>
-
+        <>
           <div className="chat-messages" ref={listRef}>
             {messages.length === 0 ? (
               <p className="chat-empty">No messages yet — say hello 👋</p>
@@ -175,8 +173,8 @@ export default function ChatPanel({ code, participantId }: Props) {
               Send
             </button>
           </form>
-        </div>
+        </>
       )}
-    </div>
+    </section>
   );
 }

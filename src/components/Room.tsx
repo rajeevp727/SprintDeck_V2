@@ -706,6 +706,13 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
         ))}
       </section>
 
+      {/* Team chat (PRO+) — shown to every room member, below the deck */}
+      {session.chatEnabled && (
+        <Suspense fallback={null}>
+          <ChatPanel code={code} participantId={participantId} />
+        </Suspense>
+      )}
+
       {error && <p className="error room-error">{error}</p>}
 
       {/* Page-level ad */}
@@ -734,8 +741,6 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
         )}
 
         {showSubscribe && <SubscriptionModal onClose={() => setShowSubscribe(false)} />}
-
-        {session.chatEnabled && <ChatPanel code={code} participantId={participantId} />}
       </Suspense>
     </div>
   );

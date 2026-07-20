@@ -1472,36 +1472,46 @@ a.room-code:hover {
   margin: 0;
 }
 
-/* Team chat (PRO+) — floating panel */
+/* Team chat (PRO+) — inline card below the deck, members only */
 .chat {
-  position: fixed;
-  right: 1rem;
-  bottom: 1rem;
-  z-index: 50;
+  width: min(680px, calc(100vw - 2rem));
+  margin: 1.25rem auto 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 0.6rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
-.chat-toggle {
+.chat-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: var(--panel-2);
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+.chat.open .chat-head {
+  border-bottom-color: var(--line);
+}
+.chat-title {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.6rem 0.9rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #fff;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  box-shadow: var(--shadow);
-  transition: transform var(--transition);
 }
-.chat-toggle:hover {
-  transform: translateY(-1px);
+.chat-chevron {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 .chat-unread {
+  margin-left: auto;
   min-width: 1.2rem;
   height: 1.2rem;
   padding: 0 0.35rem;
@@ -1514,36 +1524,11 @@ a.room-code:hover {
   font-size: 0.72rem;
   font-weight: 700;
 }
-.chat-window {
-  width: min(360px, calc(100vw - 2rem));
-  height: min(520px, calc(100vh - 6rem));
-  display: flex;
-  flex-direction: column;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-.chat-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.7rem 0.9rem;
-  border-bottom: 1px solid var(--line);
-  font-weight: 700;
-  background: var(--panel-2);
-}
-.chat-close {
-  border: none;
-  background: none;
-  color: var(--muted);
-  font-size: 1.3rem;
-  line-height: 1;
-  cursor: pointer;
+.chat-unread + .chat-chevron {
+  margin-left: 0.4rem;
 }
 .chat-messages {
-  flex: 1;
+  height: 320px;
   overflow-y: auto;
   padding: 0.8rem;
   display: flex;
