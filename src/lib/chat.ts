@@ -1,25 +1,26 @@
 import { WebPubSubClient } from '@azure/web-pubsub-client';
 import { api } from './api';
-import type { ChatMessage } from './types';
+import type { ChatEvent } from './types';
 
 export interface ChatConnection {
   stop: () => void;
 }
 
-// Connect to the room's Web PubSub group and stream chat messages. The access
-// URL is fetched (and re-fetched on reconnect) via the negotiate endpoint.
+// Connect to the room's Web PubSub group and stream chat events (new messages
+// and like updates). The access URL is fetched (and re-fetched on reconnect)
+// via the negotiate endpoint.
 export async function connectChat(
   code: string,
   participantId: string,
-  onMessage: (message: ChatMessage) => void,
+  onEvent: (event: ChatEvent) => void,
 ): Promise<ChatConnection> {
   const client = new WebPubSubClient({
     getClientAccessUrl: async () => (await api.negotiateChat(code, participantId)).url,
   });
 
   client.on('group-message', (e) => {
-    const data = e.message.data as { type?: string; message?: ChatMessage };
-    if (data?.type === 'message' && data.message) onMessage(data.message);
+    const data = e.message.data as ChatEvent;
+    if (data?.type === 'message' || data?.type === 'like') onEvent(data);
   });
 
   await client.start();

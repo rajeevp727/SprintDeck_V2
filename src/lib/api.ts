@@ -114,4 +114,10 @@ export const api = {
       text,
       replyTo,
     }),
+
+  likeChatMessage: (code: string, participantId: string, messageId: string) =>
+    request<{ messageId: string; likes: string[] }>(`/api/session/${code}/chat/like`, 'POST', {
+      participantId,
+      messageId,
+    }),
 };

@@ -61,7 +61,13 @@ export interface ChatMessage {
   text: string;
   at: number; // epoch ms
   replyTo: ChatReply | null;
+  likes: string[]; // participant ids who liked it (length = like count)
 }
+
+// Realtime events streamed over the room's Web PubSub group.
+export type ChatEvent =
+  | { type: 'message'; message: ChatMessage }
+  | { type: 'like'; messageId: string; likes: string[] };
 
 export interface Session {
   code: string;

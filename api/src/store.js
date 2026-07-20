@@ -387,7 +387,7 @@ function addMessage(session, participantId, text, replyTo) {
     };
   }
 
-  const message = { id: genId(), participantId, name: p.name, text: clean, at: Date.now(), replyTo: reply };
+  const message = { id: genId(), participantId, name: p.name, text: clean, at: Date.now(), replyTo: reply, likes: [] };
   session.messages.push(message);
   if (session.messages.length > MaxMessages) session.messages = session.messages.slice(-MaxMessages);
   return message;
@@ -395,6 +395,19 @@ function addMessage(session, participantId, text, replyTo) {
 
 function getMessages(session) {
   return Array.isArray(session.messages) ? session.messages : [];
+}
+
+// Toggle a participant's like on a message. Returns the message, or null if not
+// found. likes is an array of participant ids (its length is the like count).
+function toggleLike(session, messageId, participantId) {
+  const msgs = Array.isArray(session.messages) ? session.messages : [];
+  const message = msgs.find((m) => m.id === messageId);
+  if (!message) return null;
+  if (!Array.isArray(message.likes)) message.likes = [];
+  const i = message.likes.indexOf(participantId);
+  if (i >= 0) message.likes.splice(i, 1);
+  else message.likes.push(participantId);
+  return message;
 }
 
 // Numeric stats over the current votes (ignores non-numeric like ? / ☕).
@@ -477,4 +490,5 @@ module.exports = {
   markPushed,
   addMessage,
   getMessages,
+  toggleLike,
 };

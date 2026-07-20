@@ -132,3 +132,28 @@ app.http('chatMessage', {
     return ok({ message });
   },
 });
+
+// Toggle the caller's like on a message, then broadcast the new like list.
+app.http('chatLike', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'session/{code}/chat/like',
+  handler: async (req) => {
+    const { participantId, messageId } = await readBody(req);
+    const { session, error } = await requireChatMember(req.params.code, participantId);
+    if (error) return error;
+
+    const message = store.toggleLike(session, messageId, participantId);
+    if (!message) return bad('Message not found', 404);
+    await store.saveSession(session);
+
+    try {
+      await getServiceClient()
+        .group(session.code)
+        .sendToAll({ type: 'like', messageId: message.id, likes: message.likes });
+    } catch {
+      /* non-fatal */
+    }
+    return ok({ messageId: message.id, likes: message.likes });
+  },
+});
