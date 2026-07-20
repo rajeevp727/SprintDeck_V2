@@ -116,12 +116,17 @@ const deck = buildFibonacciDeck(deckMax);
 // Limits
 // ───────────────────────────────────────────────────────────────────────────
 // A session is treated as gone when EITHER it has had no activity for
-// sessionIdleMs or its total age exceeds sessionMaxAgeMs. Retention is a
-// configurable policy: override via app settings SESSION_IDLE_HOURS (default 2)
-// and SESSION_MAX_AGE_HOURS (default 5). Cosmos native TTL uses sessionIdleMs.
+// sessionIdleMs or its total age exceeds sessionMaxAgeMs. "Activity" includes a
+// member polling the room (see touchSession), so an open room stays alive while
+// anyone is viewing it; idle expiry only fires once everyone has left. Override
+// via app settings SESSION_IDLE_HOURS (default 2) and SESSION_MAX_AGE_HOURS
+// (default 24). Cosmos native TTL uses sessionIdleMs, refreshed on each touch.
 const sessionIdleMs = (Number(process.env.SESSION_IDLE_HOURS) || 2) * 60 * 60 * 1000;
-const sessionMaxAgeMs = (Number(process.env.SESSION_MAX_AGE_HOURS) || 5) * 60 * 60 * 1000;
+const sessionMaxAgeMs = (Number(process.env.SESSION_MAX_AGE_HOURS) || 24) * 60 * 60 * 1000;
 const maxParticipants = 20; // moderator included
+// A polled read keeps the room alive, but only refreshes its lifetime once per
+// this window (not on every 1.5s poll) to avoid hammering Cosmos RUs.
+const touchIntervalMs = 5 * 60 * 1000;
 
 const codeChars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L ambiguity
 
@@ -167,6 +172,29 @@ async function saveSession(session) {
 
 async function deleteSession(code) {
   await removeRaw(normalize(code));
+}
+
+// Keep an actively-viewed room alive: a polling read counts as activity, so a
+// room open in someone's browser doesn't age out from under them. Throttled to
+// touchIntervalMs. Uses a Cosmos partial patch (not a full upsert) so a
+// concurrent vote/message write is never clobbered by a stale read-modify-write.
+async function touchSession(session) {
+  const now = Date.now();
+  if (now - session.lastActivity < touchIntervalMs) return;
+  session.lastActivity = now;
+  const c = getContainer();
+  if (c) {
+    try {
+      await (await c).item(session.code, session.code).patch([
+        { op: 'set', path: '/doc/lastActivity', value: now },
+        { op: 'set', path: '/ttl', value: Math.floor(sessionIdleMs / 1000) },
+      ]);
+    } catch {
+      /* best-effort keep-alive — ignore transient patch failures */
+    }
+  }
+  // In-memory fallback: `session` is the stored object reference, so mutating
+  // lastActivity above already persists it; no write needed.
 }
 
 async function genUniqueCode() {
@@ -475,6 +503,7 @@ module.exports = {
   maxParticipants,
   loadSession,
   saveSession,
+  touchSession,
   deleteSession,
   createSession,
   joinSession,

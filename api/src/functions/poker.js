@@ -119,6 +119,11 @@ app.http('getSession', {
     const session = await store.loadSession(req.params.code);
     if (!session) return bad('Session not found', 404);
     const participantId = req.query.get('participantId');
+    // A member polling keeps the room alive, so an open room never expires
+    // out from under active viewers (throttled inside touchSession).
+    if (participantId && session.participants[participantId]) {
+      await store.touchSession(session);
+    }
     return ok({ session: store.publicView(session, participantId) });
   },
 });
