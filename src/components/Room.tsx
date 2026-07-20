@@ -22,6 +22,7 @@ import { isSubscribed, getActiveSubscription, tiers } from '../lib/subscription'
 const ResultsModal = lazy(() => import('./ResultsModal'));
 const ToolConnectModal = lazy(() => import('./ToolConnectModal'));
 const SubscriptionModal = lazy(() => import('./SubscriptionModal'));
+const ChatPanel = lazy(() => import('./ChatPanel'));
 
 const pollMs = 1500;
 // Only leave the room after this many CONSECUTIVE "not found" polls — tolerates
@@ -56,6 +57,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
   const [pendingTool, setPendingTool] = useState<ToolId | null>(null);
   const [showSubscribe, setShowSubscribe] = useState(false);
   const subChecked = useRef(false);
+  const chatSynced = useRef(false);
   const [pushEntryId, setPushEntryId] = useState<string | null>(null);
   const [pushValue, setPushValue] = useState('');
   const missCount = useRef(0);
@@ -150,6 +152,15 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
     const t = setTimeout(() => setShowSubscribe(true), 2000);
     return () => clearTimeout(t);
   }, [isModerator]);
+
+  // Unlock the shared chat when a subscribed moderator is in a room that doesn't
+  // yet have it on (i.e. they subscribed after creating the room).
+  useEffect(() => {
+    if (!isModerator || !session || session.chatEnabled || chatSynced.current) return;
+    if (!isSubscribed()) return;
+    chatSynced.current = true;
+    api.enableChat(code, participantId).then(({ session: s }) => setSession(s)).catch(() => {});
+  }, [isModerator, session, code, participantId]);
 
   // On a freshly revealed Linear-backed round, prefill the push value with the
   // median-nearest deck value — once per entry, so polling doesn't clobber a
@@ -723,6 +734,8 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
         )}
 
         {showSubscribe && <SubscriptionModal onClose={() => setShowSubscribe(false)} />}
+
+        {session.chatEnabled && <ChatPanel code={code} participantId={participantId} />}
       </Suspense>
     </div>
   );

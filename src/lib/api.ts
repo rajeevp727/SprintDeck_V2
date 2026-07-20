@@ -1,4 +1,4 @@
-import type { JoinResult, Session } from './types';
+import type { ChatMessage, ChatReply, JoinResult, Session } from './types';
 
 async function request<T>(url: string, method: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -23,8 +23,8 @@ async function request<T>(url: string, method: string, body?: unknown): Promise<
 }
 
 export const api = {
-  createSession: (name: string, moderatorName: string, code: string) =>
-    request<JoinResult>('/api/session', 'POST', { name, moderatorName, code }),
+  createSession: (name: string, moderatorName: string, code: string, chatEnabled: boolean) =>
+    request<JoinResult>('/api/session', 'POST', { name, moderatorName, code, chatEnabled }),
 
   joinSession: (code: string, name: string) =>
     request<JoinResult>(`/api/session/${code}/join`, 'POST', { name }),
@@ -93,5 +93,25 @@ export const api = {
       participantId,
       entryId,
       estimate,
+    }),
+
+  // Team chat (PRO+).
+  enableChat: (code: string, participantId: string) =>
+    request<{ session: Session }>(`/api/session/${code}/chat/enable`, 'POST', { participantId }),
+
+  negotiateChat: (code: string, participantId: string) =>
+    request<{ url: string }>(`/api/session/${code}/chat/negotiate`, 'POST', { participantId }),
+
+  chatHistory: (code: string, participantId: string) =>
+    request<{ messages: ChatMessage[] }>(
+      `/api/session/${code}/chat/messages?participantId=${encodeURIComponent(participantId)}`,
+      'GET',
+    ),
+
+  sendChatMessage: (code: string, participantId: string, text: string, replyTo: ChatReply | null) =>
+    request<{ message: ChatMessage }>(`/api/session/${code}/chat/message`, 'POST', {
+      participantId,
+      text,
+      replyTo,
     }),
 };

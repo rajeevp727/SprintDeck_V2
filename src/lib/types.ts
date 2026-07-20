@@ -46,6 +46,23 @@ export interface CurrentLinear {
   url: string | null;
 }
 
+// A snapshot of the message being replied to, carried on the reply so the quote
+// renders even after the original scrolls out of the retained window.
+export interface ChatReply {
+  id: string;
+  name: string;
+  excerpt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  participantId: string;
+  name: string;
+  text: string;
+  at: number; // epoch ms
+  replyTo: ChatReply | null;
+}
+
 export interface Session {
   code: string;
   name: string;
@@ -61,6 +78,7 @@ export interface Session {
   history: HistoryEntry[];
   average: number | null;
   consensus: boolean;
+  chatEnabled: boolean; // shared team chat unlocked (moderator PRO+)
 }
 
 export interface JoinResult {

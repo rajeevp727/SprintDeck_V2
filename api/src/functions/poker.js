@@ -82,8 +82,8 @@ app.http('createSession', {
     if (rateLimited(req, 'create', 10, 60_000)) {
       return bad('Too many rooms created from here — wait a moment and try again', 429);
     }
-    const { name, moderatorName, code } = await readBody(req);
-    const result = await store.createSession(name, moderatorName, code);
+    const { name, moderatorName, code, chatEnabled } = await readBody(req);
+    const result = await store.createSession(name, moderatorName, code, chatEnabled);
     if (result.error === 'invalid') {
       return bad('Room code must be 3–24 letters, numbers or dashes');
     }

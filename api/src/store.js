@@ -179,7 +179,7 @@ async function genUniqueCode() {
 
 const codeRe = /^[A-Z0-9-]{3,24}$/;
 
-async function createSession(name, moderatorName, desiredCode) {
+async function createSession(name, moderatorName, desiredCode, chatEnabled) {
   let code;
   const wanted = normalize(desiredCode);
   if (wanted) {
@@ -206,6 +206,8 @@ async function createSession(name, moderatorName, desiredCode) {
     },
     queue: [], // [{ id, title, linearId?, identifier? }]
     history: [], // [{ id, title, average, median, min, max, consensus, votes, at }]
+    chatEnabled: !!chatEnabled, // shared team chat unlocked by moderator's PRO+ plan
+    messages: [], // [{ id, participantId, name, text, at, replyTo }]
     createdAt: now,
     lastActivity: now,
   };
@@ -359,6 +361,42 @@ function markPushed(session, entryId, estimate) {
   return true;
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// Team chat (PRO+). Operates on a loaded session (sync); caller persists.
+// ───────────────────────────────────────────────────────────────────────────
+const MaxMessageLen = 2000;
+const MaxReplyExcerpt = 140;
+const MaxMessages = 200; // ring buffer — keep only the most recent
+
+// Append a message; returns it, or null if the sender isn't in the room / text
+// is empty. replyTo is a snapshot { id, name, excerpt } so the quote survives
+// after the original scrolls out of the retained window.
+function addMessage(session, participantId, text, replyTo) {
+  const p = session.participants[participantId];
+  if (!p) return null;
+  const clean = String(text || '').trim().slice(0, MaxMessageLen);
+  if (!clean) return null;
+  if (!Array.isArray(session.messages)) session.messages = [];
+
+  let reply = null;
+  if (replyTo && replyTo.id) {
+    reply = {
+      id: String(replyTo.id).slice(0, 64),
+      name: String(replyTo.name || '').slice(0, 80),
+      excerpt: String(replyTo.excerpt || replyTo.text || '').slice(0, MaxReplyExcerpt),
+    };
+  }
+
+  const message = { id: genId(), participantId, name: p.name, text: clean, at: Date.now(), replyTo: reply };
+  session.messages.push(message);
+  if (session.messages.length > MaxMessages) session.messages = session.messages.slice(-MaxMessages);
+  return message;
+}
+
+function getMessages(session) {
+  return Array.isArray(session.messages) ? session.messages : [];
+}
+
 // Numeric stats over the current votes (ignores non-numeric like ? / ☕).
 function voteStats(session) {
   const votes = Object.values(session.participants)
@@ -416,6 +454,7 @@ function publicView(session, requesterId) {
     history: session.history,
     average: stats.average,
     consensus: stats.consensus,
+    chatEnabled: !!session.chatEnabled, // messages load separately, not in this poll
   };
 }
 
@@ -436,4 +475,6 @@ module.exports = {
   startStory,
   revealAndSave,
   markPushed,
+  addMessage,
+  getMessages,
 };
