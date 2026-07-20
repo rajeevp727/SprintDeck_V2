@@ -706,8 +706,9 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
         ))}
       </section>
 
-      {/* Team chat (PRO+) — shown to every room member, below the deck */}
-      {session.chatEnabled && (
+      {/* Team chat (PRO+) — team-members-only back-channel below the deck.
+          The moderator unlocks it but never sees or joins it. */}
+      {session.chatEnabled && !isModerator && (
         <Suspense fallback={null}>
           <ChatPanel code={code} participantId={participantId} />
         </Suspense>

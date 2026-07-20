@@ -40,7 +40,9 @@ function chatAvailable() {
   return !!Conn;
 }
 
-// Load the session and confirm the caller is a member and chat is unlocked.
+// Load the session and confirm the caller may use chat: it must be unlocked,
+// and the caller must be a participant who is NOT the moderator. Chat is a
+// team-members-only back-channel — the moderator can neither read nor post.
 async function requireChatMember(code, participantId) {
   if (!chatAvailable()) return { error: bad('Chat is not available', 503) };
   const session = await store.loadSession(code);
@@ -48,6 +50,9 @@ async function requireChatMember(code, participantId) {
   if (!session.chatEnabled) return { error: bad('Chat is not enabled for this room', 403) };
   if (!participantId || !session.participants[participantId]) {
     return { error: bad('You are not in this session', 403) };
+  }
+  if (store.isModerator(session, participantId)) {
+    return { error: bad('Chat is for team members only', 403) };
   }
   return { session };
 }
