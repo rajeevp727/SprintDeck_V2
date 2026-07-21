@@ -1,12 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-  type MouseEvent as ReactMouseEvent,
-} from 'react';
-import { createPortal } from 'react-dom';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { api } from '../lib/api';
 import { connectChat, type ChatConnection } from '../lib/chat';
 import type { ChatEvent, ChatLike, ChatMessage, ChatReply } from '../lib/types';
@@ -23,6 +15,16 @@ function formatTime(at: number): string {
   return new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+// The liker's display name — self shows as "*You".
+function likerName(like: ChatLike, myId: string): string {
+  return like.id === myId ? '*You' : like.name || 'Someone';
+}
+
+// aria-label for the like badge: "Liked by *You, Alice".
+function likeTitle(likes: ChatLike[], myId: string): string {
+  return `Liked by ${likes.map((l) => likerName(l, myId)).join(', ')}`;
+}
+
 interface MessageItemProps {
   message: ChatMessage;
   mine: boolean;
@@ -30,32 +32,21 @@ interface MessageItemProps {
   likedByMe: boolean;
   onReply: (message: ChatMessage) => void;
   onLike: (message: ChatMessage) => void;
+  onShowLikers: (likes: ChatLike[], anchor: HTMLElement) => void;
+  onHideLikers: () => void;
 }
 
-// The liker's display name — self shows as "*You".
-function likerName(like: ChatLike, myId: string): string {
-  return like.id === myId ? '*You' : like.name || 'Someone';
-}
-
-// aria-label for the like button: "Liked by *You, Alice"; Like/Unlike when empty.
-function likeTitle(likes: ChatLike[], myId: string, likedByMe: boolean): string {
-  if (!likes.length) return likedByMe ? 'Unlike' : 'Like';
-  return `Liked by ${likes.map((l) => likerName(l, myId)).join(', ')}`;
-}
-
-function MessageItem({ message, mine, myId, likedByMe, onReply, onLike }: MessageItemProps) {
+function MessageItem({
+  message,
+  mine,
+  myId,
+  likedByMe,
+  onReply,
+  onLike,
+  onShowLikers,
+  onHideLikers,
+}: MessageItemProps) {
   const likes = message.likes ?? [];
-  const title = likeTitle(likes, myId, likedByMe);
-  const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
-  // Likers most-recent first (sort by like time, descending).
-  const sortedLikes = [...likes].sort((a, b) => (b.at ?? 0) - (a.at ?? 0));
-
-  function showTip(e: ReactMouseEvent) {
-    if (!likes.length) return;
-    const r = e.currentTarget.getBoundingClientRect();
-    setTip({ x: r.left + r.width / 2, y: r.top });
-  }
-
   return (
     <div className={`chat-msg-row ${mine ? 'mine' : ''}`}>
       <div className="chat-msg">
@@ -73,61 +64,31 @@ function MessageItem({ message, mine, myId, likedByMe, onReply, onLike }: Messag
       </div>
       <div className="chat-msg-under">
         {/* Persistent like indicator — shown whenever the message has likes.
-            Hover it for the list of who liked; click to toggle your own like. */}
+            Hover for the list of who liked; click to toggle your own like. */}
         {likes.length > 0 && (
           <button
             className={`chat-likes-badge ${likedByMe ? 'liked' : ''}`}
-            aria-label={title}
+            aria-label={likeTitle(likes, myId)}
             onClick={() => onLike(message)}
-            onMouseEnter={showTip}
-            onMouseLeave={() => setTip(null)}
+            onMouseEnter={(e) => onShowLikers(likes, e.currentTarget)}
+            onMouseLeave={onHideLikers}
           >
             👍 <span className="chat-likes-count">{likes.length}</span>
           </button>
         )}
-        {/* Like + reply actions — revealed only on message hover. */}
+        {/* Hover-only actions. The Like button is dropped once the message has
+            likes — the badge above handles liking then; only Reply remains. */}
         <div className="chat-msg-actions">
-          <button
-            className={`chat-act ${likedByMe ? 'active' : ''}`}
-            aria-label={likedByMe ? 'Unlike' : 'Like'}
-            onClick={() => onLike(message)}
-          >
-            👍
-          </button>
+          {likes.length === 0 && (
+            <button className="chat-act" aria-label="Like" onClick={() => onLike(message)}>
+              👍
+            </button>
+          )}
           <button className="chat-act" aria-label="Reply" onClick={() => onReply(message)}>
             ↩️
           </button>
         </div>
       </div>
-      {tip &&
-        likes.length > 0 &&
-        createPortal(
-          <div className="chat-like-tip" style={{ left: tip.x, top: tip.y }}>
-            {sortedLikes.length === 1 ? (
-              <div className="chat-like-tip-single">
-                Liked by{' '}
-                <span className={`chat-like-tip-name ${sortedLikes[0].id === myId ? 'you' : ''}`}>
-                  {likerName(sortedLikes[0], myId)}
-                </span>
-              </div>
-            ) : (
-              <>
-                <div className="chat-like-tip-head">Liked by</div>
-                <ul>
-                  {sortedLikes.map((l) => (
-                    <li key={l.id}>
-                      <span className={`chat-like-tip-name ${l.id === myId ? 'you' : ''}`}>
-                        {likerName(l, myId)}
-                      </span>
-                      {l.at ? <span className="chat-like-tip-time">{formatTime(l.at)}</span> : null}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </div>,
-          document.body,
-        )}
     </div>
   );
 }
@@ -138,9 +99,16 @@ export default function ChatPanel({ code, participantId }: Props) {
   const [replyTo, setReplyTo] = useState<ChatReply | null>(null);
   const [open, setOpen] = useState(true);
   const [unread, setUnread] = useState(0);
+  const [likeTip, setLikeTip] = useState<{
+    likes: ChatLike[];
+    x: number;
+    y: number;
+    above: boolean;
+  } | null>(null);
   const seen = useRef<Set<string>>(new Set());
   const openRef = useRef(true);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const chatRef = useRef<HTMLElement | null>(null);
   openRef.current = open;
 
   const addMessage = useCallback((message: ChatMessage) => {
@@ -190,6 +158,23 @@ export default function ChatPanel({ code, participantId }: Props) {
     if (open && listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [messages, open]);
 
+  // Position the who-liked list relative to the chat panel so it stays inside
+  // the window (not portaled to the body, where it overflowed outside).
+  const showLikers = useCallback((likes: ChatLike[], anchor: HTMLElement) => {
+    const chat = chatRef.current;
+    if (!chat) return;
+    const a = anchor.getBoundingClientRect();
+    const c = chat.getBoundingClientRect();
+    const above = a.top - c.top > 110; // enough room above inside the panel?
+    setLikeTip({
+      likes,
+      x: a.left - c.left + a.width / 2,
+      y: (above ? a.top : a.bottom) - c.top,
+      above,
+    });
+  }, []);
+  const hideLikers = useCallback(() => setLikeTip(null), []);
+
   function toggle() {
     setOpen((o) => {
       if (!o) setUnread(0);
@@ -226,8 +211,11 @@ export default function ChatPanel({ code, participantId }: Props) {
     }
   }
 
+  // Likers most-recent first for the hover list.
+  const tipLikes = likeTip ? [...likeTip.likes].sort((a, b) => (b.at ?? 0) - (a.at ?? 0)) : [];
+
   return (
-    <section className={`chat ${open ? 'open' : ''}`}>
+    <section className={`chat ${open ? 'open' : ''}`} ref={chatRef}>
       <button className="chat-head" onClick={toggle} aria-expanded={open}>
         <span className="chat-title">
           <span aria-hidden>💬</span> Team chat
@@ -253,6 +241,8 @@ export default function ChatPanel({ code, participantId }: Props) {
                   likedByMe={(m.likes ?? []).some((l) => l.id === participantId)}
                   onReply={startReply}
                   onLike={like}
+                  onShowLikers={showLikers}
+                  onHideLikers={hideLikers}
                 />
               ))
             )}
@@ -286,6 +276,36 @@ export default function ChatPanel({ code, participantId }: Props) {
             </button>
           </form>
         </>
+      )}
+
+      {likeTip && tipLikes.length > 0 && (
+        <div
+          className={`chat-like-tip ${likeTip.above ? 'above' : 'below'}`}
+          style={{ left: likeTip.x, top: likeTip.y }}
+        >
+          {tipLikes.length === 1 ? (
+            <div className="chat-like-tip-single">
+              Liked by{' '}
+              <span className={`chat-like-tip-name ${tipLikes[0].id === participantId ? 'you' : ''}`}>
+                {likerName(tipLikes[0], participantId)}
+              </span>
+            </div>
+          ) : (
+            <>
+              <div className="chat-like-tip-head">Liked by</div>
+              <ul>
+                {tipLikes.map((l) => (
+                  <li key={l.id}>
+                    <span className={`chat-like-tip-name ${l.id === participantId ? 'you' : ''}`}>
+                      {likerName(l, participantId)}
+                    </span>
+                    {l.at ? <span className="chat-like-tip-time">{formatTime(l.at)}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
       )}
     </section>
   );

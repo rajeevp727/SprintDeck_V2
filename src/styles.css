@@ -1474,6 +1474,7 @@ a.room-code:hover {
 
 /* Team chat (PRO+) — inline card below the deck, members only */
 .chat {
+  position: relative;
   width: min(680px, calc(100vw - 2rem));
   margin: 1.25rem auto 0;
   display: flex;
@@ -1668,11 +1669,10 @@ a.room-code:hover {
   background: color-mix(in srgb, #f5b301 20%, transparent);
   border-color: color-mix(in srgb, #f5b301 45%, var(--line));
 }
-/* Hover list of who liked a message (rendered to body, so never clipped) */
+/* Hover list of who liked a message — positioned inside the chat panel */
 .chat-like-tip {
-  position: fixed;
+  position: absolute;
   z-index: 70;
-  transform: translate(-50%, calc(-100% - 10px));
   min-width: 150px;
   max-width: 230px;
   padding: 0.5rem 0.6rem;
@@ -1681,6 +1681,12 @@ a.room-code:hover {
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
   pointer-events: none;
+}
+.chat-like-tip.above {
+  transform: translate(-50%, calc(-100% - 8px));
+}
+.chat-like-tip.below {
+  transform: translate(-50%, 8px);
 }
 .chat-like-tip-single {
   font-size: 0.85rem;
