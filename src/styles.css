@@ -1630,6 +1630,7 @@ a.room-code:hover {
 .chat-likes-badge.liked {
   background: color-mix(in srgb, #f5b301 15%, transparent);
   border-color: color-mix(in srgb, #f5b301 45%, var(--line));
+  cursor: default;
 }
 .chat-likes-count {
   font-size: 0.72rem;

@@ -46,7 +46,10 @@ function MessageItem({
   onShowLikers,
   onHideLikers,
 }: MessageItemProps) {
-  const likes = message.likes ?? [];
+  const rawLikes = message.likes ?? [];
+  // Only surface likers whose name we have (self always shows as *You). Nameless
+  // legacy likes are hidden rather than shown as a "Someone" placeholder.
+  const likes = rawLikes.filter((l) => l.id === myId || (l.name && l.name.trim() !== ''));
   return (
     <div className={`chat-msg-row ${mine ? 'mine' : ''}`}>
       <div className="chat-msg">
@@ -64,20 +67,23 @@ function MessageItem({
       </div>
       <div className="chat-msg-under">
         {/* Persistent like indicator — shown whenever the message has likes.
-            Hover for the list of who liked; click to toggle your own like. */}
+            Hover for the list of who liked. Clicking likes it (once) — a like
+            can't be taken back or repeated once you've liked. */}
         {likes.length > 0 && (
           <button
             className={`chat-likes-badge ${likedByMe ? 'liked' : ''}`}
             aria-label={likeTitle(likes, myId)}
-            onClick={() => onLike(message)}
+            onClick={() => {
+              if (!likedByMe) onLike(message);
+            }}
             onMouseEnter={(e) => onShowLikers(likes, e.currentTarget)}
             onMouseLeave={onHideLikers}
           >
             👍 <span className="chat-likes-count">{likes.length}</span>
           </button>
         )}
-        {/* Hover-only actions. The Like button is dropped once the message has
-            likes — the badge above handles liking then; only Reply remains. */}
+        {/* Hover-only actions. The Like button appears only when there are no
+            likes yet; once liked the badge handles it and Like isn't offered. */}
         <div className="chat-msg-actions">
           {likes.length === 0 && (
             <button className="chat-act" aria-label="Like" onClick={() => onLike(message)}>
