@@ -26,7 +26,20 @@ interface MessageItemProps {
 function MessageItem({ message, mine, likedByMe, onReply, onLike }: MessageItemProps) {
   const likeCount = message.likes?.length ?? 0;
   return (
-    <div className={`chat-msg ${mine ? 'mine' : ''}`}>
+    <div className={`chat-msg-row ${mine ? 'mine' : ''}`}>
+      <div className="chat-msg">
+        {message.replyTo && (
+          <div className="chat-quote">
+            <span className="chat-quote-name">↩ {message.replyTo.name}</span>
+            <span className="chat-quote-text">{message.replyTo.excerpt}</span>
+          </div>
+        )}
+        <div className="chat-msg-head">
+          <span className="chat-msg-name">{mine ? 'You' : message.name}</span>
+          <span className="chat-msg-time">{formatTime(message.at)}</span>
+        </div>
+        <div className="chat-msg-text">{message.text}</div>
+      </div>
       <div className="chat-msg-actions">
         <button
           className={`chat-act ${likedByMe ? 'active' : ''}`}
@@ -34,26 +47,12 @@ function MessageItem({ message, mine, likedByMe, onReply, onLike }: MessageItemP
           aria-label={likedByMe ? 'Unlike' : 'Like'}
           onClick={() => onLike(message)}
         >
-          👍
+          👍{likeCount > 0 && <span className="chat-act-count">{likeCount}</span>}
         </button>
         <button className="chat-act" title="Reply" aria-label="Reply" onClick={() => onReply(message)}>
           ↩️
         </button>
       </div>
-      {message.replyTo && (
-        <div className="chat-quote">
-          <span className="chat-quote-name">↩ {message.replyTo.name}</span>
-          <span className="chat-quote-text">{message.replyTo.excerpt}</span>
-        </div>
-      )}
-      <div className="chat-msg-head">
-        <span className="chat-msg-name">{mine ? 'You' : message.name}</span>
-        <span className="chat-msg-time">{formatTime(message.at)}</span>
-      </div>
-      <div className="chat-msg-text">{message.text}</div>
-      {likeCount > 0 && (
-        <span className={`chat-likes ${likedByMe ? 'liked' : ''}`}>👍 {likeCount}</span>
-      )}
     </div>
   );
 }
