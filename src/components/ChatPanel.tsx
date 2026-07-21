@@ -71,19 +71,33 @@ function MessageItem({ message, mine, myId, likedByMe, onReply, onLike }: Messag
         </div>
         <div className="chat-msg-text">{message.text}</div>
       </div>
-      <div className="chat-msg-actions">
-        <button
-          className={`chat-act ${likedByMe ? 'active' : ''}`}
-          aria-label={title}
-          onClick={() => onLike(message)}
-          onMouseEnter={showTip}
-          onMouseLeave={() => setTip(null)}
-        >
-          👍{likes.length > 0 && <span className="chat-act-count">{likes.length}</span>}
-        </button>
-        <button className="chat-act" title="Reply" aria-label="Reply" onClick={() => onReply(message)}>
-          ↩️
-        </button>
+      <div className="chat-msg-under">
+        {/* Persistent like indicator — shown whenever the message has likes.
+            Hover it for the list of who liked; click to toggle your own like. */}
+        {likes.length > 0 && (
+          <button
+            className={`chat-likes-badge ${likedByMe ? 'liked' : ''}`}
+            aria-label={title}
+            onClick={() => onLike(message)}
+            onMouseEnter={showTip}
+            onMouseLeave={() => setTip(null)}
+          >
+            👍 <span className="chat-likes-count">{likes.length}</span>
+          </button>
+        )}
+        {/* Like + reply actions — revealed only on message hover. */}
+        <div className="chat-msg-actions">
+          <button
+            className={`chat-act ${likedByMe ? 'active' : ''}`}
+            aria-label={likedByMe ? 'Unlike' : 'Like'}
+            onClick={() => onLike(message)}
+          >
+            👍
+          </button>
+          <button className="chat-act" aria-label="Reply" onClick={() => onReply(message)}>
+            ↩️
+          </button>
+        </div>
       </div>
       {tip &&
         likes.length > 0 &&

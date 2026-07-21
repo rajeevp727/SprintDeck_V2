@@ -1607,7 +1607,38 @@ a.room-code:hover {
   overflow: hidden;
   word-break: break-word;
 }
-/* Like (👍) and reply (↩️) actions, below the bubble — revealed on hover */
+/* Row under the bubble: persistent like badge + hover-only action buttons */
+.chat-msg-under {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+/* Persistent like indicator — always shown when a message has likes */
+.chat-likes-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.08rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.chat-likes-badge.liked {
+  background: color-mix(in srgb, #f5b301 15%, transparent);
+  border-color: color-mix(in srgb, #f5b301 45%, var(--line));
+}
+.chat-likes-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.chat-likes-badge.liked .chat-likes-count {
+  color: #f5b301;
+}
+/* Like (👍) and reply (↩️) actions — revealed only on message hover */
 .chat-msg-actions {
   display: none;
   gap: 0.35rem;
@@ -1636,14 +1667,6 @@ a.room-code:hover {
 .chat-act.active {
   background: color-mix(in srgb, #f5b301 20%, transparent);
   border-color: color-mix(in srgb, #f5b301 45%, var(--line));
-}
-.chat-act-count {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--muted);
-}
-.chat-act.active .chat-act-count {
-  color: #f5b301;
 }
 /* Hover list of who liked a message (rendered to body, so never clipped) */
 .chat-like-tip {
