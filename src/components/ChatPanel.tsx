@@ -32,20 +32,23 @@ interface MessageItemProps {
   onLike: (message: ChatMessage) => void;
 }
 
-// "Liked by You, Alice, Bob" for the hover tooltip; falls back to Like/Unlike
-// when nobody has liked it yet.
+// The liker's display name — self shows as "*You".
+function likerName(like: ChatLike, myId: string): string {
+  return like.id === myId ? '*You' : like.name || 'Someone';
+}
+
+// aria-label for the like button: "Liked by *You, Alice"; Like/Unlike when empty.
 function likeTitle(likes: ChatLike[], myId: string, likedByMe: boolean): string {
   if (!likes.length) return likedByMe ? 'Unlike' : 'Like';
-  const names = likes.map((l) => (l.id === myId ? 'You' : l.name || 'Someone'));
-  return `Liked by ${names.join(', ')}`;
+  return `Liked by ${likes.map((l) => likerName(l, myId)).join(', ')}`;
 }
 
 function MessageItem({ message, mine, myId, likedByMe, onReply, onLike }: MessageItemProps) {
   const likes = message.likes ?? [];
   const title = likeTitle(likes, myId, likedByMe);
   const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
-  // Likers oldest → newest for the hover list.
-  const sortedLikes = [...likes].sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
+  // Likers most-recent first (sort by like time, descending).
+  const sortedLikes = [...likes].sort((a, b) => (b.at ?? 0) - (a.at ?? 0));
 
   function showTip(e: ReactMouseEvent) {
     if (!likes.length) return;
@@ -86,17 +89,28 @@ function MessageItem({ message, mine, myId, likedByMe, onReply, onLike }: Messag
         likes.length > 0 &&
         createPortal(
           <div className="chat-like-tip" style={{ left: tip.x, top: tip.y }}>
-            <div className="chat-like-tip-head">Liked by</div>
-            <ul>
-              {sortedLikes.map((l) => (
-                <li key={l.id}>
-                  <span className={`chat-like-tip-name ${l.id === myId ? 'you' : ''}`}>
-                    {l.id === myId ? 'You' : l.name || 'Someone'}
-                  </span>
-                  {l.at ? <span className="chat-like-tip-time">{formatTime(l.at)}</span> : null}
-                </li>
-              ))}
-            </ul>
+            {sortedLikes.length === 1 ? (
+              <div className="chat-like-tip-single">
+                Liked by{' '}
+                <span className={`chat-like-tip-name ${sortedLikes[0].id === myId ? 'you' : ''}`}>
+                  {likerName(sortedLikes[0], myId)}
+                </span>
+              </div>
+            ) : (
+              <>
+                <div className="chat-like-tip-head">Liked by</div>
+                <ul>
+                  {sortedLikes.map((l) => (
+                    <li key={l.id}>
+                      <span className={`chat-like-tip-name ${l.id === myId ? 'you' : ''}`}>
+                        {likerName(l, myId)}
+                      </span>
+                      {l.at ? <span className="chat-like-tip-time">{formatTime(l.at)}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>,
           document.body,
         )}

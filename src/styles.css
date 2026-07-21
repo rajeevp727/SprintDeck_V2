@@ -1655,6 +1655,10 @@ a.room-code:hover {
   box-shadow: var(--shadow);
   pointer-events: none;
 }
+.chat-like-tip-single {
+  font-size: 0.85rem;
+  color: var(--text);
+}
 .chat-like-tip-head {
   margin-bottom: 0.35rem;
   font-size: 0.68rem;
