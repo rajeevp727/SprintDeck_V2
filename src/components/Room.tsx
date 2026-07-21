@@ -8,14 +8,15 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from 'react';
 import { api } from '../lib/api';
-import { clearIdentity, getIdentity } from '../lib/storage';
+import { retroApi } from '../lib/retroApi';
+import { clearIdentity, getIdentity, saveIdentity } from '../lib/storage';
 import type { Session } from '../lib/types';
 import ConnectToolModal, { toolMeta, type ToolId } from './ConnectToolModal';
 import ThemeToggle from './ThemeToggle';
 import AdBanner from './AdBanner';
 import { CrownIcon } from './icons';
 import { nearestDeckValue } from '../lib/estimate';
-import { useSubscription, tiers } from '../lib/subscription';
+import { useSubscription, getSubscriptionRef, tiers } from '../lib/subscription';
 
 // Modals loaded on demand — SubscriptionModal pulls in qrcode.react, so keeping
 // it out of the initial bundle speeds first load (esp. for non-moderators).
@@ -35,9 +36,10 @@ interface Props {
   onLeave: () => void;
   onMissingIdentity: () => void;
   onGoRoom: () => void;
+  onGoRetro: (code: string) => void;
 }
 
-export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Props) {
+export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoRetro }: Props) {
   const identity = getIdentity(code);
   const participantId = identity?.participantId ?? '';
 
@@ -286,6 +288,27 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
     onLeave();
   }
 
+  // Moderator opens a retrospective for the room (PRO+ only, verified server-side
+  // via the subscription order ref). The board carries this room's action items
+  // from its previous retro; roomCode links them across sprints.
+  async function startRetro() {
+    if (!session) return;
+    const subRef = getSubscriptionRef();
+    if (!subRef) {
+      setShowSubscribe(true);
+      return;
+    }
+    const myName = session.participants.find((p) => p.id === participantId)?.name || 'Facilitator';
+    try {
+      const res = await retroApi.createBoard(`${session.name} — Retrospective`, myName, '', code, subRef);
+      saveIdentity(res.board.code, res.participantId, myName);
+      await api.setRetro(code, participantId, res.board.code).catch(() => {});
+      onGoRetro(res.board.code);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
   async function endRoom() {
     if (hasUnviewed) {
       window.alert('You have unviewed results — please review them before closing the room.');
@@ -426,6 +449,20 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
             <button className="ghost" onClick={copyInvite}>
               {copied ? 'Copied!' : 'Invite'}
             </button>
+          )}
+          {/* Retrospective (PRO+). If one is open for the room, everyone can join;
+              otherwise a subscribed moderator can start one. */}
+          {session.retroCode ? (
+            <button className="ghost" onClick={() => onGoRetro(session.retroCode as string)}>
+              Retrospective
+            </button>
+          ) : (
+            isModerator &&
+            subscribed && (
+              <button className="ghost" onClick={startRetro}>
+                Start Retro
+              </button>
+            )
           )}
           {isModerator ? (
             <button className="ghost danger" onClick={endRoom}>

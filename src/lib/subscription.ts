@@ -87,6 +87,12 @@ function getOrderRef(): string | null {
   }
 }
 
+// The confirmed order id backing this browser's subscription (passed to the
+// server so it can verify PRO+ from Cosmos before, e.g., starting a retro).
+export function getSubscriptionRef(): string | null {
+  return getOrderRef();
+}
+
 // Remember which confirmed order backs this browser's subscription.
 export function setSubscriptionRef(orderId: string) {
   try {

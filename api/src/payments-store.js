@@ -180,8 +180,22 @@ async function ingestCredit({ amount, utr, rawText, source }) {
   return { receipt, order: match };
 }
 
+// The active subscription behind a confirmed order, or null. The tier is derived
+// from Cosmos (the payment record) — never trusted from the client. Active for
+// 30 days from confirmation. Shared by the subscription endpoint and the retro
+// PRO+ gate so entitlement is enforced server-side, not just in the UI.
+const subscriptionDays = 30;
+async function activeSubscription(orderId) {
+  if (!orderId) return null;
+  const order = await getOrder(orderId);
+  if (!order || order.status !== 'confirmed' || !order.confirmedAt) return null;
+  if (Date.now() - order.confirmedAt > subscriptionDays * 24 * 60 * 60 * 1000) return null;
+  return { tier: order.tier, at: new Date(order.confirmedAt).toISOString() };
+}
+
 module.exports = {
   createOrder,
   getOrder,
   ingestCredit,
+  activeSubscription,
 };

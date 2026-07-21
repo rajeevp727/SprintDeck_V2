@@ -503,6 +503,7 @@ function publicView(session, requesterId) {
     average: stats.average,
     consensus: stats.consensus,
     chatEnabled: !!session.chatEnabled, // messages load separately, not in this poll
+    retroCode: session.retroCode ?? null, // linked retrospective board, if one is open
   };
 }
 

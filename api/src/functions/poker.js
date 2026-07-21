@@ -301,6 +301,24 @@ app.http('nextStory', {
   },
 });
 
+// POST /api/session/{code}/retro  { participantId, retroCode }   (moderator) —
+// record the retro board opened for this room so every member's client sees it
+// (via polling) and can show a "Join Retrospective" button.
+app.http('setRetro', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'session/{code}/retro',
+  handler: async (req) => {
+    const { participantId, retroCode } = await readBody(req);
+    const { session, error } = await requireModerator(req.params.code, participantId);
+    if (error) return error;
+
+    session.retroCode = String(retroCode || '').trim().toUpperCase() || null;
+    await store.saveSession(session);
+    return ok({ session: store.publicView(session, participantId) });
+  },
+});
+
 // ───────────────────────────────────────────────────────────────────────────
 // Linear integration — V1 flow: paste ticket IDs, write agreed estimates back.
 // The Linear API key lives only in the LINEAR_API_KEY app setting (server-side).

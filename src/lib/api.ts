@@ -1,6 +1,6 @@
 import type { ChatLike, ChatMessage, ChatReply, JoinResult, Session } from './types';
 
-async function request<T>(url: string, method: string, body?: unknown): Promise<T> {
+export async function request<T>(url: string, method: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
     method,
     // Polling reads must never come from the HTTP cache, or other devices
@@ -64,6 +64,10 @@ export const api = {
 
   next: (code: string, participantId: string) =>
     request<{ session: Session }>(`/api/session/${code}/next`, 'POST', { participantId }),
+
+  // Link a retrospective board to this room so members see "Join Retrospective".
+  setRetro: (code: string, participantId: string, retroCode: string) =>
+    request<{ session: Session }>(`/api/session/${code}/retro`, 'POST', { participantId, retroCode }),
 
   end: (code: string, participantId: string) =>
     request<{ ended: boolean }>(`/api/session/${code}/end`, 'POST', { participantId }),

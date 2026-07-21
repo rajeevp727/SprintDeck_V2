@@ -93,6 +93,7 @@ export interface Session {
   average: number | null;
   consensus: boolean;
   chatEnabled: boolean; // shared team chat unlocked (moderator PRO+)
+  retroCode: string | null; // linked retrospective board, if one is open
 }
 
 export interface JoinResult {
