@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-  type MouseEvent as ReactMouseEvent,
-} from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { api } from '../lib/api';
 import { connectChat, type ChatConnection } from '../lib/chat';
 import type { ChatEvent, ChatMessage, ChatReply } from '../lib/types';
@@ -26,17 +19,27 @@ interface MessageItemProps {
   message: ChatMessage;
   mine: boolean;
   likedByMe: boolean;
-  onContextMenu: (e: ReactMouseEvent, message: ChatMessage) => void;
+  onReply: (message: ChatMessage) => void;
+  onLike: (message: ChatMessage) => void;
 }
 
-function MessageItem({ message, mine, likedByMe, onContextMenu }: MessageItemProps) {
+function MessageItem({ message, mine, likedByMe, onReply, onLike }: MessageItemProps) {
   const likeCount = message.likes?.length ?? 0;
   return (
-    <div
-      className={`chat-msg ${mine ? 'mine' : ''}`}
-      onContextMenu={(e) => onContextMenu(e, message)}
-      title="Right-click for reply & like"
-    >
+    <div className={`chat-msg ${mine ? 'mine' : ''}`}>
+      <div className="chat-msg-actions">
+        <button
+          className={`chat-act ${likedByMe ? 'active' : ''}`}
+          title={likedByMe ? 'Unlike' : 'Like'}
+          aria-label={likedByMe ? 'Unlike' : 'Like'}
+          onClick={() => onLike(message)}
+        >
+          👍
+        </button>
+        <button className="chat-act" title="Reply" aria-label="Reply" onClick={() => onReply(message)}>
+          ↩️
+        </button>
+      </div>
       {message.replyTo && (
         <div className="chat-quote">
           <span className="chat-quote-name">↩ {message.replyTo.name}</span>
@@ -49,16 +52,10 @@ function MessageItem({ message, mine, likedByMe, onContextMenu }: MessageItemPro
       </div>
       <div className="chat-msg-text">{message.text}</div>
       {likeCount > 0 && (
-        <span className={`chat-likes ${likedByMe ? 'liked' : ''}`}>♥ {likeCount}</span>
+        <span className={`chat-likes ${likedByMe ? 'liked' : ''}`}>👍 {likeCount}</span>
       )}
     </div>
   );
-}
-
-interface MenuState {
-  x: number;
-  y: number;
-  message: ChatMessage;
 }
 
 export default function ChatPanel({ code, participantId }: Props) {
@@ -67,7 +64,6 @@ export default function ChatPanel({ code, participantId }: Props) {
   const [replyTo, setReplyTo] = useState<ChatReply | null>(null);
   const [open, setOpen] = useState(true);
   const [unread, setUnread] = useState(0);
-  const [menu, setMenu] = useState<MenuState | null>(null);
   const seen = useRef<Set<string>>(new Set());
   const openRef = useRef(true);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -120,19 +116,6 @@ export default function ChatPanel({ code, participantId }: Props) {
     if (open && listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [messages, open]);
 
-  // Close the context menu on any outside click, scroll, or Escape.
-  useEffect(() => {
-    if (!menu) return;
-    const close = () => setMenu(null);
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
-    document.addEventListener('click', close);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('click', close);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [menu]);
-
   function toggle() {
     setOpen((o) => {
       if (!o) setUnread(0);
@@ -140,18 +123,11 @@ export default function ChatPanel({ code, participantId }: Props) {
     });
   }
 
-  function openMenu(e: ReactMouseEvent, message: ChatMessage) {
-    e.preventDefault();
-    setMenu({ x: e.clientX, y: e.clientY, message });
-  }
-
   function startReply(message: ChatMessage) {
     setReplyTo({ id: message.id, name: message.name, excerpt: message.text.slice(0, QuoteExcerptLen) });
-    setMenu(null);
   }
 
   async function like(message: ChatMessage) {
-    setMenu(null);
     try {
       const { likes } = await api.likeChatMessage(code, participantId, message.id);
       applyLike(message.id, likes);
@@ -175,8 +151,6 @@ export default function ChatPanel({ code, participantId }: Props) {
       setReplyTo(reply);
     }
   }
-
-  const menuLiked = menu ? (menu.message.likes ?? []).includes(participantId) : false;
 
   return (
     <section className={`chat ${open ? 'open' : ''}`}>
@@ -202,7 +176,8 @@ export default function ChatPanel({ code, participantId }: Props) {
                   message={m}
                   mine={m.participantId === participantId}
                   likedByMe={(m.likes ?? []).includes(participantId)}
-                  onContextMenu={openMenu}
+                  onReply={startReply}
+                  onLike={like}
                 />
               ))
             )}
@@ -236,19 +211,6 @@ export default function ChatPanel({ code, participantId }: Props) {
             </button>
           </form>
         </>
-      )}
-
-      {menu && (
-        <div
-          className="chat-menu"
-          style={{ left: menu.x, top: menu.y }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button onClick={() => startReply(menu.message)}>↩ Reply</button>
-          <button onClick={() => like(menu.message)}>
-            {menuLiked ? '💔 Unlike' : '♥ Like'}
-          </button>
-        </div>
       )}
     </section>
   );
