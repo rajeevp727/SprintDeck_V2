@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { api } from '../lib/api';
 import { connectChat, type ChatConnection } from '../lib/chat';
-import type { ChatEvent, ChatMessage, ChatReply } from '../lib/types';
+import type { ChatEvent, ChatLike, ChatMessage, ChatReply } from '../lib/types';
 
 const MaxInputLen = 2000;
 const QuoteExcerptLen = 140;
@@ -18,13 +18,23 @@ function formatTime(at: number): string {
 interface MessageItemProps {
   message: ChatMessage;
   mine: boolean;
+  myId: string;
   likedByMe: boolean;
   onReply: (message: ChatMessage) => void;
   onLike: (message: ChatMessage) => void;
 }
 
-function MessageItem({ message, mine, likedByMe, onReply, onLike }: MessageItemProps) {
-  const likeCount = message.likes?.length ?? 0;
+// "Liked by You, Alice, Bob" for the hover tooltip; falls back to Like/Unlike
+// when nobody has liked it yet.
+function likeTitle(likes: ChatLike[], myId: string, likedByMe: boolean): string {
+  if (!likes.length) return likedByMe ? 'Unlike' : 'Like';
+  const names = likes.map((l) => (l.id === myId ? 'You' : l.name || 'Someone'));
+  return `Liked by ${names.join(', ')}`;
+}
+
+function MessageItem({ message, mine, myId, likedByMe, onReply, onLike }: MessageItemProps) {
+  const likes = message.likes ?? [];
+  const title = likeTitle(likes, myId, likedByMe);
   return (
     <div className={`chat-msg-row ${mine ? 'mine' : ''}`}>
       <div className="chat-msg">
@@ -43,11 +53,11 @@ function MessageItem({ message, mine, likedByMe, onReply, onLike }: MessageItemP
       <div className="chat-msg-actions">
         <button
           className={`chat-act ${likedByMe ? 'active' : ''}`}
-          title={likedByMe ? 'Unlike' : 'Like'}
-          aria-label={likedByMe ? 'Unlike' : 'Like'}
+          title={title}
+          aria-label={title}
           onClick={() => onLike(message)}
         >
-          👍{likeCount > 0 && <span className="chat-act-count">{likeCount}</span>}
+          👍{likes.length > 0 && <span className="chat-act-count">{likes.length}</span>}
         </button>
         <button className="chat-act" title="Reply" aria-label="Reply" onClick={() => onReply(message)}>
           ↩️
@@ -75,7 +85,7 @@ export default function ChatPanel({ code, participantId }: Props) {
     if (!openRef.current) setUnread((n) => n + 1);
   }, []);
 
-  const applyLike = useCallback((messageId: string, likes: string[]) => {
+  const applyLike = useCallback((messageId: string, likes: ChatLike[]) => {
     setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, likes } : m)));
   }, []);
 
@@ -174,7 +184,8 @@ export default function ChatPanel({ code, participantId }: Props) {
                   key={m.id}
                   message={m}
                   mine={m.participantId === participantId}
-                  likedByMe={(m.likes ?? []).includes(participantId)}
+                  myId={participantId}
+                  likedByMe={(m.likes ?? []).some((l) => l.id === participantId)}
                   onReply={startReply}
                   onLike={like}
                 />

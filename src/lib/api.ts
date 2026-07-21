@@ -1,4 +1,4 @@
-import type { ChatMessage, ChatReply, JoinResult, Session } from './types';
+import type { ChatLike, ChatMessage, ChatReply, JoinResult, Session } from './types';
 
 async function request<T>(url: string, method: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -116,7 +116,7 @@ export const api = {
     }),
 
   likeChatMessage: (code: string, participantId: string, messageId: string) =>
-    request<{ messageId: string; likes: string[] }>(`/api/session/${code}/chat/like`, 'POST', {
+    request<{ messageId: string; likes: ChatLike[] }>(`/api/session/${code}/chat/like`, 'POST', {
       participantId,
       messageId,
     }),

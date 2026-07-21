@@ -425,16 +425,23 @@ function getMessages(session) {
   return Array.isArray(session.messages) ? session.messages : [];
 }
 
-// Toggle a participant's like on a message. Returns the message, or null if not
-// found. likes is an array of participant ids (its length is the like count).
+// Toggle a participant's like on a message. Returns the message, or null if the
+// message/participant isn't found. Each like is { id, name } so the liker's name
+// travels with it (shown on hover) and survives them leaving the room. The old
+// bare-id shape is coerced on the fly for any pre-existing messages.
 function toggleLike(session, messageId, participantId) {
   const msgs = Array.isArray(session.messages) ? session.messages : [];
   const message = msgs.find((m) => m.id === messageId);
   if (!message) return null;
-  if (!Array.isArray(message.likes)) message.likes = [];
-  const i = message.likes.indexOf(participantId);
-  if (i >= 0) message.likes.splice(i, 1);
-  else message.likes.push(participantId);
+  const p = session.participants[participantId];
+  if (!p) return null;
+  const likes = (Array.isArray(message.likes) ? message.likes : []).map((l) =>
+    typeof l === 'string' ? { id: l, name: '' } : l,
+  );
+  const i = likes.findIndex((l) => l.id === participantId);
+  if (i >= 0) likes.splice(i, 1);
+  else likes.push({ id: participantId, name: p.name });
+  message.likes = likes;
   return message;
 }
 

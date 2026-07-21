@@ -54,6 +54,12 @@ export interface ChatReply {
   excerpt: string;
 }
 
+// One like on a message — the liker's id plus their name (shown on hover).
+export interface ChatLike {
+  id: string;
+  name: string;
+}
+
 export interface ChatMessage {
   id: string;
   participantId: string;
@@ -61,13 +67,13 @@ export interface ChatMessage {
   text: string;
   at: number; // epoch ms
   replyTo: ChatReply | null;
-  likes: string[]; // participant ids who liked it (length = like count)
+  likes: ChatLike[]; // who liked it (length = like count)
 }
 
 // Realtime events streamed over the room's Web PubSub group.
 export type ChatEvent =
   | { type: 'message'; message: ChatMessage }
-  | { type: 'like'; messageId: string; likes: string[] };
+  | { type: 'like'; messageId: string; likes: ChatLike[] };
 
 export interface Session {
   code: string;
