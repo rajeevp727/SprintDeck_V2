@@ -166,12 +166,11 @@ export default function ChatPanel({ code, participantId }: Props) {
     const a = anchor.getBoundingClientRect();
     const c = chat.getBoundingClientRect();
     const above = a.top - c.top > 110; // enough room above inside the panel?
-    setLikeTip({
-      likes,
-      x: a.left - c.left + a.width / 2,
-      y: (above ? a.top : a.bottom) - c.top,
-      above,
-    });
+    // Left-align to the badge, clamped so the tooltip never spills outside the
+    // panel (panel has overflow:hidden, so a centered tip near the edge clips).
+    const tipWidth = 230;
+    const x = Math.max(8, Math.min(a.left - c.left, c.width - tipWidth - 8));
+    setLikeTip({ likes, x, y: (above ? a.top : a.bottom) - c.top, above });
   }, []);
   const hideLikers = useCallback(() => setLikeTip(null), []);
 

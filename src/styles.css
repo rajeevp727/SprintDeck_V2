@@ -1683,10 +1683,10 @@ a.room-code:hover {
   pointer-events: none;
 }
 .chat-like-tip.above {
-  transform: translate(-50%, calc(-100% - 8px));
+  transform: translateY(calc(-100% - 8px));
 }
 .chat-like-tip.below {
-  transform: translate(-50%, 8px);
+  transform: translateY(8px);
 }
 .chat-like-tip-single {
   font-size: 0.85rem;
