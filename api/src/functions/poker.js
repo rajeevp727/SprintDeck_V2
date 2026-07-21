@@ -141,6 +141,9 @@ app.http('castVote', {
 
     const p = session.participants[participantId];
     if (!p) return bad('You are not in this session', 403);
+    if (store.isModerator(session, participantId)) {
+      return bad('The moderator facilitates and does not vote', 403);
+    }
     if (vote !== null && !session.deck.includes(vote)) return bad('Invalid card');
 
     p.vote = vote; // null clears the vote (toggle off)

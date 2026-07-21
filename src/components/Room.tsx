@@ -322,8 +322,10 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
     );
   }
 
-  const voted = session.participants.filter((p) => p.hasVoted).length;
-  const total = session.participants.length;
+  // Only members vote — the moderator facilitates, so the tally excludes them.
+  const voters = session.participants.filter((p) => !p.isModerator);
+  const voted = voters.filter((p) => p.hasVoted).length;
+  const total = voters.length;
 
   // The just-revealed round — used by the Linear "confirm & push estimate" control.
   const currentEntry = session.history.find((h) => h.id === session.currentEntryId);
@@ -689,23 +691,26 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
         <p className="wait-msg">Waiting for the moderator to start voting…</p>
       )}
 
-      {/* The deck */}
-      <section className={`deck ${session.status === 'voting' ? '' : 'disabled'}`}>
-        {session.deck.map((card) => (
-          <button
-            key={card}
-            className={`poker-card ${myVote === card ? 'selected' : ''}`}
-            disabled={session.status !== 'voting'}
-            aria-label={`Vote ${card}`}
-            aria-pressed={myVote === card}
-            onClick={() => castVote(card)}
-          >
-            <span className="corner tl">{card}</span>
-            <span className="face">{card}</span>
-            <span className="corner br">{card}</span>
-          </button>
-        ))}
-      </section>
+      {/* The deck — voting cards are for members only; the moderator facilitates
+          the round but doesn't vote, so it's hidden from them. */}
+      {!isModerator && (
+        <section className={`deck ${session.status === 'voting' ? '' : 'disabled'}`}>
+          {session.deck.map((card) => (
+            <button
+              key={card}
+              className={`poker-card ${myVote === card ? 'selected' : ''}`}
+              disabled={session.status !== 'voting'}
+              aria-label={`Vote ${card}`}
+              aria-pressed={myVote === card}
+              onClick={() => castVote(card)}
+            >
+              <span className="corner tl">{card}</span>
+              <span className="face">{card}</span>
+              <span className="corner br">{card}</span>
+            </button>
+          ))}
+        </section>
+      )}
 
       {/* Team chat (PRO+) — team-members-only back-channel below the deck.
           The moderator unlocks it but never sees or joins it. */}
