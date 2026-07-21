@@ -436,11 +436,11 @@ function toggleLike(session, messageId, participantId) {
   const p = session.participants[participantId];
   if (!p) return null;
   const likes = (Array.isArray(message.likes) ? message.likes : []).map((l) =>
-    typeof l === 'string' ? { id: l, name: '' } : l,
+    typeof l === 'string' ? { id: l, name: '', at: 0 } : l,
   );
   const i = likes.findIndex((l) => l.id === participantId);
   if (i >= 0) likes.splice(i, 1);
-  else likes.push({ id: participantId, name: p.name });
+  else likes.push({ id: participantId, name: p.name, at: Date.now() });
   message.likes = likes;
   return message;
 }

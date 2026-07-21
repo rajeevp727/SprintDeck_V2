@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type MouseEvent as ReactMouseEvent,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../lib/api';
 import { connectChat, type ChatConnection } from '../lib/chat';
 import type { ChatEvent, ChatLike, ChatMessage, ChatReply } from '../lib/types';
@@ -35,6 +43,16 @@ function likeTitle(likes: ChatLike[], myId: string, likedByMe: boolean): string 
 function MessageItem({ message, mine, myId, likedByMe, onReply, onLike }: MessageItemProps) {
   const likes = message.likes ?? [];
   const title = likeTitle(likes, myId, likedByMe);
+  const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
+  // Likers oldest → newest for the hover list.
+  const sortedLikes = [...likes].sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
+
+  function showTip(e: ReactMouseEvent) {
+    if (!likes.length) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    setTip({ x: r.left + r.width / 2, y: r.top });
+  }
+
   return (
     <div className={`chat-msg-row ${mine ? 'mine' : ''}`}>
       <div className="chat-msg">
@@ -53,9 +71,10 @@ function MessageItem({ message, mine, myId, likedByMe, onReply, onLike }: Messag
       <div className="chat-msg-actions">
         <button
           className={`chat-act ${likedByMe ? 'active' : ''}`}
-          title={title}
           aria-label={title}
           onClick={() => onLike(message)}
+          onMouseEnter={showTip}
+          onMouseLeave={() => setTip(null)}
         >
           👍{likes.length > 0 && <span className="chat-act-count">{likes.length}</span>}
         </button>
@@ -63,6 +82,24 @@ function MessageItem({ message, mine, myId, likedByMe, onReply, onLike }: Messag
           ↩️
         </button>
       </div>
+      {tip &&
+        likes.length > 0 &&
+        createPortal(
+          <div className="chat-like-tip" style={{ left: tip.x, top: tip.y }}>
+            <div className="chat-like-tip-head">Liked by</div>
+            <ul>
+              {sortedLikes.map((l) => (
+                <li key={l.id}>
+                  <span className={`chat-like-tip-name ${l.id === myId ? 'you' : ''}`}>
+                    {l.id === myId ? 'You' : l.name || 'Someone'}
+                  </span>
+                  {l.at ? <span className="chat-like-tip-time">{formatTime(l.at)}</span> : null}
+                </li>
+              ))}
+            </ul>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

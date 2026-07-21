@@ -54,10 +54,12 @@ export interface ChatReply {
   excerpt: string;
 }
 
-// One like on a message — the liker's id plus their name (shown on hover).
+// One like on a message — the liker's id, name (shown on hover) and the time
+// they liked it (for the sorted hover list).
 export interface ChatLike {
   id: string;
   name: string;
+  at: number; // epoch ms
 }
 
 export interface ChatMessage {

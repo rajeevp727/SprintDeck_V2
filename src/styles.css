@@ -1641,6 +1641,56 @@ a.room-code:hover {
 .chat-act.active .chat-act-count {
   color: #f5b301;
 }
+/* Hover list of who liked a message (rendered to body, so never clipped) */
+.chat-like-tip {
+  position: fixed;
+  z-index: 70;
+  transform: translate(-50%, calc(-100% - 10px));
+  min-width: 150px;
+  max-width: 230px;
+  padding: 0.5rem 0.6rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+}
+.chat-like-tip-head {
+  margin-bottom: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.chat-like-tip ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.chat-like-tip li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.9rem;
+  font-size: 0.82rem;
+}
+.chat-like-tip-name {
+  color: var(--text);
+  font-weight: 600;
+}
+.chat-like-tip-name.you {
+  color: var(--accent);
+  font-weight: 700;
+}
+.chat-like-tip-time {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
 .chat-replying {
   display: flex;
   align-items: center;
