@@ -345,6 +345,12 @@ function openBoard(board) {
   board.phase = 'active';
 }
 
+// Finalize the retro: it becomes read-only and export is unlocked. The board is
+// kept (not deleted) so results can be exported; it expires later via TTL.
+function endBoard(board) {
+  board.phase = 'ended';
+}
+
 // The action items authored in this retro (the "Action items" column), captured
 // on end so the room's next retro can review them.
 function actionItemsFromBoard(board) {
@@ -389,6 +395,7 @@ module.exports = {
   deleteNote,
   toggleCarryOverItem,
   openBoard,
+  endBoard,
   actionItemsFromBoard,
   saveActionItems,
   publicView,

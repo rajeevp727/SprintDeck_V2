@@ -5,6 +5,7 @@ import type { RetroBoard as RetroBoardType, RetroColumn } from '../lib/retroType
 import RetroNote from './RetroNote';
 import AdBanner from './AdBanner';
 import { useRealtime } from '../lib/realtime';
+import { notifyPresence } from '../lib/presence';
 import { exportDoc, retroExportDoc, exportFormats } from '../lib/retroExport';
 
 const pollMs = 1500; // polling fallback, used only while real-time isn't connected
@@ -30,6 +31,7 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
   const [showExport, setShowExport] = useState(false);
   const [typingNames, setTypingNames] = useState<Record<string, string>>({});
   const missCount = useRef(0);
+  const prevParticipants = useRef<{ id: string; name: string }[] | null>(null);
   const typingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // No identity for this board (e.g. opened an invite link directly) → bounce to join.
@@ -47,6 +49,8 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
         onMissingIdentity();
         return;
       }
+      // Toast the facilitator when someone joins/leaves the retro.
+      notifyPresence(b.participants, b.facilitatorId === participantId, participantId, prevParticipants, 'retrospective');
       setBoard(b);
       setError('');
     } catch (err) {
@@ -125,13 +129,14 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
     onLeave();
   }
 
-  async function endBoard() {
-    if (!window.confirm('End this retrospective for everyone? This cannot be undone.')) return;
-    try {
-      await retroApi.end(code, participantId);
-    } catch {
-      /* even if it fails, leave locally */
-    }
+  // Finalize the retro: it becomes read-only for everyone and export unlocks.
+  async function endRetro() {
+    if (!window.confirm('End this retrospective? Notes become read-only and you can then export the results.')) return;
+    await run(() => retroApi.end(code, participantId));
+  }
+
+  // Leave the (ended) board locally — it expires on its own via TTL.
+  function exit() {
     clearIdentity(code);
     onLeave();
   }
@@ -200,7 +205,8 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
               {copied ? 'Copied!' : 'Invite'}
             </button>
           )}
-          {isFacilitator && (
+          {/* Export unlocks only after the facilitator has ended the retro. */}
+          {isFacilitator && board.phase === 'ended' && (
             <div className="profile">
               <button className="ghost" title="Export the retrospective" onClick={() => setShowExport((s) => !s)}>
                 Export ▾
@@ -223,13 +229,17 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
               )}
             </div>
           )}
-          {isFacilitator ? (
-            <button className="ghost danger" onClick={endBoard}>
-              End Retrospective
-            </button>
-          ) : (
+          {!isFacilitator ? (
             <button className="ghost danger" onClick={leave}>
               Leave Retrospective
+            </button>
+          ) : board.phase === 'ended' ? (
+            <button className="ghost danger" onClick={exit}>
+              Exit
+            </button>
+          ) : (
+            <button className="ghost danger" onClick={endRetro}>
+              End Retrospective
             </button>
           )}
         </div>
@@ -244,6 +254,12 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
         />
       ) : (
         <>
+          {board.phase === 'ended' && (
+            <div className="retro-ended">
+              This retrospective has ended — the board is read-only.
+              {isFacilitator && ' Export the results from the top bar.'}
+            </div>
+          )}
           <div className="retro-legend">
             {board.participants.map((p) => (
               <span key={p.id} className="retro-legend-item">
@@ -384,9 +400,9 @@ function RetroColumnView({
         <span className="retro-col-count">{notes.length}</span>
       </div>
 
-      {/* The facilitator runs the retro but doesn't contribute — the board is
-          read-only for her, so no composer. */}
-      {!isFacilitator && (
+      {/* No composer for the facilitator (read-only for her) or once the retro
+          has ended (read-only for everyone). */}
+      {!isFacilitator && board.phase !== 'ended' && (
         <div className="retro-col-add">
           <textarea
             value={draft}
@@ -412,8 +428,8 @@ function RetroColumnView({
           <RetroNote
             key={n.id}
             note={n}
-            canEdit={n.authorId === participantId}
-            canDelete={n.authorId === participantId}
+            canEdit={n.authorId === participantId && board.phase !== 'ended'}
+            canDelete={n.authorId === participantId && board.phase !== 'ended'}
             onEdit={(text) => onEdit(n.id, text)}
             onDelete={() => onDelete(n.id)}
           />

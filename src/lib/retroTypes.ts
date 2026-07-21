@@ -31,7 +31,7 @@ export interface RetroBoard {
   code: string;
   name: string;
   facilitatorId: string;
-  phase: 'review' | 'active';
+  phase: 'review' | 'active' | 'ended';
   carryOverItems: RetroCarryItem[];
   columns: RetroColumn[];
   notes: RetroNote[];

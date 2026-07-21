@@ -49,6 +49,7 @@ export const retroApi = {
   leave: (code: string, participantId: string) =>
     request<{ left: boolean }>(`/api/retro/${code}/leave`, 'POST', { participantId }),
 
+  // Finalize the retro → returns the board in its 'ended' (read-only) phase.
   end: (code: string, participantId: string) =>
-    request<{ ended: boolean }>(`/api/retro/${code}/end`, 'POST', { participantId }),
+    request<{ board: RetroBoard }>(`/api/retro/${code}/end`, 'POST', { participantId }),
 };

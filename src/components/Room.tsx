@@ -17,6 +17,7 @@ import AdBanner from './AdBanner';
 import { CrownIcon } from './icons';
 import { nearestDeckValue } from '../lib/estimate';
 import { useSubscription, getSubscriptionRef, tiers } from '../lib/subscription';
+import { notifyPresence } from '../lib/presence';
 
 // Modals loaded on demand — SubscriptionModal pulls in qrcode.react, so keeping
 // it out of the initial bundle speeds first load (esp. for non-moderators).
@@ -63,6 +64,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
   const [pushEntryId, setPushEntryId] = useState<string | null>(null);
   const [pushValue, setPushValue] = useState('');
   const missCount = useRef(0);
+  const prevParticipants = useRef<{ id: string; name: string }[] | null>(null);
 
   // No identity for this room (e.g. opened an invite link directly) → bounce to join.
   useEffect(() => {
@@ -93,6 +95,8 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
         onMissingIdentity();
         return;
       }
+      // Toast the moderator when someone joins/leaves the room.
+      notifyPresence(s.participants, s.moderatorId === participantId, participantId, prevParticipants, `room ${code}`);
       setSession(s);
       setError('');
       setMyVote(me.vote); // keep my selected card in sync with the server
@@ -454,7 +458,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
               otherwise a subscribed moderator can start one. */}
           {session.retroCode ? (
             <button className="ghost" onClick={() => onGoRetro(session.retroCode as string)}>
-              Retrospective
+              Join Retrospective
             </button>
           ) : (
             isModerator &&

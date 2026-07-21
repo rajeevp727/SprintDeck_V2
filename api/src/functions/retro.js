@@ -102,6 +102,9 @@ app.http('addRetroNote', {
     const { participantId, columnId, text } = await readBody(req);
     const { board, error } = await requireParticipant(req.params.code, participantId);
     if (error) return error;
+    if (board.phase === 'ended') {
+      return bad('This retrospective has ended — it is read-only', 403);
+    }
     // The facilitator's board is read-only — only members add/edit/delete notes.
     if (store.isFacilitator(board, participantId)) {
       return bad('The facilitator can only view the board — notes are added by members', 403);
@@ -124,6 +127,9 @@ app.http('updateRetroNote', {
     const { participantId, text, columnId } = await readBody(req);
     const { board, error } = await requireParticipant(req.params.code, participantId);
     if (error) return error;
+    if (board.phase === 'ended') {
+      return bad('This retrospective has ended — it is read-only', 403);
+    }
     // The facilitator's board is read-only — only members add/edit/delete notes.
     if (store.isFacilitator(board, participantId)) {
       return bad('The facilitator can only view the board — notes are added by members', 403);
@@ -146,6 +152,9 @@ app.http('deleteRetroNote', {
     const participantId = req.query.get('participantId');
     const { board, error } = await requireParticipant(req.params.code, participantId);
     if (error) return error;
+    if (board.phase === 'ended') {
+      return bad('This retrospective has ended — it is read-only', 403);
+    }
     // The facilitator's board is read-only — only members add/edit/delete notes.
     if (store.isFacilitator(board, participantId)) {
       return bad('The facilitator can only view the board — notes are added by members', 403);
@@ -208,7 +217,10 @@ app.http('leaveRetro', {
   },
 });
 
-// POST /api/retro/{code}/end  { participantId }   (facilitator) — ends the board
+// POST /api/retro/{code}/end  { participantId }   (facilitator) — FINALIZE the
+// retro: mark it ended (read-only + export unlocked), capture its action items
+// for the room's next retro, and unlink from the poker room. The board is kept
+// so results can be exported; it expires later via TTL.
 app.http('endRetro', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -218,21 +230,17 @@ app.http('endRetro', {
     const { board, error } = await requireFacilitator(req.params.code, participantId);
     if (error) return error;
 
-    // Persist this retro's action items so the room's next retro can review them.
     if (board.roomCode) {
       await store.saveActionItems(board.roomCode, store.actionItemsFromBoard(board));
-    }
-
-    await store.deleteBoard(req.params.code);
-
-    // Unlink from the poker room so members stop seeing "Join Retrospective".
-    if (board.roomCode) {
       const session = await pokerStore.loadSession(board.roomCode);
       if (session && session.retroCode === board.code) {
         session.retroCode = null;
         await pokerStore.saveSession(session);
       }
     }
-    return ok({ ended: true });
+
+    store.endBoard(board);
+    await store.saveBoard(board);
+    return ok({ board: store.publicView(board) });
   },
 });

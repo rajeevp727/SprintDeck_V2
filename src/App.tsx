@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import Home from './components/Home';
 import Room from './components/Room';
 import StickyAd from './components/StickyAd';
+import { ToastHost } from './components/Toast';
 
 // Rarely-visited legal pages — code-split out of the initial bundle.
 const Privacy = lazy(() => import('./components/Privacy'));
@@ -199,6 +200,7 @@ export default function App() {
     <>
       <Suspense fallback={null}>{page}</Suspense>
       <StickyAd />
+      <ToastHost />
     </>
   );
 }
