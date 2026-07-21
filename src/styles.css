@@ -1607,10 +1607,14 @@ a.room-code:hover {
   overflow: hidden;
   word-break: break-word;
 }
-/* Like (👍) and reply (↩️) actions, shown below the message bubble */
+/* Like (👍) and reply (↩️) actions, below the bubble — revealed on hover */
 .chat-msg-actions {
-  display: flex;
+  display: none;
   gap: 0.35rem;
+}
+.chat-msg-row:hover .chat-msg-actions,
+.chat-msg-row:focus-within .chat-msg-actions {
+  display: flex;
 }
 .chat-act {
   display: inline-flex;
