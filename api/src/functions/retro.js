@@ -102,6 +102,10 @@ app.http('addRetroNote', {
     const { participantId, columnId, text } = await readBody(req);
     const { board, error } = await requireParticipant(req.params.code, participantId);
     if (error) return error;
+    // The facilitator's board is read-only — only members add/edit/delete notes.
+    if (store.isFacilitator(board, participantId)) {
+      return bad('The facilitator can only view the board — notes are added by members', 403);
+    }
 
     if (!store.addNote(board, participantId, columnId, text)) {
       return bad('Could not add note — check the column and text');
@@ -120,6 +124,10 @@ app.http('updateRetroNote', {
     const { participantId, text, columnId } = await readBody(req);
     const { board, error } = await requireParticipant(req.params.code, participantId);
     if (error) return error;
+    // The facilitator's board is read-only — only members add/edit/delete notes.
+    if (store.isFacilitator(board, participantId)) {
+      return bad('The facilitator can only view the board — notes are added by members', 403);
+    }
 
     if (!store.updateNote(board, participantId, req.params.noteId, { text, columnId })) {
       return bad('Could not update this note', 403);
@@ -138,6 +146,10 @@ app.http('deleteRetroNote', {
     const participantId = req.query.get('participantId');
     const { board, error } = await requireParticipant(req.params.code, participantId);
     if (error) return error;
+    // The facilitator's board is read-only — only members add/edit/delete notes.
+    if (store.isFacilitator(board, participantId)) {
+      return bad('The facilitator can only view the board — notes are added by members', 403);
+    }
 
     if (!store.deleteNote(board, participantId, req.params.noteId)) {
       return bad('Could not delete this note', 403);

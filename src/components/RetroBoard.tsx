@@ -384,24 +384,28 @@ function RetroColumnView({
         <span className="retro-col-count">{notes.length}</span>
       </div>
 
-      <div className="retro-col-add">
-        <textarea
-          value={draft}
-          placeholder="Add your thoughts on this…"
-          rows={2}
-          maxLength={500}
-          onChange={(e) => handleChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              add();
-            }
-          }}
-        />
-        <button className="ghost" disabled={!draft.trim()} onClick={add}>
-          Add
-        </button>
-      </div>
+      {/* The facilitator runs the retro but doesn't contribute — the board is
+          read-only for her, so no composer. */}
+      {!isFacilitator && (
+        <div className="retro-col-add">
+          <textarea
+            value={draft}
+            placeholder="Add your thoughts on this…"
+            rows={2}
+            maxLength={500}
+            onChange={(e) => handleChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                add();
+              }
+            }}
+          />
+          <button className="ghost" disabled={!draft.trim()} onClick={add}>
+            Add
+          </button>
+        </div>
+      )}
 
       <div className="retro-col-notes">
         {notes.map((n) => (
@@ -409,7 +413,7 @@ function RetroColumnView({
             key={n.id}
             note={n}
             canEdit={n.authorId === participantId}
-            canDelete={n.authorId === participantId || isFacilitator}
+            canDelete={n.authorId === participantId}
             onEdit={(text) => onEdit(n.id, text)}
             onDelete={() => onDelete(n.id)}
           />
