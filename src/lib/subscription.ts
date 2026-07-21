@@ -1,8 +1,12 @@
-// Subscription tiers + client-side "paid" state for SprintDeck V2 (paid product).
+// Subscription tiers + server-verified "paid" state for SprintDeck V2.
 //
-// Payment is verified server-side by the upi-verifier endpoints (see verifier.ts):
-// the modal polls /api/upi/status and records the tier here once the backend
-// matches the bank credit alert to the order.
+// The subscription is NOT stored client-side as a tier (that was editable in
+// localStorage). The browser keeps only the confirmed order id; the tier is
+// fetched from /api/subscription, which validates it against the payment record
+// in Cosmos. See refreshSubscription() / useSubscription() below.
+
+import { useEffect, useState } from 'react';
+import { getServerSubscription } from './verifier';
 
 export type TierId = 'pro' | 'expert' | 'master';
 
@@ -59,35 +63,96 @@ export const tiers: Tier[] = [
   },
 ];
 
-const subscriptionKey = 'sprintdeck.subscription';
-
 export interface Subscription {
   tier: TierId;
   at: string;
 }
 
-export function getSubscription(): Subscription | null {
+// ── Server-verified subscription ────────────────────────────────────────────
+// The authoritative subscription lives in Cosmos (the confirmed payment order).
+// The browser stores only a REFERENCE — the confirmed order's id — never the
+// tier, so editing localStorage can't grant a plan. isSubscribed() /
+// getActiveSubscription() read an in-memory cache populated from the server via
+// refreshSubscription(); components use the useSubscription() hook to stay in sync.
+
+const subRefKey = 'sprintdeck.subscription'; // stores { orderId }
+
+function getOrderRef(): string | null {
   try {
-    const raw = localStorage.getItem(subscriptionKey);
-    return raw ? (JSON.parse(raw) as Subscription) : null;
+    const raw = localStorage.getItem(subRefKey);
+    const ref = raw ? JSON.parse(raw) : null;
+    return ref && typeof ref.orderId === 'string' ? ref.orderId : null;
   } catch {
     return null;
   }
 }
 
-// A subscription is active for 30 days from purchase; after that it lapses
-// (the plan popup returns for renewal).
-const activeDays = 30;
+// Remember which confirmed order backs this browser's subscription.
+export function setSubscriptionRef(orderId: string) {
+  try {
+    localStorage.setItem(subRefKey, JSON.stringify({ orderId }));
+  } catch {
+    /* ignore storage failures */
+  }
+}
+
+export function clearSubscription() {
+  try {
+    localStorage.removeItem(subRefKey);
+  } catch {
+    /* ignore */
+  }
+}
+
+let cachedSub: Subscription | null = null;
+let fetched = false;
+const listeners = new Set<() => void>();
+function notify() {
+  for (const l of listeners) l();
+}
+
+// Ask the server whether the stored order still grants an active plan, and
+// refresh the in-memory cache. Safe to call often.
+export async function refreshSubscription(): Promise<Subscription | null> {
+  const orderId = getOrderRef();
+  if (!orderId) {
+    cachedSub = null;
+    fetched = true;
+    notify();
+    return null;
+  }
+  try {
+    const res = await getServerSubscription(orderId);
+    cachedSub = res.active && res.tier ? { tier: res.tier as TierId, at: res.at ?? new Date().toISOString() } : null;
+  } catch {
+    /* transient network error — keep the last known cache */
+  }
+  fetched = true;
+  notify();
+  return cachedSub;
+}
 
 export function getActiveSubscription(): Subscription | null {
-  const s = getSubscription();
-  if (!s) return null;
-  const ageMs = Date.now() - new Date(s.at).getTime();
-  return ageMs <= activeDays * 24 * 60 * 60 * 1000 ? s : null;
+  return cachedSub;
 }
 
 export function isSubscribed(): boolean {
-  return !!getActiveSubscription();
+  return cachedSub != null;
+}
+
+// React hook: refresh from the server on mount and re-render on changes.
+// `loaded` flips true once the first server check completes.
+export function useSubscription(): { subscription: Subscription | null; subscribed: boolean; loaded: boolean } {
+  const [, bump] = useState(0);
+  useEffect(() => {
+    const rerender = () => bump((n) => n + 1);
+    listeners.add(rerender);
+    refreshSubscription();
+    return () => {
+      listeners.delete(rerender);
+    };
+  }, []);
+  return { subscription: cachedSub, subscribed: cachedSub != null, loaded: fetched };
 }
 
 export function tierPrice(id: TierId): number {
@@ -104,14 +169,6 @@ export function amountForTier(to: TierId): number {
   const target = tierPrice(to);
   const base = active && target > tierPrice(active.tier) ? target - tierPrice(active.tier) : target;
   return base + platformFee;
-}
-
-export function setSubscription(tier: TierId) {
-  try {
-    localStorage.setItem(subscriptionKey, JSON.stringify({ tier, at: new Date().toISOString() }));
-  } catch {
-    /* ignore storage failures */
-  }
 }
 
 // A payment can confirm minutes after the modal closes (bank email → ingest is

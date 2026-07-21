@@ -15,7 +15,7 @@ import ThemeToggle from './ThemeToggle';
 import AdBanner from './AdBanner';
 import { CrownIcon } from './icons';
 import { nearestDeckValue } from '../lib/estimate';
-import { isSubscribed, getActiveSubscription, tiers } from '../lib/subscription';
+import { useSubscription, tiers } from '../lib/subscription';
 
 // Modals loaded on demand — SubscriptionModal pulls in qrcode.react, so keeping
 // it out of the initial bundle speeds first load (esp. for non-moderators).
@@ -68,6 +68,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
   }, [participantId, onMissingIdentity]);
 
   const isModerator = session?.moderatorId === participantId;
+  const { subscription, subscribed, loaded: subLoaded } = useSubscription();
 
   // Results the moderator hasn't opened yet (new rounds since they last viewed).
   const unviewedCount = session ? Math.max(0, session.history.length - viewedCount) : 0;
@@ -147,20 +148,20 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
   // Show the subscription popup on every moderator login (unless already
   // subscribed), 2 seconds after entering the room so it zooms in over the UI.
   useEffect(() => {
-    if (subChecked.current || !isModerator || isSubscribed()) return;
+    if (!subLoaded || subChecked.current || !isModerator || subscribed) return;
     subChecked.current = true;
     const t = setTimeout(() => setShowSubscribe(true), 2000);
     return () => clearTimeout(t);
-  }, [isModerator]);
+  }, [isModerator, subscribed, subLoaded]);
 
   // Unlock the shared chat when a subscribed moderator is in a room that doesn't
   // yet have it on (i.e. they subscribed after creating the room).
   useEffect(() => {
     if (!isModerator || !session || session.chatEnabled || chatSynced.current) return;
-    if (!isSubscribed()) return;
+    if (!subscribed) return;
     chatSynced.current = true;
     api.enableChat(code, participantId).then(({ session: s }) => setSession(s)).catch(() => {});
-  }, [isModerator, session, code, participantId]);
+  }, [isModerator, subscribed, session, code, participantId]);
 
   // On a freshly revealed Linear-backed round, prefill the push value with the
   // median-nearest deck value — once per entry, so polling doesn't clobber a
@@ -384,7 +385,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom }: Pro
           <ThemeToggle />
           {isModerator &&
             (() => {
-              const active = getActiveSubscription();
+              const active = subscription;
               const plan = active ? tiers.find((t) => t.id === active.tier) : null;
               return (
                 <button

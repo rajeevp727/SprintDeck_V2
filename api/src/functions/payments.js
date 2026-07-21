@@ -104,6 +104,26 @@ app.http('upiIngest', {
   },
 });
 
+// GET /api/subscription?orderId=...
+// Authoritative subscription check. The tier is NEVER trusted from the client —
+// it's derived here from the confirmed payment order in Cosmos. A subscription
+// is active for 30 days from confirmation. Returns { active, tier?, at? }.
+const subscriptionDays = 30;
+app.http('subscriptionStatus', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'subscription',
+  handler: async (req) => {
+    const orderId = req.query.get('orderId');
+    if (!orderId) return ok({ active: false });
+    const order = await store.getOrder(orderId);
+    if (!order || order.status !== 'confirmed' || !order.confirmedAt) return ok({ active: false });
+    const ageMs = Date.now() - order.confirmedAt;
+    if (ageMs > subscriptionDays * 24 * 60 * 60 * 1000) return ok({ active: false });
+    return ok({ active: true, tier: order.tier, at: new Date(order.confirmedAt).toISOString() });
+  },
+});
+
 // GET /api/upi/status?orderId=...   ← client polls this.
 app.http('upiStatus', {
   methods: ['GET'],

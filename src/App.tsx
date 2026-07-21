@@ -13,7 +13,13 @@ import {
   setCurrentRoom,
   clearCurrentRoom,
 } from './lib/storage';
-import { getPendingOrder, clearPendingOrder, setSubscription, isSubscribed } from './lib/subscription';
+import {
+  getPendingOrder,
+  clearPendingOrder,
+  setSubscriptionRef,
+  refreshSubscription,
+  isSubscribed,
+} from './lib/subscription';
 import { getStatus } from './lib/verifier';
 
 type Route =
@@ -65,6 +71,7 @@ export default function App() {
   useEffect(() => {
     let active = true;
     async function check() {
+      await refreshSubscription(); // sync the cache with the server first
       if (isSubscribed()) {
         clearPendingOrder();
         return;
@@ -74,7 +81,8 @@ export default function App() {
       try {
         const { status } = await getStatus(pending.orderId);
         if (status === 'confirmed') {
-          setSubscription(pending.tier);
+          setSubscriptionRef(pending.orderId); // store the order ref; tier comes from the server
+          await refreshSubscription();
           clearPendingOrder();
           if (active) setRoute(computeRoute()); // re-render so the Upgrade button / popup update
         } else if (status === 'expired') {

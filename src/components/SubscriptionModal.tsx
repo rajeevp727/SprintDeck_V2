@@ -4,7 +4,8 @@ import {
   tiers,
   upiId,
   upiLink,
-  setSubscription,
+  setSubscriptionRef,
+  refreshSubscription,
   setPendingOrder,
   clearPendingOrder,
   getActiveSubscription,
@@ -119,7 +120,8 @@ export default function SubscriptionModal({ onClose }: Props) {
       try {
         const { status } = await getStatus(order.orderId);
         if (status === 'confirmed') {
-          setSubscription(selected);
+          setSubscriptionRef(order.orderId); // tier is validated server-side, not stored here
+          await refreshSubscription();
           clearPendingOrder();
           setPayState('confirmed');
         } else if (status === 'expired') {

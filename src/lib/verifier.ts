@@ -40,3 +40,17 @@ export function getStatus(orderId: string): Promise<{ status: PayStatus }> {
     cache: 'no-store',
   }).then((r) => json<{ status: PayStatus }>(r));
 }
+
+export interface ServerSubscription {
+  active: boolean;
+  tier?: string;
+  at?: string;
+}
+
+// The authoritative subscription for a confirmed order — the tier is validated
+// server-side against the payment record, never trusted from the client.
+export function getServerSubscription(orderId: string): Promise<ServerSubscription> {
+  return fetch(`${apiBase}/subscription?orderId=${encodeURIComponent(orderId)}`, {
+    cache: 'no-store',
+  }).then((r) => json<ServerSubscription>(r));
+}
