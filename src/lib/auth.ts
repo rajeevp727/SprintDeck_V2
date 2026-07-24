@@ -1,67 +1,120 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-// Client for Azure Static Web Apps built-in auth (EasyAuth). SWA exposes
-// /.auth/me (current user), /.auth/login/<provider> and /.auth/logout — no
-// tokens to store or verify client-side. The Functions API receives the
-// validated principal via the x-ms-client-principal header (see api/src/auth.js).
-//
-// INERT until SWA auth is provisioned: nothing mounts useAuth() yet, so the
-// running app is unaffected.
+// Email + password auth client. The JWT from register/login is stored in
+// localStorage and attached as `Authorization: Bearer <token>` by lib/api.ts.
+// useAuth() exposes the current user and re-renders on sign in/out.
 
-export type AuthProvider = 'aad' | 'google' | 'github';
+const tokenKey = 'sprintdeck.token';
 
 export interface AuthUser {
-  userId: string;
-  name: string;
-  provider: string;
-  roles: string[];
+  id: string;
+  email: string;
+  name?: string;
 }
 
-interface ClientPrincipalResponse {
-  clientPrincipal: {
-    identityProvider: string;
-    userId: string;
-    userDetails: string;
-    userRoles: string[];
-  } | null;
-}
-
-// Fetch the signed-in user, or null if anonymous.
-export async function getCurrentUser(): Promise<AuthUser | null> {
+export function getToken(): string | null {
   try {
-    const res = await fetch('/.auth/me', { cache: 'no-store' });
-    if (!res.ok) return null;
-    const data = (await res.json()) as ClientPrincipalResponse;
-    const p = data.clientPrincipal;
-    if (!p || !p.userId) return null;
-    return { userId: p.userId, name: p.userDetails || '', provider: p.identityProvider || '', roles: p.userRoles || [] };
+    return localStorage.getItem(tokenKey);
   } catch {
     return null;
   }
 }
+function setToken(token: string) {
+  try {
+    localStorage.setItem(tokenKey, token);
+  } catch {
+    /* ignore */
+  }
+}
+function clearToken() {
+  try {
+    localStorage.removeItem(tokenKey);
+  } catch {
+    /* ignore */
+  }
+}
 
-// Redirect to the provider's hosted login, returning to the current page after.
-export function login(provider: AuthProvider = 'aad') {
-  const back = encodeURIComponent(location.pathname + location.search);
-  location.href = `/.auth/login/${provider}?post_login_redirect_uri=${back}`;
+// In-memory cache of the signed-in user + change subscribers (so useAuth
+// consumers update on login/logout without a reload).
+let cachedUser: AuthUser | null = null;
+const listeners = new Set<() => void>();
+function notify() {
+  for (const l of listeners) l();
+}
+
+async function post(path: string, body: unknown): Promise<{ token: string; user: AuthUser }> {
+  const res = await fetch(path, {
+    method: 'POST',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+  return data as { token: string; user: AuthUser };
+}
+
+export async function register(email: string, password: string, name?: string): Promise<AuthUser> {
+  const { token, user } = await post('/api/auth/register', { email, password, name });
+  setToken(token);
+  cachedUser = user;
+  notify();
+  return user;
+}
+
+export async function login(email: string, password: string): Promise<AuthUser> {
+  const { token, user } = await post('/api/auth/login', { email, password });
+  setToken(token);
+  cachedUser = user;
+  notify();
+  return user;
 }
 
 export function logout() {
-  location.href = '/.auth/logout?post_logout_redirect_uri=/';
+  clearToken();
+  cachedUser = null;
+  notify();
 }
 
-// React hook: resolve the current user on mount.
-export function useAuth(): { user: AuthUser | null; loading: boolean; login: typeof login; logout: typeof logout } {
-  const [user, setUser] = useState<AuthUser | null>(null);
+// Resolve the current user from the stored token (validated server-side).
+export async function refreshUser(): Promise<AuthUser | null> {
+  const token = getToken();
+  if (!token) {
+    cachedUser = null;
+    notify();
+    return null;
+  }
+  try {
+    const res = await fetch('/api/auth/me', {
+      cache: 'no-store',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    cachedUser = res.ok && data?.user ? (data.user as AuthUser) : null;
+    if (!cachedUser) clearToken(); // token invalid/expired
+  } catch {
+    /* keep cache on transient error */
+  }
+  notify();
+  return cachedUser;
+}
+
+export function useAuth(): {
+  user: AuthUser | null;
+  loading: boolean;
+  register: typeof register;
+  login: typeof login;
+  logout: typeof logout;
+} {
+  const [, bump] = useState(0);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    let alive = true;
-    getCurrentUser()
-      .then((u) => alive && setUser(u))
-      .finally(() => alive && setLoading(false));
+    const rerender = () => bump((n) => n + 1);
+    listeners.add(rerender);
+    refreshUser().finally(() => setLoading(false));
     return () => {
-      alive = false;
+      listeners.delete(rerender);
     };
   }, []);
-  return { user, loading, login: useCallback(login, []), logout: useCallback(logout, []) };
+  return { user: cachedUser, loading, register, login, logout };
 }

@@ -1,12 +1,17 @@
 import type { ChatLike, ChatMessage, ChatReply, JoinResult, Session } from './types';
+import { getToken } from './auth';
 
 export async function request<T>(url: string, method: string, body?: unknown): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (body) headers['Content-Type'] = 'application/json';
+  if (token) headers.Authorization = `Bearer ${token}`; // authenticated identity, when signed in
   const res = await fetch(url, {
     method,
     // Polling reads must never come from the HTTP cache, or other devices
     // show stale state until a manual refresh forces revalidation.
     cache: 'no-store',
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    headers: Object.keys(headers).length ? headers : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
