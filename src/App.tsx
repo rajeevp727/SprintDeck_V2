@@ -10,6 +10,7 @@ const Terms = lazy(() => import('./components/Terms'));
 const Security = lazy(() => import('./components/Security'));
 const RetroBoard = lazy(() => import('./components/RetroBoard'));
 const RetroHome = lazy(() => import('./components/RetroHome'));
+const AuthScreen = lazy(() => import('./components/AuthScreen'));
 import {
   getIdentity,
   getCurrentRoom,
@@ -32,6 +33,7 @@ type Route =
   | { kind: 'privacy' }
   | { kind: 'terms' }
   | { kind: 'security' }
+  | { kind: 'auth' }
   | { kind: 'home'; joinCode?: string };
 
 // The retrospective board has its own real URL path: /retro/CODE (unlike poker,
@@ -55,6 +57,7 @@ function computeRoute(): Route {
   if (path === '/privacy' || path === '/privacy/') return { kind: 'privacy' };
   if (path === '/terms' || path === '/terms/') return { kind: 'terms' };
   if (path === '/security' || path === '/security/') return { kind: 'security' };
+  if (path === '/login' || path === '/login/') return { kind: 'auth' };
 
   const retroMatch = path.match(RETRO_PATH_RE);
   if (retroMatch) {
@@ -160,6 +163,9 @@ export default function App() {
   function goSecurity() {
     go('/security', { kind: 'security' });
   }
+  function goAuth() {
+    go('/login', { kind: 'auth' });
+  }
 
   let page;
   if (route.kind === 'privacy') {
@@ -184,6 +190,8 @@ export default function App() {
     );
   } else if (route.kind === 'retroJoin') {
     page = <RetroHome joinCode={route.code} onEnter={goRetro} onExit={goHome} />;
+  } else if (route.kind === 'auth') {
+    page = <AuthScreen onAuthed={goHome} onBack={goHome} />;
   } else {
     page = (
       <Home
@@ -192,6 +200,7 @@ export default function App() {
         onPrivacy={goPrivacy}
         onTerms={goTerms}
         onSecurity={goSecurity}
+        onSignIn={goAuth}
       />
     );
   }

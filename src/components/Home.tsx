@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
 import { saveIdentity } from '../lib/storage';
+import { useAuth } from '../lib/auth';
 import AdBanner from './AdBanner';
 
 interface Props {
@@ -9,9 +10,11 @@ interface Props {
   onPrivacy: () => void;
   onTerms: () => void;
   onSecurity: () => void;
+  onSignIn: () => void;
 }
 
-export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, onSecurity }: Props) {
+export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, onSecurity, onSignIn }: Props) {
+  const { user, logout } = useAuth();
   const [mode, setMode] = useState<'create' | 'join'>(initialCode ? 'join' : 'create');
   const [name, setName] = useState('');
   const [sessionName, setSessionName] = useState('');
@@ -57,6 +60,23 @@ export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, on
         <h1>SprintDeck</h1>
       </header>
       <p className="tagline">Estimate together, across every time zone.</p>
+
+      <div className="home-auth">
+        {user ? (
+          <>
+            <span>
+              Signed in as <strong>{user.name || user.email}</strong>
+            </span>
+            <button className="ghost" onClick={logout}>
+              Sign out
+            </button>
+          </>
+        ) : (
+          <button className="ghost" onClick={onSignIn}>
+            Log in / Register
+          </button>
+        )}
+      </div>
 
       <div className="card home-card">
         <div className="tabs">
