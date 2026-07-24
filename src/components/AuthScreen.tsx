@@ -50,8 +50,9 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
 
   return (
     <div className="auth-screen">
-      <button className="ghost auth-back" onClick={onBack}>
-        ← Back
+      <button className="ghost auth-back" onClick={onBack} title="Back" aria-label="Back">
+        <span aria-hidden>←</span>
+        <span className="auth-back-label">Back</span>
       </button>
 
       <div className="auth-split">

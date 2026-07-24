@@ -2058,14 +2058,38 @@ a.room-code:hover {
   margin: 0 auto;
   padding: 3rem 1.5rem 5rem;
 }
+/* Circular back button — just the arrow; reveals "Back" on hover/focus. */
 .auth-back {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 999px;
   white-space: nowrap;
+  overflow: hidden;
   line-height: 1;
   margin-bottom: 1.25rem;
+  transition: width var(--transition), padding var(--transition), gap var(--transition);
+}
+.auth-back .auth-back-label {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-width var(--transition), opacity var(--transition);
+}
+.auth-back:hover,
+.auth-back:focus-visible {
+  width: auto;
+  padding: 0 0.95rem;
+  gap: 0.4rem;
+}
+.auth-back:hover .auth-back-label,
+.auth-back:focus-visible .auth-back-label {
+  max-width: 5rem;
+  opacity: 1;
 }
 .auth-split {
   display: flex;
