@@ -82,8 +82,8 @@ app.http('createSession', {
     if (rateLimited(req, 'create', 10, 60_000)) {
       return bad('Too many rooms created from here — wait a moment and try again', 429);
     }
-    const { name, moderatorName, code, chatEnabled } = await readBody(req);
-    const result = await store.createSession(name, moderatorName, code, chatEnabled);
+    const { name, moderatorName, code } = await readBody(req);
+    const result = await store.createSession(name, moderatorName, code);
     if (result.error === 'invalid') {
       return bad('Room code must be 3–24 letters, numbers or dashes');
     }
@@ -347,8 +347,8 @@ app.http('linearImport', {
     let resolved, missing;
     try {
       ({ resolved, missing } = await linear.resolveIssues(identifiers));
-    } catch (err) {
-      return bad(`Linear lookup failed: ${err.message}`, 502);
+    } catch {
+      return bad('Linear lookup failed — please try again', 502);
     }
     store.addLinearToQueue(session, resolved);
     await store.saveSession(session);
@@ -399,8 +399,8 @@ app.http('linearPush', {
       if (!linear.isEnabled()) return bad('Linear is not configured', 400);
       try {
         await linear.setEstimate(entry.linearId, estimate);
-      } catch (err) {
-        return bad(`Linear update failed: ${err.message}`, 502);
+      } catch {
+        return bad('Linear update failed — please try again', 502);
       }
     }
     store.markPushed(session, entryId, estimate);

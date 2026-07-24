@@ -94,7 +94,7 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
     [refresh, showTyping],
   );
 
-  const { connected: rtConnected, send } = useRealtime(`retro:${code}`, onRealtime);
+  const { connected: rtConnected, send } = useRealtime(`retro:${code}`, participantId, onRealtime);
 
   // Broadcast that we're typing (throttled by the caller).
   const notifyTyping = useCallback(() => {

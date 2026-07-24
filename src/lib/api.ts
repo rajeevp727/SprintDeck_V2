@@ -23,8 +23,8 @@ export async function request<T>(url: string, method: string, body?: unknown): P
 }
 
 export const api = {
-  createSession: (name: string, moderatorName: string, code: string, chatEnabled: boolean) =>
-    request<JoinResult>('/api/session', 'POST', { name, moderatorName, code, chatEnabled }),
+  createSession: (name: string, moderatorName: string, code: string) =>
+    request<JoinResult>('/api/session', 'POST', { name, moderatorName, code }),
 
   joinSession: (code: string, name: string) =>
     request<JoinResult>(`/api/session/${code}/join`, 'POST', { name }),
@@ -100,8 +100,8 @@ export const api = {
     }),
 
   // Team chat (PRO+).
-  enableChat: (code: string, participantId: string) =>
-    request<{ session: Session }>(`/api/session/${code}/chat/enable`, 'POST', { participantId }),
+  enableChat: (code: string, participantId: string, subRef: string) =>
+    request<{ session: Session }>(`/api/session/${code}/chat/enable`, 'POST', { participantId, subRef }),
 
   negotiateChat: (code: string, participantId: string) =>
     request<{ url: string }>(`/api/session/${code}/chat/negotiate`, 'POST', { participantId }),

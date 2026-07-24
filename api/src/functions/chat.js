@@ -7,6 +7,8 @@
 
 const { app } = require('@azure/functions');
 const store = require('../store');
+const payments = require('../payments-store'); // PRO+ gate — subscription verified from Cosmos
+const { rateLimited } = require('../ratelimit');
 
 const noCache = { 'Cache-Control': 'no-store' };
 function ok(body) {
@@ -64,18 +66,21 @@ app.http('chatStatus', {
   handler: async () => ok({ available: chatAvailable() }),
 });
 
-// Moderator unlocks chat after subscribing post-create.
+// Moderator unlocks chat — PRO+ only, verified server-side from the confirmed
+// payment order in Cosmos (subRef = that order's id), mirroring createRetro.
 app.http('enableChat', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'session/{code}/chat/enable',
   handler: async (req) => {
-    const { participantId } = await readBody(req);
+    const { participantId, subRef } = await readBody(req);
     const session = await store.loadSession(req.params.code);
     if (!session) return bad('Session not found', 404);
     if (!store.isModerator(session, participantId)) {
       return bad('Only the moderator can enable chat', 403);
     }
+    const sub = await payments.activeSubscription(subRef);
+    if (!sub) return bad('A Pro subscription is required to enable chat', 403);
     session.chatEnabled = true;
     await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
@@ -88,6 +93,7 @@ app.http('chatNegotiate', {
   authLevel: 'anonymous',
   route: 'session/{code}/chat/negotiate',
   handler: async (req) => {
+    if (rateLimited(req, 'chatneg', 30, 60_000)) return bad('Too many requests — slow down', 429);
     const { participantId } = await readBody(req);
     const { session, error } = await requireChatMember(req.params.code, participantId);
     if (error) return error;
@@ -121,6 +127,7 @@ app.http('chatMessage', {
   authLevel: 'anonymous',
   route: 'session/{code}/chat/message',
   handler: async (req) => {
+    if (rateLimited(req, 'chatmsg', 40, 60_000)) return bad('Too many messages — slow down', 429);
     const { participantId, text, replyTo } = await readBody(req);
     const { session, error } = await requireChatMember(req.params.code, participantId);
     if (error) return error;
@@ -144,6 +151,7 @@ app.http('chatLike', {
   authLevel: 'anonymous',
   route: 'session/{code}/chat/like',
   handler: async (req) => {
+    if (rateLimited(req, 'chatlike', 80, 60_000)) return bad('Too many requests — slow down', 429);
     const { participantId, messageId } = await readBody(req);
     const { session, error } = await requireChatMember(req.params.code, participantId);
     if (error) return error;

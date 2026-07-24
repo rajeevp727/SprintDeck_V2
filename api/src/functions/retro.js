@@ -4,6 +4,7 @@ const { app } = require('@azure/functions');
 const store = require('../retroStore');
 const pokerStore = require('../store'); // to unlink the retro from its poker room on end
 const payments = require('../payments-store'); // PRO+ gate — subscription verified from Cosmos
+const { rateLimited } = require('../ratelimit');
 
 const noCache = { 'Cache-Control': 'no-store' };
 
@@ -50,6 +51,7 @@ app.http('createRetro', {
   authLevel: 'anonymous',
   route: 'retro',
   handler: async (req) => {
+    if (rateLimited(req, 'retrocreate', 15, 60_000)) return bad('Too many requests — slow down', 429);
     const { name, facilitatorName, code, roomCode, subRef } = await readBody(req);
     const sub = await payments.activeSubscription(subRef);
     if (!sub) return bad('A Pro subscription is required to start a retrospective', 403);
@@ -70,6 +72,7 @@ app.http('joinRetro', {
   authLevel: 'anonymous',
   route: 'retro/{code}/join',
   handler: async (req) => {
+    if (rateLimited(req, 'retrojoin', 20, 60_000)) return bad('Too many requests — slow down', 429);
     const { name } = await readBody(req);
     const result = await store.joinBoard(req.params.code, name);
     if (result.error === 'not_found') return bad('Board not found', 404);
@@ -99,6 +102,7 @@ app.http('addRetroNote', {
   authLevel: 'anonymous',
   route: 'retro/{code}/note',
   handler: async (req) => {
+    if (rateLimited(req, 'retronote', 60, 60_000)) return bad('Too many notes — slow down', 429);
     const { participantId, columnId, text } = await readBody(req);
     const { board, error } = await requireParticipant(req.params.code, participantId);
     if (error) return error;

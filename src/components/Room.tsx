@@ -166,7 +166,10 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
     if (!isModerator || !session || session.chatEnabled || chatSynced.current) return;
     if (!subscribed) return;
     chatSynced.current = true;
-    api.enableChat(code, participantId).then(({ session: s }) => setSession(s)).catch(() => {});
+    api
+      .enableChat(code, participantId, getSubscriptionRef() ?? '')
+      .then(({ session: s }) => setSession(s))
+      .catch(() => {});
   }, [isModerator, subscribed, session, code, participantId]);
 
   // On a freshly revealed Linear-backed round, prefill the push value with the

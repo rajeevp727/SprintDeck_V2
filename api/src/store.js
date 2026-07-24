@@ -13,9 +13,13 @@
 // Without a connection string it falls back to an in-memory Map (single
 // instance only) so local dev / unconfigured deploys still run.
 // ───────────────────────────────────────────────────────────────────────────
+const crypto = require('crypto');
 const conn = process.env.COSMOS_CONNECTION_STRING || '';
 const dbName = 'sprintdeck';
 const containerName = 'sessions';
+const maxNameLen = 80;
+const maxTitleLen = 200;
+const maxQueue = 100;
 
 const memory = new Map(); // fallback when no connection string
 let containerPromise = null;
@@ -132,12 +136,12 @@ const codeChars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L ambiguity
 
 function randomCode() {
   let code = '';
-  for (let i = 0; i < 5; i++) code += codeChars[Math.floor(Math.random() * codeChars.length)];
+  for (let i = 0; i < 5; i++) code += codeChars[crypto.randomInt(codeChars.length)];
   return code;
 }
 
 function genId() {
-  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  return crypto.randomUUID();
 }
 
 function normalize(code) {
@@ -207,7 +211,7 @@ async function genUniqueCode() {
 
 const codeRe = /^[A-Z0-9-]{3,24}$/;
 
-async function createSession(name, moderatorName, desiredCode, chatEnabled) {
+async function createSession(name, moderatorName, desiredCode) {
   let code;
   const wanted = normalize(desiredCode);
   if (wanted) {
@@ -221,7 +225,7 @@ async function createSession(name, moderatorName, desiredCode, chatEnabled) {
   const now = Date.now();
   const session = {
     code,
-    name: (name || '').trim() || 'SprintDeck',
+    name: (name || '').trim().slice(0, maxNameLen) || 'SprintDeck',
     moderatorId: pid,
     story: '',
     status: 'waiting', // 'waiting' | 'voting' | 'revealed'
@@ -230,11 +234,11 @@ async function createSession(name, moderatorName, desiredCode, chatEnabled) {
     currentLinear: null, // { linearId, identifier } when the current story is a Linear issue
     deck: deck,
     participants: {
-      [pid]: { id: pid, name: (moderatorName || '').trim() || 'Moderator', vote: null },
+      [pid]: { id: pid, name: (moderatorName || '').trim().slice(0, maxNameLen) || 'Moderator', vote: null },
     },
     queue: [], // [{ id, title, linearId?, identifier? }]
     history: [], // [{ id, title, average, median, min, max, consensus, votes, at }]
-    chatEnabled: !!chatEnabled, // shared team chat unlocked by moderator's PRO+ plan
+    chatEnabled: false, // unlocked only via enableChat, which verifies PRO+ server-side
     messages: [], // [{ id, participantId, name, text, at, replyTo }]
     createdAt: now,
     lastActivity: now,
@@ -250,7 +254,7 @@ async function joinSession(code, name) {
     return { error: 'full' };
   }
   const pid = genId();
-  session.participants[pid] = { id: pid, name: (name || '').trim() || 'Guest', vote: null };
+  session.participants[pid] = { id: pid, name: (name || '').trim().slice(0, maxNameLen) || 'Guest', vote: null };
   await saveSession(session);
   return { session, participantId: pid };
 }
@@ -273,7 +277,8 @@ function kickParticipant(session, targetId) {
 // ───────────────────────────────────────────────────────────────────────────
 function addToQueue(session, titles) {
   for (const t of titles) {
-    const title = String(t || '').trim();
+    if (session.queue.length >= maxQueue) break; // cap queue size
+    const title = String(t || '').trim().slice(0, maxTitleLen);
     if (title) session.queue.push({ id: genId(), title });
   }
 }
@@ -343,7 +348,7 @@ function startStory(session, explicitTitle) {
   if (session.finished) session.history = [];
   // No story name (just-vote mode) → auto-number the iteration so results read well.
   if (!title) title = `Iteration ${session.history.length + 1}`;
-  session.story = title;
+  session.story = title.slice(0, maxTitleLen);
   for (const p of Object.values(session.participants)) p.vote = null;
   session.status = 'voting';
   session.finished = false; // starting a round un-finishes the session

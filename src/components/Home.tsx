@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
 import { saveIdentity } from '../lib/storage';
-import { refreshSubscription } from '../lib/subscription';
 import AdBanner from './AdBanner';
 
 interface Props {
@@ -26,8 +25,7 @@ export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, on
     setBusy(true);
     setError('');
     try {
-      const sub = await refreshSubscription(); // server-verified; unlocks chat for the room
-      const res = await api.createSession(sessionName, name, '', !!sub);
+      const res = await api.createSession(sessionName, name, '');
       saveIdentity(res.session.code, res.participantId, name.trim());
       onEnter(res.session.code);
     } catch (err) {

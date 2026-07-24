@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const { CosmosClient } = require('@azure/cosmos');
 const realtime = require('./realtime');
 
@@ -26,6 +27,8 @@ const boardMaxAgeMs = 8 * 60 * 60 * 1000; // 8h
 const boardIdleMs = 4 * 60 * 60 * 1000; // 4h
 const maxParticipants = 30;
 const maxNoteLen = 500;
+const maxNotes = 500; // per-board cap — guards against doc bloat / DoS
+const maxNameLen = 80;
 
 // Action items persist across sprints in a separate, long-lived container keyed
 // by the poker room code, so the next retro for that room can review them.
@@ -159,12 +162,12 @@ const codeChars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L ambiguity
 
 function randomCode() {
   let code = '';
-  for (let i = 0; i < 5; i++) code += codeChars[Math.floor(Math.random() * codeChars.length)];
+  for (let i = 0; i < 5; i++) code += codeChars[crypto.randomInt(codeChars.length)];
   return code;
 }
 
 function genId() {
-  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  return crypto.randomUUID();
 }
 
 function normalize(code) {
@@ -237,7 +240,7 @@ async function createBoard(name, facilitatorName, desiredCode, roomCode) {
   const carry = await loadActionItems(roomCode);
   const board = {
     code,
-    name: (name || '').trim() || 'Sprint Retrospective',
+    name: (name || '').trim().slice(0, maxNameLen) || 'Sprint Retrospective',
     facilitatorId: pid,
     roomCode: normalize(roomCode) || null, // parent poker room — unlinked on end
     // Every retro opens on a review gate: the facilitator reviews last sprint's
@@ -247,7 +250,7 @@ async function createBoard(name, facilitatorName, desiredCode, roomCode) {
     columns: defaultColumns(),
     notes: [], // [{ id, columnId, authorId, authorName, text, color, createdAt }]
     participants: {
-      [pid]: { id: pid, name: (facilitatorName || '').trim() || 'Facilitator', color: colorForSeq(0) },
+      [pid]: { id: pid, name: (facilitatorName || '').trim().slice(0, maxNameLen) || 'Facilitator', color: colorForSeq(0) },
     },
     colorSeq: 1, // next participant's colour index (facilitator took 0)
     createdAt: now,
@@ -265,7 +268,7 @@ async function joinBoard(code, name) {
   }
   const pid = genId();
   const seq = board.colorSeq || Object.keys(board.participants).length;
-  board.participants[pid] = { id: pid, name: (name || '').trim() || 'Guest', color: colorForSeq(seq) };
+  board.participants[pid] = { id: pid, name: (name || '').trim().slice(0, maxNameLen) || 'Guest', color: colorForSeq(seq) };
   board.colorSeq = seq + 1;
   await saveBoard(board);
   return { board, participantId: pid };
@@ -291,6 +294,7 @@ function addNote(board, participantId, columnId, text) {
   const author = board.participants[participantId];
   if (!author) return false;
   if (!board.columns.some((c) => c.id === columnId)) return false;
+  if (board.notes.length >= maxNotes) return false; // board full — guards doc bloat
   const body = String(text || '').trim();
   if (!body) return false;
   board.notes.push({

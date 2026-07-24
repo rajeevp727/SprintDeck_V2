@@ -14,22 +14,27 @@ export interface RealtimeChannel {
  * the caller resyncs. If Web PubSub isn't configured (negotiate returns no url)
  * the socket never connects and `connected` stays false so the caller keeps polling.
  */
-export function useRealtime(group: string, onMessage: (data: unknown) => void): RealtimeChannel {
+export function useRealtime(
+  group: string,
+  participantId: string,
+  onMessage: (data: unknown) => void,
+): RealtimeChannel {
   const [connected, setConnected] = useState(false);
   const onMsg = useRef(onMessage);
   onMsg.current = onMessage;
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (!group) return;
+    if (!group || !participantId) return;
     let closed = false;
     let retry: number | undefined;
 
     async function connect() {
       try {
-        const res = await fetch(`/api/negotiate?group=${encodeURIComponent(group)}`, {
-          cache: 'no-store',
-        });
+        const res = await fetch(
+          `/api/negotiate?group=${encodeURIComponent(group)}&participantId=${encodeURIComponent(participantId)}`,
+          { cache: 'no-store' },
+        );
         if (!res.ok) return; // realtime not available → stay on polling
         const { url } = (await res.json()) as { url: string | null };
         if (!url || closed) return;
@@ -76,7 +81,7 @@ export function useRealtime(group: string, onMessage: (data: unknown) => void): 
       }
       wsRef.current = null;
     };
-  }, [group]);
+  }, [group, participantId]);
 
   const send = useCallback(
     (data: unknown) => {
