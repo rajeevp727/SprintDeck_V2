@@ -12,6 +12,8 @@ const RetroBoard = lazy(() => import('./components/RetroBoard'));
 const RetroHome = lazy(() => import('./components/RetroHome'));
 const AuthScreen = lazy(() => import('./components/AuthScreen'));
 const Landing = lazy(() => import('./components/Landing'));
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const RetroStart = lazy(() => import('./components/RetroStart'));
 import {
   getIdentity,
   getCurrentRoom,
@@ -36,6 +38,8 @@ type Route =
   | { kind: 'terms' }
   | { kind: 'security' }
   | { kind: 'auth' }
+  | { kind: 'plan' }
+  | { kind: 'retroStart' }
   | { kind: 'home'; joinCode?: string };
 
 // The retrospective board has its own real URL path: /retro/CODE (unlike poker,
@@ -60,6 +64,8 @@ function computeRoute(): Route {
   if (path === '/terms' || path === '/terms/') return { kind: 'terms' };
   if (path === '/security' || path === '/security/') return { kind: 'security' };
   if (path === '/login' || path === '/login/') return { kind: 'auth' };
+  if (path === '/plan' || path === '/plan/') return { kind: 'plan' };
+  if (path === '/retro-new' || path === '/retro-new/') return { kind: 'retroStart' };
 
   const retroMatch = path.match(RETRO_PATH_RE);
   if (retroMatch) {
@@ -170,6 +176,12 @@ export default function App() {
   function goAuth() {
     go('/login', { kind: 'auth' });
   }
+  function goPlan() {
+    go('/plan', { kind: 'plan' });
+  }
+  function goRetroStart() {
+    go('/retro-new', { kind: 'retroStart' });
+  }
 
   let page;
   if (route.kind === 'privacy') {
@@ -196,10 +208,17 @@ export default function App() {
     page = <RetroHome joinCode={route.code} onEnter={goRetro} onExit={goHome} />;
   } else if (route.kind === 'auth') {
     page = <AuthScreen onAuthed={goHome} onBack={goHome} />;
+  } else if (route.kind === 'plan') {
+    // Planning create/join, reached from the dashboard.
+    page = (
+      <Home onEnter={goRoom} onPrivacy={goPrivacy} onTerms={goTerms} onSecurity={goSecurity} onBack={goHome} />
+    );
+  } else if (route.kind === 'retroStart') {
+    page = <RetroStart onEnter={goRetro} onBack={goHome} />;
   } else if (authLoading) {
     page = null; // resolving the session — avoid flashing the landing then the app
-  } else if (user || guest || route.joinCode) {
-    // Signed in, continuing as guest, or arriving via an invite link → the app.
+  } else if (route.joinCode) {
+    // Arriving via an invite link — join the room (guests welcome).
     page = (
       <Home
         initialCode={route.joinCode}
@@ -207,6 +226,30 @@ export default function App() {
         onPrivacy={goPrivacy}
         onTerms={goTerms}
         onSecurity={goSecurity}
+        onSignIn={goAuth}
+      />
+    );
+  } else if (user) {
+    // Signed in → dashboard of ceremonies.
+    page = (
+      <Dashboard
+        onPlanning={goPlan}
+        onRetro={goRetroStart}
+        onPrivacy={goPrivacy}
+        onTerms={goTerms}
+        onSecurity={goSecurity}
+      />
+    );
+  } else if (guest) {
+    // Continuing as guest → New session, with a login/register nudge above it.
+    page = (
+      <Home
+        onEnter={goRoom}
+        onPrivacy={goPrivacy}
+        onTerms={goTerms}
+        onSecurity={goSecurity}
+        onSignIn={goAuth}
+        onBack={() => setGuest(false)}
       />
     );
   } else {

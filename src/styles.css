@@ -2137,6 +2137,104 @@ a.room-code:hover {
   line-height: 1.4;
 }
 
+/* Dashboard — pick a ceremony */
+.dash {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+}
+.dash-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.dash-head .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.dash-user {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.dash-lead {
+  margin: 1.75rem 0 0;
+  color: var(--muted);
+}
+.dash-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+@media (max-width: 640px) {
+  .dash-cards {
+    grid-template-columns: 1fr;
+  }
+}
+.dash-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  text-align: left;
+  padding: 1.6rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+.dash-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  box-shadow: var(--shadow);
+}
+.dash-card-icon {
+  font-size: 2rem;
+}
+.dash-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.dash-card-desc {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.dash-card-cta {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+.dash-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 3rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.dash-footer a {
+  color: var(--muted);
+}
+.dash-footer a:hover {
+  color: var(--accent);
+}
+.home-back {
+  align-self: flex-start;
+}
+
 /* Auth screen — Log in | Create account, split by a big "/" */
 .auth-screen {
   max-width: 860px;

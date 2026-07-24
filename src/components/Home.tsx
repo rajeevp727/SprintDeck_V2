@@ -10,11 +10,14 @@ interface Props {
   onPrivacy: () => void;
   onTerms: () => void;
   onSecurity: () => void;
+  onBack?: () => void;
+  onSignIn?: () => void;
 }
 
-export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, onSecurity }: Props) {
+export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, onSecurity, onBack, onSignIn }: Props) {
   const { user, logout } = useAuth();
-  const [mode, setMode] = useState<'create' | 'join'>(initialCode ? 'join' : 'create');
+  // Only "New session" is offered; the join form is used solely for invite links.
+  const mode: 'create' | 'join' = initialCode ? 'join' : 'create';
   const [name, setName] = useState('');
   const [sessionName, setSessionName] = useState('');
   const [code, setCode] = useState(initialCode.toUpperCase());
@@ -54,13 +57,19 @@ export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, on
 
   return (
     <div className="home">
+      {onBack && (
+        <button className="ghost auth-back home-back" onClick={onBack} title="Back" aria-label="Back">
+          <span aria-hidden>←</span>
+          <span className="auth-back-label">Back</span>
+        </button>
+      )}
       <header className="brand">
         <span className="brand-mark" aria-hidden>♠</span>
         <h1>SprintDeck</h1>
       </header>
       <p className="tagline">Estimate together, across every time zone.</p>
 
-      {user && (
+      {user ? (
         <div className="home-auth">
           <span>
             Signed in as <strong>{user.name || user.email}</strong>
@@ -69,30 +78,15 @@ export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, on
             Sign out
           </button>
         </div>
-      )}
-
-      <div className="card home-card">
-        <div className="tabs">
-          <button
-            className={mode === 'create' ? 'tab active' : 'tab'}
-            onClick={() => {
-              setMode('create');
-              setError('');
-            }}
-          >
-            New session
-          </button>
-          <button
-            className={mode === 'join' ? 'tab active' : 'tab'}
-            onClick={() => {
-              setMode('join');
-              setError('');
-            }}
-          >
-            Join session
+      ) : onSignIn ? (
+        <div className="home-auth">
+          <button className="ghost" onClick={onSignIn}>
+            Log in / Register
           </button>
         </div>
+      ) : null}
 
+      <div className="card home-card">
         {mode === 'create' ? (
           <form onSubmit={handleCreate} className="form">
             <label>
