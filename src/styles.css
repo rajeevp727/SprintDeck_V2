@@ -2077,8 +2077,10 @@ a.room-code:hover {
   transition: width var(--transition), border-radius var(--transition), gap var(--transition);
 }
 .auth-back .auth-back-label {
+  max-width: 0;
   opacity: 0;
-  transition: opacity var(--transition);
+  overflow: hidden;
+  transition: max-width var(--transition), opacity var(--transition);
 }
 .auth-back:hover,
 .auth-back:focus-visible {
@@ -2088,6 +2090,7 @@ a.room-code:hover {
 }
 .auth-back:hover .auth-back-label,
 .auth-back:focus-visible .auth-back-label {
+  max-width: 5rem;
   opacity: 1;
 }
 .auth-split {
