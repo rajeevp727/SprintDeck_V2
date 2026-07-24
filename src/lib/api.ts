@@ -5,7 +5,9 @@ export async function request<T>(url: string, method: string, body?: unknown): P
   const token = getToken();
   const headers: Record<string, string> = {};
   if (body) headers['Content-Type'] = 'application/json';
-  if (token) headers.Authorization = `Bearer ${token}`; // authenticated identity, when signed in
+  // Custom header, not Authorization — Azure Static Web Apps strips Authorization
+  // before forwarding to the Functions API.
+  if (token) headers['x-auth-token'] = token;
   const res = await fetch(url, {
     method,
     // Polling reads must never come from the HTTP cache, or other devices

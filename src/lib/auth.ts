@@ -87,7 +87,7 @@ export async function refreshUser(): Promise<AuthUser | null> {
   try {
     const res = await fetch('/api/auth/me', {
       cache: 'no-store',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { 'x-auth-token': token }, // SWA strips Authorization — use a custom header
     });
     const data = await res.json().catch(() => ({}));
     cachedUser = res.ok && data?.user ? (data.user as AuthUser) : null;

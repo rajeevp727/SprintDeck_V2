@@ -76,9 +76,9 @@ app.http('authMe', {
   route: 'auth/me',
   handler: async (req) => {
     if (!secret()) return ok({ user: null });
-    const header = req.headers.get('authorization') || '';
-    const match = header.match(/^Bearer (.+)$/i);
-    const payload = match && jwt.verify(match[1], secret());
+    // SWA strips Authorization, so the client sends the JWT in x-auth-token.
+    const token = req.headers.get('x-auth-token') || '';
+    const payload = token && jwt.verify(token, secret());
     if (!payload) return ok({ user: null });
     return ok({ user: { id: payload.sub, email: payload.email } });
   },
