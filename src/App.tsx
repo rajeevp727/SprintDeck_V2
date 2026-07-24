@@ -207,7 +207,6 @@ export default function App() {
         onPrivacy={goPrivacy}
         onTerms={goTerms}
         onSecurity={goSecurity}
-        onSignIn={goAuth}
       />
     );
   } else {

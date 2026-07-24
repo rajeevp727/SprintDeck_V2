@@ -10,10 +10,9 @@ interface Props {
   onPrivacy: () => void;
   onTerms: () => void;
   onSecurity: () => void;
-  onSignIn: () => void;
 }
 
-export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, onSecurity, onSignIn }: Props) {
+export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, onSecurity }: Props) {
   const { user, logout } = useAuth();
   const [mode, setMode] = useState<'create' | 'join'>(initialCode ? 'join' : 'create');
   const [name, setName] = useState('');
@@ -61,22 +60,16 @@ export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, on
       </header>
       <p className="tagline">Estimate together, across every time zone.</p>
 
-      <div className="home-auth">
-        {user ? (
-          <>
-            <span>
-              Signed in as <strong>{user.name || user.email}</strong>
-            </span>
-            <button className="ghost" onClick={logout}>
-              Sign out
-            </button>
-          </>
-        ) : (
-          <button className="ghost" onClick={onSignIn}>
-            Log in / Register
+      {user && (
+        <div className="home-auth">
+          <span>
+            Signed in as <strong>{user.name || user.email}</strong>
+          </span>
+          <button className="ghost" onClick={logout}>
+            Sign out
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="card home-card">
         <div className="tabs">
