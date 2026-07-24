@@ -2058,33 +2058,16 @@ a.room-code:hover {
   margin: 0 auto;
   padding: 3rem 1.5rem 5rem;
 }
-/* Circular back button — just the arrow; reveals "Back" on hover/focus.
-   Width is content-driven (min-width keeps the circle at rest, the label's
-   max-width expansion grows it into a pill) — no animating to `auto`. */
+/* Back button — a rounded rectangle showing "← Back" in full. */
 .auth-back {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  height: 40px;
-  padding: 0;
-  border-radius: 999px;
-  overflow: hidden;
+  gap: 0.4rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: var(--radius-sm);
   white-space: nowrap;
   line-height: 1;
   margin-bottom: 1.25rem;
-}
-.auth-back .auth-back-label {
-  max-width: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-width var(--transition), opacity var(--transition), margin var(--transition);
-}
-.auth-back:hover .auth-back-label,
-.auth-back:focus-visible .auth-back-label {
-  max-width: 5rem;
-  opacity: 1;
-  margin: 0 0.55rem 0 0.4rem;
 }
 .auth-split {
   display: flex;
