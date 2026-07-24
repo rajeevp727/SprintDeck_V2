@@ -2058,16 +2058,37 @@ a.room-code:hover {
   margin: 0 auto;
   padding: 3rem 1.5rem 5rem;
 }
-/* Back button — a rounded rectangle showing "← Back" in full. */
+/* Back button — a circle with "←" at rest; on hover expands into a rounded
+   rectangle revealing "← Back". Width animates between two fixed sizes (never
+   to `auto`), so the label never clips. */
 .auth-back {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.95rem;
-  border-radius: var(--radius-sm);
+  justify-content: center;
+  gap: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 999px;
+  overflow: hidden;
   white-space: nowrap;
   line-height: 1;
   margin-bottom: 1.25rem;
+  transition: width var(--transition), border-radius var(--transition), gap var(--transition);
+}
+.auth-back .auth-back-label {
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.auth-back:hover,
+.auth-back:focus-visible {
+  width: 5.75rem;
+  gap: 0.4rem;
+  border-radius: var(--radius-sm);
+}
+.auth-back:hover .auth-back-label,
+.auth-back:focus-visible .auth-back-label {
+  opacity: 1;
 }
 .auth-split {
   display: flex;
