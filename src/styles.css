@@ -2059,6 +2059,12 @@ a.room-code:hover {
   padding: 3rem 1.5rem 5rem;
 }
 .auth-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  line-height: 1;
   margin-bottom: 1.25rem;
 }
 .auth-split {
@@ -2080,17 +2086,19 @@ a.room-code:hover {
 .auth-half h2 {
   margin: 0;
 }
+/* Full-height "/" divider between the two halves (a diagonal line). */
 .auth-slash {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 0.5rem;
-  font-size: 3.5rem;
-  font-weight: 300;
-  line-height: 1;
-  color: var(--muted);
-  opacity: 0.45;
-  user-select: none;
+  flex: none;
+  align-self: stretch;
+  width: 56px;
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 1.5px),
+    var(--muted) calc(50% - 1.5px),
+    var(--muted) calc(50% + 1.5px),
+    transparent calc(50% + 1.5px)
+  );
+  opacity: 0.4;
 }
 .auth-form {
   display: flex;
@@ -2129,9 +2137,10 @@ a.room-code:hover {
     flex-direction: column;
   }
   .auth-slash {
-    padding: 0.25rem;
-    font-size: 2.5rem;
-    transform: rotate(90deg);
+    width: auto;
+    height: 1px;
+    background: var(--line);
+    opacity: 1;
   }
 }
 .retro-ended {

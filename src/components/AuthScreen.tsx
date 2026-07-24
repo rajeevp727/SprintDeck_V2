@@ -85,9 +85,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
           </form>
         </section>
 
-        <div className="auth-slash" aria-hidden>
-          /
-        </div>
+        <div className="auth-slash" aria-hidden />
 
         <section className="auth-half">
           <h2>Create account</h2>
