@@ -102,14 +102,6 @@ export function setSubscriptionRef(orderId: string) {
   }
 }
 
-export function clearSubscription() {
-  try {
-    localStorage.removeItem(subRefKey);
-  } catch {
-    /* ignore */
-  }
-}
-
 let cachedSub: Subscription | null = null;
 let fetched = false;
 const listeners = new Set<() => void>();
