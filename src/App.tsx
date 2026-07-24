@@ -11,6 +11,7 @@ const Security = lazy(() => import('./components/Security'));
 const RetroBoard = lazy(() => import('./components/RetroBoard'));
 const RetroHome = lazy(() => import('./components/RetroHome'));
 const AuthScreen = lazy(() => import('./components/AuthScreen'));
+const Landing = lazy(() => import('./components/Landing'));
 import {
   getIdentity,
   getCurrentRoom,
@@ -25,6 +26,7 @@ import {
   isSubscribed,
 } from './lib/subscription';
 import { getStatus } from './lib/verifier';
+import { useAuth } from './lib/auth';
 
 type Route =
   | { kind: 'room'; code: string }
@@ -81,6 +83,8 @@ function computeRoute(): Route {
 
 export default function App() {
   const [route, setRoute] = useState<Route>(computeRoute);
+  const { user, loading: authLoading } = useAuth();
+  const [guest, setGuest] = useState(false); // "continue as guest" from the landing
 
   // Background payment watcher: a bank email → ingest confirm can land minutes
   // after the modal closed. While a pending order exists (persisted in storage),
@@ -192,7 +196,10 @@ export default function App() {
     page = <RetroHome joinCode={route.code} onEnter={goRetro} onExit={goHome} />;
   } else if (route.kind === 'auth') {
     page = <AuthScreen onAuthed={goHome} onBack={goHome} />;
-  } else {
+  } else if (authLoading) {
+    page = null; // resolving the session — avoid flashing the landing then the app
+  } else if (user || guest || route.joinCode) {
+    // Signed in, continuing as guest, or arriving via an invite link → the app.
     page = (
       <Home
         initialCode={route.joinCode}
@@ -203,6 +210,8 @@ export default function App() {
         onSignIn={goAuth}
       />
     );
+  } else {
+    page = <Landing onSignIn={goAuth} onGuest={() => setGuest(true)} />;
   }
 
   return (
