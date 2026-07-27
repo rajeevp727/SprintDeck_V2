@@ -2677,7 +2677,7 @@ a.room-code:hover {
 }
 .auth-flip {
   position: relative;
-  width: calc(50% + 14px);
+  width: calc(50% - 15px);
   transform-origin: right center; /* hinge on the central spine */
   transform-style: preserve-3d;
   transition: transform 0.9s cubic-bezier(0.2, 0.75, 0.25, 1);
