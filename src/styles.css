@@ -2192,7 +2192,7 @@ a.room-code:hover {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
 }
 .profile-card {
-  min-width: 250px;
+  min-width: 300px;
 }
 .profile-card-head {
   display: flex;
@@ -2234,51 +2234,47 @@ a.room-code:hover {
   flex-direction: column;
   gap: 0.4rem;
 }
-/* One joined pill split 50/50 — each half lights up its own colour on hover */
+/* One joined pill split 50/50 — each half is a vibrant gradient at rest */
 .profile-split {
   display: flex;
   width: 100%;
-  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--text) 6%, transparent);
-  -webkit-backdrop-filter: blur(10px) saturate(1.2);
-  backdrop-filter: blur(10px) saturate(1.2);
   overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
 }
 .profile-half {
   flex: 1 1 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.66rem 0.7rem;
+  gap: 0.45rem;
+  padding: 0.7rem 0.6rem;
   border: 0;
-  background: transparent;
-  color: var(--text);
-  font-size: 0.88rem;
+  color: #fff;
+  font-size: 0.86rem;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
-  transition: background var(--transition), color var(--transition);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  transition: filter var(--transition), transform var(--transition);
 }
 .profile-half svg {
   flex: none;
-  color: var(--accent);
-  transition: color var(--transition);
+  color: #fff;
+  opacity: 0.95;
 }
-/* divider between the two halves */
+/* subtle seam between the two halves */
 .profile-half + .profile-half {
-  border-left: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.18);
+}
+.profile-half.danger {
+  background: linear-gradient(135deg, #f0616d, var(--danger));
 }
 .profile-half:hover {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent);
+  filter: brightness(1.12) saturate(1.08);
 }
-.profile-half.danger svg {
-  color: var(--danger);
-}
-.profile-half.danger:hover {
-  background: color-mix(in srgb, var(--danger) 16%, transparent);
-  color: var(--danger);
+.profile-half:active {
+  transform: translateY(1px);
 }
 
 /* Change-password modal */
