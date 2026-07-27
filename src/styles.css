@@ -2690,7 +2690,7 @@ a.room-code:hover {
   flex-direction: column;
   gap: 1rem;
   backface-visibility: hidden;
-  transition: transform 0.95s cubic-bezier(0.2, 0.75, 0.25, 1), opacity 0.75s ease, filter 0.75s ease;
+  transition: transform 1s cubic-bezier(0.2, 0.75, 0.25, 1), opacity 1.15s ease, filter 1.15s ease;
 }
 .auth-side-inner h2 {
   margin: 0;
@@ -2707,17 +2707,18 @@ a.room-code:hover {
   opacity: 1;
   filter: none;
 }
-/* placeholder — folded back behind the spine, blurred & dimmed (content hidden) */
+/* placeholder — the leaving page flips past the spine to the "other side" of
+   the book and slowly fades out (backface hidden → it turns away and vanishes). */
 .auth-side.placeholder .auth-side-inner {
-  opacity: 0.22;
-  filter: blur(6px);
+  opacity: 0;
+  filter: blur(7px);
   pointer-events: none;
 }
 .side-login.placeholder .auth-side-inner {
-  transform: rotateY(-72deg);
+  transform: rotateY(-105deg);
 }
 .side-signup.placeholder .auth-side-inner {
-  transform: rotateY(72deg);
+  transform: rotateY(105deg);
 }
 /* click-to-open overlay, shown only on the placeholder side */
 .auth-side-open {
