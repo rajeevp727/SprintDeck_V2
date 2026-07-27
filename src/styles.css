@@ -2748,19 +2748,29 @@ a.room-code:hover {
   flex: 1;
   min-width: 0;
 }
-/* name-taken notice + suggestion chips (signup) */
+/* inline name validation + suggestion chips (signup) */
 .input-error {
   border-color: var(--danger) !important;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 30%, transparent) !important;
 }
-.auth-name-taken {
+.input-ok {
+  border-color: var(--green) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--green) 30%, transparent) !important;
+}
+.auth-name-status {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem 0.5rem;
   font-size: 0.82rem;
-  color: var(--danger);
+  color: var(--muted);
   margin-top: -0.35rem;
+}
+.auth-name-status.status-available {
+  color: var(--green);
+}
+.auth-name-status.status-taken {
+  color: var(--danger);
 }
 .auth-name-sug {
   display: inline-flex;

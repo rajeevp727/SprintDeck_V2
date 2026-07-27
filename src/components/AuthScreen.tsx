@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useAuth, checkName } from '../lib/auth';
 import { getAccounts, forgetAccount, type RememberedAccount } from '../lib/rememberedAccounts';
 
@@ -24,7 +24,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
   const liPwRef = useRef<HTMLInputElement>(null);
 
   const [rgName, setRgName] = useState('');
-  const [rgNameTaken, setRgNameTaken] = useState(false);
+  const [rgNameStatus, setRgNameStatus] = useState<'idle' | 'short' | 'checking' | 'available' | 'taken'>('idle');
   const [rgNameSug, setRgNameSug] = useState<string[]>([]);
   const [rgEmail, setRgEmail] = useState('');
   const [rgPw, setRgPw] = useState('');
@@ -57,21 +57,35 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
     }
   }
 
-  // Check name availability on blur; if taken, surface suggestions.
-  async function checkRgName() {
+  // Live (debounced) name-availability check while signing up.
+  useEffect(() => {
     const n = rgName.trim();
-    if (n.length < 2) {
-      setRgNameTaken(false);
+    if (n.length === 0) {
+      setRgNameStatus('idle');
       setRgNameSug([]);
       return;
     }
-    const r = await checkName(n);
-    setRgNameTaken(!r.available);
-    setRgNameSug(r.available ? [] : r.suggestions);
-  }
+    if (n.length < 2) {
+      setRgNameStatus('short');
+      setRgNameSug([]);
+      return;
+    }
+    setRgNameStatus('checking');
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const r = await checkName(n);
+      if (cancelled) return;
+      setRgNameStatus(r.available ? 'available' : 'taken');
+      setRgNameSug(r.available ? [] : r.suggestions);
+    }, 450);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [rgName]);
+
   function applySuggestion(s: string) {
     setRgName(s);
-    setRgNameTaken(false);
     setRgNameSug([]);
   }
 
@@ -192,13 +206,11 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
                   autoComplete="name"
                   required
                   minLength={2}
-                  aria-invalid={rgNameTaken}
-                  className={rgNameTaken ? 'input-error' : undefined}
-                  onBlur={checkRgName}
-                  onChange={(e) => {
-                    setRgName(e.target.value);
-                    if (rgNameTaken) setRgNameTaken(false);
-                  }}
+                  aria-invalid={rgNameStatus === 'taken'}
+                  className={
+                    rgNameStatus === 'taken' ? 'input-error' : rgNameStatus === 'available' ? 'input-ok' : undefined
+                  }
+                  onChange={(e) => setRgName(e.target.value)}
                 />
               </label>
               <label>
@@ -212,18 +224,31 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
                 />
               </label>
             </div>
-            {rgNameTaken && (
-              <div className="auth-name-taken">
-                <span>That name is taken.</span>
-                {rgNameSug.length > 0 && (
-                  <span className="auth-name-sug">
-                    Try:
-                    {rgNameSug.map((s) => (
-                      <button type="button" key={s} className="auth-name-chip" onClick={() => applySuggestion(s)}>
-                        {s}
-                      </button>
-                    ))}
+            {rgNameStatus !== 'idle' && (
+              <div className={`auth-name-status status-${rgNameStatus}`}>
+                {rgNameStatus === 'short' && <span>Name must be at least 2 characters</span>}
+                {rgNameStatus === 'checking' && <span>Checking availability…</span>}
+                {rgNameStatus === 'available' && (
+                  <span>
+                    <span aria-hidden>✓</span> “{rgName.trim()}” is available
                   </span>
+                )}
+                {rgNameStatus === 'taken' && (
+                  <>
+                    <span>
+                      <span aria-hidden>✗</span> That name is taken.
+                    </span>
+                    {rgNameSug.length > 0 && (
+                      <span className="auth-name-sug">
+                        Try:
+                        {rgNameSug.map((s) => (
+                          <button type="button" key={s} className="auth-name-chip" onClick={() => applySuggestion(s)}>
+                            {s}
+                          </button>
+                        ))}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             )}
