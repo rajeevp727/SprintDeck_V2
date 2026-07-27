@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useAuth, checkName } from '../lib/auth';
+import { useAuth, checkName, peekName } from '../lib/auth';
 import { getAccounts, forgetAccount, type RememberedAccount } from '../lib/rememberedAccounts';
 
 interface Props {
@@ -70,6 +70,13 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
       setRgNameSug([]);
       return;
     }
+    // instant path — already checked this name (no network / debounce)
+    const cached = peekName(n);
+    if (cached) {
+      setRgNameStatus(cached.available ? 'available' : 'taken');
+      setRgNameSug(cached.available ? [] : cached.suggestions);
+      return;
+    }
     setRgNameStatus('checking');
     let cancelled = false;
     const t = setTimeout(async () => {
@@ -77,7 +84,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
       if (cancelled) return;
       setRgNameStatus(r.available ? 'available' : 'taken');
       setRgNameSug(r.available ? [] : r.suggestions);
-    }, 100);
+    }, 60);
     return () => {
       cancelled = true;
       clearTimeout(t);

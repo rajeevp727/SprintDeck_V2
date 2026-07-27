@@ -101,17 +101,30 @@ export interface NameCheck {
   available: boolean;
   suggestions: string[];
 }
+// Per-session cache so re-checking a name (backspace/retype) is instant — the
+// big win on slow networks, where the cost is the round-trip, not the debounce.
+const nameCheckCache = new Map<string, NameCheck>();
+// Synchronous cache peek — lets the UI resolve a already-seen name instantly
+// (no debounce, no "checking" flash, no network).
+export function peekName(name: string): NameCheck | null {
+  return nameCheckCache.get(name.trim().toLowerCase()) ?? null;
+}
 export async function checkName(name: string): Promise<NameCheck> {
+  const key = name.trim().toLowerCase();
+  const cached = nameCheckCache.get(key);
+  if (cached) return cached;
   try {
     const res = await fetch(`/api/auth/check-name?name=${encodeURIComponent(name)}`, { cache: 'no-store' });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return { available: true, suggestions: [] };
-    return {
+    const result: NameCheck = {
       available: data?.available !== false,
       suggestions: Array.isArray(data?.suggestions) ? data.suggestions : [],
     };
+    nameCheckCache.set(key, result);
+    return result;
   } catch {
-    return { available: true, suggestions: [] }; // don't block on a transient error
+    return { available: true, suggestions: [] }; // don't block/cache on a transient error
   }
 }
 
