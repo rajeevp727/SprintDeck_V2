@@ -2237,33 +2237,40 @@ a.room-code:hover {
 .profile-item {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  justify-content: center;
+  gap: 0.5rem;
   width: 100%;
-  padding: 0.62rem 0.75rem;
-  border: 1px solid transparent;
+  padding: 0.62rem 0.9rem;
+  border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  background: var(--panel-2);
+  background: transparent;
   color: var(--text);
   font-size: 0.9rem;
-  font-weight: 500;
-  text-align: left;
+  font-weight: 600;
   cursor: pointer;
-  transition: background var(--transition), border-color var(--transition), color var(--transition);
+  transition: background var(--transition), border-color var(--transition), color var(--transition),
+    box-shadow var(--transition);
 }
 .profile-item svg {
   flex: none;
-  opacity: 0.85;
 }
-.profile-item:hover {
-  background: color-mix(in srgb, var(--accent) 14%, var(--panel-2));
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+/* Change password → fills with the accent gradient */
+.profile-item:not(.danger):hover {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 35%, transparent);
 }
+/* Sign out → danger */
 .profile-item.danger {
   color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--line));
 }
 .profile-item.danger:hover {
-  background: color-mix(in srgb, var(--danger) 14%, var(--panel-2));
-  border-color: color-mix(in srgb, var(--danger) 38%, var(--line));
+  color: #fff;
+  border-color: transparent;
+  background: var(--danger);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--danger) 32%, transparent);
 }
 
 /* Change-password modal */
