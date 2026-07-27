@@ -76,6 +76,18 @@ export function logout() {
   notify();
 }
 
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  const token = getToken();
+  const res = await fetch('/api/auth/password', {
+    method: 'POST',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json', ...(token ? { 'x-auth-token': token } : {}) },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+}
+
 // Resolve the current user from the stored token (validated server-side).
 export async function refreshUser(): Promise<AuthUser | null> {
   const token = getToken();

@@ -1,11 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../lib/auth';
+
+const ChangePasswordModal = lazy(() => import('./ChangePasswordModal'));
 
 // Account chip in the header: greeting + avatar that opens a card with the
 // user's name, email and a Sign out button. Closes on outside click / Escape.
 export default function ProfileMenu() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -58,10 +61,27 @@ export default function ProfileMenu() {
               </div>
             </div>
           </div>
-          <button className="ghost profile-signout" onClick={logout}>
-            Sign out
-          </button>
+          <div className="profile-card-actions">
+            <button
+              className="ghost"
+              onClick={() => {
+                setOpen(false);
+                setShowPw(true);
+              }}
+            >
+              Change password
+            </button>
+            <button className="ghost profile-signout" onClick={logout}>
+              Sign out
+            </button>
+          </div>
         </div>
+      )}
+
+      {showPw && (
+        <Suspense fallback={null}>
+          <ChangePasswordModal onClose={() => setShowPw(false)} />
+        </Suspense>
       )}
     </div>
   );

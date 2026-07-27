@@ -69,7 +69,31 @@ app.http('login', {
   },
 });
 
-// GET /api/auth/me   (Authorization: Bearer <token>)
+// POST /api/auth/password  { currentPassword, newPassword }   (header x-auth-token)
+app.http('changePassword', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'auth/password',
+  handler: async (req) => {
+    if (!secret()) return bad('Auth is not configured', 503);
+    if (rateLimited(req, 'pwchange', 10, 60_000)) return bad('Too many attempts — slow down', 429);
+    const token = req.headers.get('x-auth-token') || '';
+    const payload = token && jwt.verify(token, secret());
+    if (!payload) return bad('Please sign in again', 401);
+    const { currentPassword, newPassword } = await readBody(req);
+    if (String(newPassword || '').length < minPassword) {
+      return bad(`New password must be at least ${minPassword} characters`);
+    }
+    const user = await users.getByEmail(payload.email);
+    if (!user || !users.verifyPassword(user, currentPassword)) {
+      return bad('Current password is incorrect', 401);
+    }
+    await users.updatePassword(payload.email, newPassword);
+    return ok({ ok: true });
+  },
+});
+
+// GET /api/auth/me   (header x-auth-token)
 app.http('authMe', {
   methods: ['GET'],
   authLevel: 'anonymous',

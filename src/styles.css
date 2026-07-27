@@ -2229,9 +2229,67 @@ a.room-code:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.profile-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.profile-card-actions .ghost {
+  width: 100%;
+}
 .profile-signout {
   width: 100%;
-  margin-top: 0.2rem;
+}
+
+/* Change-password modal */
+.pw-modal {
+  position: relative;
+  width: min(420px, calc(100vw - 2rem));
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.75rem 1.6rem;
+}
+.pw-modal h3 {
+  margin: 0;
+}
+.pw-modal .auth-sub {
+  margin: 0.4rem 0 1.1rem;
+}
+.pw-show {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem !important;
+  font-size: 0.85rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+.pw-show input {
+  width: auto;
+}
+.pw-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+.pw-actions .primary {
+  flex: 1;
+}
+.pw-done {
+  text-align: center;
+  padding: 1rem 0 0.5rem;
+}
+.pw-check {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 0.8rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  color: #fff;
+  background: linear-gradient(135deg, var(--green), #14b866);
 }
 .dash-lead {
   margin: 1.75rem 0 0;

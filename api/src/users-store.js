@@ -81,6 +81,18 @@ async function createUser(email, password, name) {
   return { user };
 }
 
+// Set a new password (fresh salt + hash). Returns the user, or null if missing.
+async function updatePassword(email, newPassword) {
+  const user = await getByEmail(email);
+  if (!user) return null;
+  user.salt = crypto.randomBytes(16).toString('hex');
+  user.passwordHash = hashPassword(newPassword, user.salt);
+  const c = getContainer();
+  if (c) await (await c).items.upsert(user);
+  else memory.set(user.id, user);
+  return user;
+}
+
 function verifyPassword(user, password) {
   if (!user || !user.salt || !user.passwordHash) return false;
   const got = Buffer.from(hashPassword(password, user.salt));
@@ -93,4 +105,4 @@ function publicUser(user) {
   return { id: user.id, email: user.email, name: user.name || '' };
 }
 
-module.exports = { createUser, getByEmail, verifyPassword, publicUser };
+module.exports = { createUser, getByEmail, updatePassword, verifyPassword, publicUser };
