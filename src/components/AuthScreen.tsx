@@ -77,7 +77,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
       if (cancelled) return;
       setRgNameStatus(r.available ? 'available' : 'taken');
       setRgNameSug(r.available ? [] : r.suggestions);
-    }, 450);
+    }, 100);
     return () => {
       cancelled = true;
       clearTimeout(t);
