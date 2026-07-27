@@ -2234,11 +2234,36 @@ a.room-code:hover {
   flex-direction: column;
   gap: 0.4rem;
 }
-.profile-card-actions .ghost {
+.profile-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   width: 100%;
+  padding: 0.62rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
-.profile-signout {
-  width: 100%;
+.profile-item svg {
+  flex: none;
+  opacity: 0.85;
+}
+.profile-item:hover {
+  background: color-mix(in srgb, var(--accent) 14%, var(--panel-2));
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+.profile-item.danger {
+  color: var(--danger);
+}
+.profile-item.danger:hover {
+  background: color-mix(in srgb, var(--danger) 14%, var(--panel-2));
+  border-color: color-mix(in srgb, var(--danger) 38%, var(--line));
 }
 
 /* Change-password modal */
