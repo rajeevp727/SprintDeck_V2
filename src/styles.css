@@ -2715,7 +2715,9 @@ a.room-code:hover {
 .auth-face.back {
   position: absolute;
   inset: 0;
-  padding: 2rem 1.9rem;
+  /* less right padding — the diagonal clip already tightens the left, so a full
+     right padding looked lopsided */
+  padding: 2rem 1rem 2rem 1.9rem;
   clip-path: polygon(28px 0, 100% 0, 100% 100%, 0 100%);
   /* pre-rotate on the SAME tilted axis so it lands upright after the flip */
   transform: rotate3d(-0.052, 0.999, 0, 180deg);
