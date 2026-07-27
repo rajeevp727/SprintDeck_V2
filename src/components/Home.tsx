@@ -3,6 +3,7 @@ import { api } from '../lib/api';
 import { saveIdentity } from '../lib/storage';
 import { useAuth } from '../lib/auth';
 import AdBanner from './AdBanner';
+import ThemeToggle from './ThemeToggle';
 
 interface Props {
   initialCode?: string;
@@ -62,6 +63,9 @@ export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, on
 
   return (
     <div className="home">
+      <div className="page-theme-toggle">
+        <ThemeToggle />
+      </div>
       {onBack && (
         <button className="ghost auth-back home-back" onClick={onBack} title="Back" aria-label="Back">
           <span aria-hidden>←</span>

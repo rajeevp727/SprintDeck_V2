@@ -200,7 +200,9 @@ input:focus {
   cursor: default;
 }
 .primary {
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  background-image: linear-gradient(115deg, var(--accent), var(--accent-2), #22d3ee, var(--accent));
+  background-size: 220% 220%;
+  animation: aurora-flow 9s ease-in-out infinite;
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
@@ -210,6 +212,23 @@ input:focus {
   letter-spacing: 0.01em;
   box-shadow: 0 4px 14px rgba(79, 124, 255, 0.32);
   transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
+}
+@keyframes aurora-flow {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+.primary:disabled {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .primary {
+    animation: none;
+  }
 }
 .primary:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -2150,6 +2169,18 @@ a.room-code:hover {
   gap: 1rem;
   flex-wrap: wrap;
 }
+.dash-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+/* floating theme toggle for logged-out screens (Landing / Home) */
+.page-theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 40;
+}
 .dash-head .brand {
   display: inline-flex;
   align-items: center;
@@ -2435,23 +2466,54 @@ a.room-code:hover {
   }
 }
 .dash-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.5rem;
   text-align: left;
   padding: 1.6rem;
-  background: var(--panel);
-  border: 1px solid var(--line);
+  background: transparent;
+  border: none;
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+/* holographic edge — static at rest, spins up on hover */
+.dash-card::before {
+  content: '';
+  position: absolute;
+  inset: -150%;
+  z-index: -2;
+  background: conic-gradient(from 0deg, #6366f1, #22d3ee, #a855f7, #f43f5e, #22d3ee, #6366f1);
+  opacity: 0.55;
+  animation: holo-spin 8s linear infinite;
+  animation-play-state: paused;
+  transition: opacity var(--transition);
+}
+.dash-card::after {
+  content: '';
+  position: absolute;
+  inset: 1.5px;
+  z-index: -1;
+  border-radius: calc(var(--radius) - 1.5px);
+  background: var(--panel);
 }
 .dash-card:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
   box-shadow: var(--shadow);
+}
+.dash-card:hover::before {
+  opacity: 1;
+  animation-play-state: running;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dash-card:hover::before {
+    animation: none;
+  }
 }
 .dash-card-icon {
   font-size: 2rem;

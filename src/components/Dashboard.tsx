@@ -1,4 +1,5 @@
 import ProfileMenu from './ProfileMenu';
+import ThemeToggle from './ThemeToggle';
 
 interface Props {
   onPlanning: () => void;
@@ -17,7 +18,10 @@ export default function Dashboard({ onPlanning, onRetro, onPrivacy, onTerms, onS
           <span className="brand-mark" aria-hidden>♠</span>
           <h1>SprintDeck</h1>
         </div>
-        <ProfileMenu />
+        <div className="dash-head-actions">
+          <ThemeToggle />
+          <ProfileMenu />
+        </div>
       </header>
 
       <p className="dash-lead">Choose a ceremony to run with your team.</p>

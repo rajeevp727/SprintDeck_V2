@@ -1,3 +1,5 @@
+import ThemeToggle from './ThemeToggle';
+
 interface Props {
   onSignIn: () => void;
   onGuest: () => void;
@@ -30,6 +32,9 @@ const features = [
 export default function Landing({ onSignIn, onGuest }: Props) {
   return (
     <div className="landing">
+      <div className="page-theme-toggle">
+        <ThemeToggle />
+      </div>
       <header className="landing-hero">
         <div className="brand">
           <span className="brand-mark" aria-hidden>♠</span>
