@@ -38,6 +38,21 @@ function tokenFor(user, remember) {
   return jwt.sign({ sub: user.id, email: user.email }, secret(), remember ? REMEMBER_TTL : SESSION_TTL);
 }
 
+// Build a few available alternatives when a name is taken.
+async function nameSuggestions(name, max = 3) {
+  const base = String(name || '').trim().replace(/\s+/g, '').slice(0, 50) || 'user';
+  const pool = [];
+  for (let i = 1; i <= 6; i++) pool.push(`${base}${i}`);
+  pool.push(`${base}${new Date().getFullYear() % 100}`);
+  for (let i = 0; i < 6; i++) pool.push(`${base}${Math.floor(10 + Math.random() * 990)}`);
+  const out = [];
+  for (const cand of pool) {
+    if (out.length >= max) break;
+    if (await users.isNameAvailable(cand)) out.push(cand);
+  }
+  return out;
+}
+
 // POST /api/auth/register  { email, password, name? }
 app.http('register', {
   methods: ['POST'],
@@ -56,6 +71,21 @@ app.http('register', {
     if (result.error === 'email-exists') return bad('An account with that email already exists', 409);
     if (result.error === 'name-exists') return bad('That name is already taken — pick another', 409);
     return ok({ token: tokenFor(result.user, remember !== false), user: users.publicUser(result.user) });
+  },
+});
+
+// GET /api/auth/check-name?name=Foo  → { available, suggestions[] }
+app.http('checkName', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'auth/check-name',
+  handler: async (req) => {
+    if (!secret()) return ok({ available: true, suggestions: [] });
+    if (rateLimited(req, 'checkname', 40, 60_000)) return bad('Too many attempts — slow down', 429);
+    const name = String(req.query.get('name') || '').trim();
+    if (name.length < 2) return ok({ available: false, suggestions: [] });
+    if (await users.isNameAvailable(name)) return ok({ available: true, suggestions: [] });
+    return ok({ available: false, suggestions: await nameSuggestions(name) });
   },
 });
 

@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react';
-import { useAuth } from '../lib/auth';
+import { useAuth, checkName } from '../lib/auth';
 import { getAccounts, forgetAccount, type RememberedAccount } from '../lib/rememberedAccounts';
 
 interface Props {
@@ -24,6 +24,8 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
   const liPwRef = useRef<HTMLInputElement>(null);
 
   const [rgName, setRgName] = useState('');
+  const [rgNameTaken, setRgNameTaken] = useState(false);
+  const [rgNameSug, setRgNameSug] = useState<string[]>([]);
   const [rgEmail, setRgEmail] = useState('');
   const [rgPw, setRgPw] = useState('');
   const [rgShowPw, setRgShowPw] = useState(false);
@@ -53,6 +55,24 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
       setLiErr((err as Error).message);
       setLiBusy(false);
     }
+  }
+
+  // Check name availability on blur; if taken, surface suggestions.
+  async function checkRgName() {
+    const n = rgName.trim();
+    if (n.length < 2) {
+      setRgNameTaken(false);
+      setRgNameSug([]);
+      return;
+    }
+    const r = await checkName(n);
+    setRgNameTaken(!r.available);
+    setRgNameSug(r.available ? [] : r.suggestions);
+  }
+  function applySuggestion(s: string) {
+    setRgName(s);
+    setRgNameTaken(false);
+    setRgNameSug([]);
   }
 
   async function doRegister(e: FormEvent) {
@@ -172,7 +192,13 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
                   autoComplete="name"
                   required
                   minLength={2}
-                  onChange={(e) => setRgName(e.target.value)}
+                  aria-invalid={rgNameTaken}
+                  className={rgNameTaken ? 'input-error' : undefined}
+                  onBlur={checkRgName}
+                  onChange={(e) => {
+                    setRgName(e.target.value);
+                    if (rgNameTaken) setRgNameTaken(false);
+                  }}
                 />
               </label>
               <label>
@@ -186,6 +212,21 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
                 />
               </label>
             </div>
+            {rgNameTaken && (
+              <div className="auth-name-taken">
+                <span>That name is taken.</span>
+                {rgNameSug.length > 0 && (
+                  <span className="auth-name-sug">
+                    Try:
+                    {rgNameSug.map((s) => (
+                      <button type="button" key={s} className="auth-name-chip" onClick={() => applySuggestion(s)}>
+                        {s}
+                      </button>
+                    ))}
+                  </span>
+                )}
+              </div>
+            )}
             <label>
               Password
               <input

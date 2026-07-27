@@ -96,6 +96,25 @@ export async function changePassword(currentPassword: string, newPassword: strin
   if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
 }
 
+// Check whether a name (username) is free; if taken, get a few suggestions.
+export interface NameCheck {
+  available: boolean;
+  suggestions: string[];
+}
+export async function checkName(name: string): Promise<NameCheck> {
+  try {
+    const res = await fetch(`/api/auth/check-name?name=${encodeURIComponent(name)}`, { cache: 'no-store' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { available: true, suggestions: [] };
+    return {
+      available: data?.available !== false,
+      suggestions: Array.isArray(data?.suggestions) ? data.suggestions : [],
+    };
+  } catch {
+    return { available: true, suggestions: [] }; // don't block on a transient error
+  }
+}
+
 // Resolve the current user from the stored token (validated server-side).
 export async function refreshUser(): Promise<AuthUser | null> {
   const token = getToken();

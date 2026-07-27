@@ -87,26 +87,73 @@ async function getByName(name) {
 }
 
 // Create a user. Returns { user } or { error: 'email-exists' | 'name-exists' }.
-// Both email and name must be unique (name case-insensitively).
+// Uniqueness is enforced at the DB level: the user doc's id IS the (lowercased)
+// email, and a separate "name:<nameLower>" reservation doc guards the name —
+// both inserted with items.create (not upsert), which throws 409 on a duplicate.
 async function createUser(email, password, name) {
   const id = normalizeEmail(email);
   const cleanName = String(name || '').trim().slice(0, 80);
+  const nameLower = normalizeName(cleanName);
+
+  // Friendly pre-checks (nice error without relying on the 409).
   if (await getByEmail(id)) return { error: 'email-exists' };
-  if (cleanName && (await getByName(cleanName))) return { error: 'name-exists' };
+  if (nameLower && (await getByName(cleanName))) return { error: 'name-exists' };
+
   const salt = crypto.randomBytes(16).toString('hex');
   const user = {
     id,
     email: id,
     name: cleanName,
-    nameLower: normalizeName(cleanName),
+    nameLower,
     salt,
     passwordHash: hashPassword(password, salt),
     createdAt: Date.now(),
   };
+
   const c = getContainer();
-  if (c) await (await c).items.upsert(user);
-  else memory.set(id, user);
+  if (!c) {
+    // In-memory fallback (single process — the pre-checks above are race-free).
+    if (memory.has(id)) return { error: 'email-exists' };
+    for (const u of memory.values()) {
+      if (nameLower && (u.nameLower || normalizeName(u.name)) === nameLower) return { error: 'name-exists' };
+    }
+    memory.set(id, user);
+    if (nameLower) memory.set(`name:${nameLower}`, { id: `name:${nameLower}`, owner: id });
+    return { user };
+  }
+
+  const container = await c;
+  // Email uniqueness — create throws 409 if the id (=email) already exists.
+  try {
+    await container.items.create(user);
+  } catch (err) {
+    if (err && err.code === 409) return { error: 'email-exists' };
+    throw err;
+  }
+  // Name uniqueness — reservation doc; roll back the user doc if the name is taken.
+  if (nameLower) {
+    try {
+      await container.items.create({ id: `name:${nameLower}`, type: 'name-reservation', owner: id, createdAt: Date.now() });
+    } catch (err) {
+      if (err && err.code === 409) {
+        try {
+          await container.item(id, id).delete();
+        } catch {
+          /* best-effort rollback */
+        }
+        return { error: 'name-exists' };
+      }
+      throw err;
+    }
+  }
   return { user };
+}
+
+// Is a name free? (true when no user currently uses it.)
+async function isNameAvailable(name) {
+  const n = normalizeName(name);
+  if (!n) return false;
+  return !(await getByName(name));
 }
 
 // Set a new password (fresh salt + hash). Returns the user, or null if missing.
@@ -133,4 +180,4 @@ function publicUser(user) {
   return { id: user.id, email: user.email, name: user.name || '' };
 }
 
-module.exports = { createUser, getByEmail, getByName, updatePassword, verifyPassword, publicUser };
+module.exports = { createUser, getByEmail, getByName, isNameAvailable, updatePassword, verifyPassword, publicUser };
