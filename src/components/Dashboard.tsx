@@ -1,4 +1,4 @@
-import { useAuth } from '../lib/auth';
+import ProfileMenu from './ProfileMenu';
 
 interface Props {
   onPlanning: () => void;
@@ -10,8 +10,6 @@ interface Props {
 
 // The home for signed-in (or guest) users: pick a ceremony.
 export default function Dashboard({ onPlanning, onRetro, onPrivacy, onTerms, onSecurity }: Props) {
-  const { user, logout } = useAuth();
-
   return (
     <div className="dash">
       <header className="dash-head">
@@ -19,16 +17,7 @@ export default function Dashboard({ onPlanning, onRetro, onPrivacy, onTerms, onS
           <span className="brand-mark" aria-hidden>♠</span>
           <h1>SprintDeck</h1>
         </div>
-        {user && (
-          <div className="dash-user">
-            <span>
-              Hi, <strong>{user.name || user.email}</strong>
-            </span>
-            <button className="ghost" onClick={logout}>
-              Sign out
-            </button>
-          </div>
-        )}
+        <ProfileMenu />
       </header>
 
       <p className="dash-lead">Choose a ceremony to run with your team.</p>
