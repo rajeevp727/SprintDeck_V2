@@ -317,16 +317,18 @@ input:focus {
 }
 :root[data-perf='lite'] .ghost,
 :root[data-perf='lite'] .profile-split,
-:root[data-perf='lite'] .profile-half,
-:root[data-perf='lite'] .auth-tabs {
+:root[data-perf='lite'] .profile-half {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
 /* the paper-fold becomes a quick fade rather than a 3D hinge */
-:root[data-perf='lite'] .auth-split.active-signup .half-login,
-:root[data-perf='lite'] .auth-split.active-login .half-signup {
+:root[data-perf='lite'] .auth-split.active-signup .half-login .auth-panel,
+:root[data-perf='lite'] .auth-split.active-login .half-signup .auth-panel {
   transform: none !important;
-  opacity: 0.5;
+}
+:root[data-perf='lite'] .pw-toggle {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 /* Ad slots */
@@ -2336,11 +2338,6 @@ a.room-code:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.profile-card-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
 /* Holographic split pill — animated aurora border ring + neon halves */
 .profile-split {
   position: relative;
@@ -2686,52 +2683,54 @@ a.room-code:hover {
 .auth-half {
   flex: 1;
   padding: 2rem 1.75rem;
+  position: relative;
+  z-index: 1;
+  min-height: 440px;
+}
+.auth-panel {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  position: relative;
-  z-index: 1;
   backface-visibility: hidden;
-  transition: transform 0.55s cubic-bezier(0.2, 0.75, 0.25, 1), opacity 0.4s ease;
+  transition: transform 0.6s cubic-bezier(0.2, 0.75, 0.25, 1), opacity 0.45s ease;
 }
-.half-login {
-  transform-origin: right center;
-}
-.half-signup {
-  transform-origin: left center;
-}
-.auth-half h2 {
+.auth-panel h2 {
   margin: 0;
 }
-/* crease shadow that deepens as the sheet folds toward the slash */
-.auth-half::after {
-  content: '';
-  position: absolute;
-  inset: 0;
+.half-login .auth-panel {
+  transform-origin: right center;
+}
+.half-signup .auth-panel {
+  transform-origin: left center;
+}
+/* Fold the inactive half's panel completely — hinged on the slash and folding
+   BEHIND (away from the viewer), tilted along the diagonal spine. */
+.auth-split.active-signup .half-login .auth-panel {
+  transform: rotate3d(-0.12, 1, 0, -90deg);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.4s ease;
 }
-.half-login::after {
-  background: linear-gradient(to right, transparent 40%, rgba(0, 0, 0, 0.45));
+.auth-split.active-login .half-signup .auth-panel {
+  transform: rotate3d(-0.12, 1, 0, 90deg);
+  opacity: 0;
+  pointer-events: none;
 }
-.half-signup::after {
-  background: linear-gradient(to left, transparent 40%, rgba(0, 0, 0, 0.45));
+/* Counterpart CTA revealed where the folded panel was. */
+.auth-unfold {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  min-width: 60%;
+  transform: translate(-50%, -50%) scale(0.9);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
 }
-/* fold the inactive half back toward the slash */
-.auth-split.active-signup .half-login {
-  transform: rotateY(72deg);
-  opacity: 0.5;
-  cursor: pointer;
-}
-.auth-split.active-login .half-signup {
-  transform: rotateY(-72deg);
-  opacity: 0.5;
-  cursor: pointer;
-}
-.auth-split.active-signup .half-login::after,
-.auth-split.active-login .half-signup::after {
+.auth-split.active-signup .half-login .auth-unfold,
+.auth-split.active-login .half-signup .auth-unfold {
   opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
 }
 /* Full-height "/" divider (diagonal) — the spine both halves fold against. */
 .auth-slash {
@@ -2754,13 +2753,16 @@ a.room-code:hover {
     flex-direction: column;
     perspective: none;
   }
-  .auth-half {
+  .auth-panel {
     transform: none !important;
     opacity: 1 !important;
-    cursor: auto !important;
+    pointer-events: auto !important;
   }
-  .auth-half::after {
-    display: none;
+  .auth-unfold {
+    display: none !important;
+  }
+  .auth-half {
+    min-height: 0;
   }
   .auth-slash {
     width: auto;
@@ -2770,10 +2772,12 @@ a.room-code:hover {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .auth-split.active-signup .half-login,
-  .auth-split.active-login .half-signup {
+  .auth-panel {
+    transition: opacity 0.2s ease;
+  }
+  .auth-split.active-signup .half-login .auth-panel,
+  .auth-split.active-login .half-signup .auth-panel {
     transform: none;
-    opacity: 0.5;
   }
 }
 /* Saved-account suggestions (Instagram-style) */
@@ -2896,6 +2900,44 @@ a.room-code:hover {
 .auth-hint {
   font-size: 0.72rem;
   color: var(--muted);
+}
+/* Password field with a futuristic show/hide eye button */
+.pw-field {
+  position: relative;
+  display: flex;
+}
+.pw-field input {
+  flex: 1;
+  padding-right: 2.9rem;
+}
+.pw-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--muted);
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  transition: color var(--transition), border-color var(--transition), box-shadow var(--transition),
+    background var(--transition);
+}
+.pw-toggle:hover {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 4px 14px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.pw-toggle:active {
+  transform: translateY(-50%) scale(0.94);
 }
 .retro-ended {
   margin-top: 1rem;
