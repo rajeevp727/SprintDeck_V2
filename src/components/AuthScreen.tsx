@@ -8,13 +8,13 @@ interface Props {
   onBack: () => void;
 }
 
-// A single leaf that flips like a book page: Log in on the front, Create account
-// on the back. Only one side ever shows — the other is folded behind, hidden.
+// Two leaves that meet at a diagonal "/" spine: Log in fills the left up to the
+// slash, Create account the right. Switching folds one leaf away at the spine
+// while the other opens — like turning a book page across the "/".
 export default function AuthScreen({ onAuthed, onBack }: Props) {
   const { login, register } = useAuth();
   const [active, setActive] = useState<'login' | 'signup'>('login');
   const [accounts, setAccounts] = useState<RememberedAccount[]>(getAccounts());
-  const flipped = active === 'signup';
 
   const [liEmail, setLiEmail] = useState('');
   const [liPw, setLiPw] = useState('');
@@ -33,6 +33,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
 
   // Tap a saved account → prefill its email and jump to the password field.
   function pickAccount(a: RememberedAccount) {
+    setActive('login');
     setLiEmail(a.email);
     setLiErr('');
     requestAnimationFrame(() => liPwRef.current?.focus());
@@ -75,150 +76,156 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
         <span className="auth-back-label">Back</span>
       </button>
 
-      <div className="auth-flip-wrap">
-        <div className={`auth-flip ${flipped ? 'flipped' : ''}`}>
-          {/* ---- front: Log in ---- */}
-          <section className="auth-face front" aria-hidden={flipped}>
-            <h2>Log in</h2>
+      <div className="auth-book">
+        <div className="auth-slash-line" aria-hidden />
 
-            {accounts.length > 0 && (
-              <div className="auth-suggest">
-                <div className="auth-suggest-label">Saved accounts</div>
-                <ul>
-                  {accounts.map((a) => (
-                    <li key={a.email}>
-                      <button type="button" className="auth-suggest-row" onClick={() => pickAccount(a)}>
-                        <span className="auth-suggest-avatar" aria-hidden>
-                          {(a.name || a.email).charAt(0).toUpperCase()}
-                        </span>
-                        <span className="auth-suggest-id">
-                          <span className="auth-suggest-name">{a.name || a.email.split('@')[0]}</span>
-                          <span className="auth-suggest-email">{a.email}</span>
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        className="auth-suggest-x"
-                        onClick={() => forget(a.email)}
-                        aria-label={`Forget ${a.email}`}
-                        title="Forget this account"
-                      >
-                        ✕
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+        {/* ---- Log in (left leaf) ---- */}
+        <section
+          className={`auth-leaf leaf-login ${active === 'login' ? 'open' : 'folded'}`}
+          aria-hidden={active !== 'login'}
+        >
+          <h2>Log in</h2>
 
-            <form className="auth-form" onSubmit={doLogin}>
-              <label>
-                Email
+          {accounts.length > 0 && (
+            <div className="auth-suggest">
+              <div className="auth-suggest-label">Saved accounts</div>
+              <ul>
+                {accounts.map((a) => (
+                  <li key={a.email}>
+                    <button type="button" className="auth-suggest-row" onClick={() => pickAccount(a)}>
+                      <span className="auth-suggest-avatar" aria-hidden>
+                        {(a.name || a.email).charAt(0).toUpperCase()}
+                      </span>
+                      <span className="auth-suggest-id">
+                        <span className="auth-suggest-name">{a.name || a.email.split('@')[0]}</span>
+                        <span className="auth-suggest-email">{a.email}</span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="auth-suggest-x"
+                      onClick={() => forget(a.email)}
+                      aria-label={`Forget ${a.email}`}
+                      title="Forget this account"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <form className="auth-form" onSubmit={doLogin}>
+            <label>
+              Email
+              <input
+                type="email"
+                value={liEmail}
+                autoComplete="email"
+                required
+                onChange={(e) => setLiEmail(e.target.value)}
+              />
+            </label>
+            <label>
+              Password
+              <div className="pw-field">
                 <input
-                  type="email"
-                  value={liEmail}
-                  autoComplete="email"
+                  ref={liPwRef}
+                  type={liShowPw ? 'text' : 'password'}
+                  value={liPw}
+                  autoComplete="current-password"
                   required
-                  onChange={(e) => setLiEmail(e.target.value)}
+                  onChange={(e) => setLiPw(e.target.value)}
                 />
-              </label>
-              <label>
-                Password
-                <div className="pw-field">
-                  <input
-                    ref={liPwRef}
-                    type={liShowPw ? 'text' : 'password'}
-                    value={liPw}
-                    autoComplete="current-password"
-                    required
-                    onChange={(e) => setLiPw(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="pw-toggle"
-                    onClick={() => setLiShowPw((s) => !s)}
-                    aria-label={liShowPw ? 'Hide password' : 'Show password'}
-                    aria-pressed={liShowPw}
-                    title={liShowPw ? 'Hide password' : 'Show password'}
-                    tabIndex={-1}
-                  >
-                    {liShowPw ? <EyeOffIcon /> : <EyeIcon />}
-                  </button>
-                </div>
-              </label>
-              <label className="auth-remember">
-                <input type="checkbox" checked={liRemember} onChange={(e) => setLiRemember(e.target.checked)} />
-                <span>
-                  Remember me <span className="auth-remember-note">— keep me signed in for 2 sprints (~28 days)</span>
-                </span>
-              </label>
-              <div className="auth-cta">
-                <button className="primary" type="submit" disabled={liBusy}>
-                  {liBusy ? 'Logging in…' : 'Log in'}
-                </button>
-                <button type="button" className="ghost auth-switch-btn" onClick={() => setActive('signup')}>
-                  Create account
+                <button
+                  type="button"
+                  className="pw-toggle"
+                  onClick={() => setLiShowPw((s) => !s)}
+                  aria-label={liShowPw ? 'Hide password' : 'Show password'}
+                  aria-pressed={liShowPw}
+                  title={liShowPw ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  {liShowPw ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
               </div>
-              {liErr && <p className="error">{liErr}</p>}
-            </form>
-          </section>
+            </label>
+            <label className="auth-remember">
+              <input type="checkbox" checked={liRemember} onChange={(e) => setLiRemember(e.target.checked)} />
+              <span>
+                Remember me <span className="auth-remember-note">— keep me signed in for 2 sprints (~28 days)</span>
+              </span>
+            </label>
+            <div className="auth-cta">
+              <button className="primary" type="submit" disabled={liBusy}>
+                {liBusy ? 'Logging in…' : 'Log in'}
+              </button>
+              <button type="button" className="ghost auth-switch-btn" onClick={() => setActive('signup')}>
+                Create account
+              </button>
+            </div>
+            {liErr && <p className="error">{liErr}</p>}
+          </form>
+        </section>
 
-          {/* ---- back: Create account ---- */}
-          <section className="auth-face back" aria-hidden={!flipped}>
-            <h2>Create account</h2>
-            <form className="auth-form" onSubmit={doRegister}>
-              <label>
-                Name
-                <input value={rgName} autoComplete="name" onChange={(e) => setRgName(e.target.value)} />
-              </label>
-              <label>
-                Email
+        {/* ---- Create account (right leaf) ---- */}
+        <section
+          className={`auth-leaf leaf-create ${active === 'signup' ? 'open' : 'folded'}`}
+          aria-hidden={active !== 'signup'}
+        >
+          <h2>Create account</h2>
+          <form className="auth-form" onSubmit={doRegister}>
+            <label>
+              Name
+              <input value={rgName} autoComplete="name" onChange={(e) => setRgName(e.target.value)} />
+            </label>
+            <label>
+              Email
+              <input
+                type="email"
+                value={rgEmail}
+                autoComplete="email"
+                required
+                onChange={(e) => setRgEmail(e.target.value)}
+              />
+            </label>
+            <label>
+              Password
+              <div className="pw-field">
                 <input
-                  type="email"
-                  value={rgEmail}
-                  autoComplete="email"
+                  type={rgShowPw ? 'text' : 'password'}
+                  value={rgPw}
+                  autoComplete="new-password"
+                  minLength={8}
                   required
-                  onChange={(e) => setRgEmail(e.target.value)}
+                  onChange={(e) => setRgPw(e.target.value)}
                 />
-              </label>
-              <label>
-                Password
-                <div className="pw-field">
-                  <input
-                    type={rgShowPw ? 'text' : 'password'}
-                    value={rgPw}
-                    autoComplete="new-password"
-                    minLength={8}
-                    required
-                    onChange={(e) => setRgPw(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="pw-toggle"
-                    onClick={() => setRgShowPw((s) => !s)}
-                    aria-label={rgShowPw ? 'Hide password' : 'Show password'}
-                    aria-pressed={rgShowPw}
-                    title={rgShowPw ? 'Hide password' : 'Show password'}
-                    tabIndex={-1}
-                  >
-                    {rgShowPw ? <EyeOffIcon /> : <EyeIcon />}
-                  </button>
-                </div>
-                <span className="auth-hint">At least 8 characters</span>
-              </label>
-              <div className="auth-cta">
-                <button className="primary" type="submit" disabled={rgBusy}>
-                  {rgBusy ? 'Creating…' : 'Create account'}
-                </button>
-                <button type="button" className="ghost auth-switch-btn" onClick={() => setActive('login')}>
-                  Log in
+                <button
+                  type="button"
+                  className="pw-toggle"
+                  onClick={() => setRgShowPw((s) => !s)}
+                  aria-label={rgShowPw ? 'Hide password' : 'Show password'}
+                  aria-pressed={rgShowPw}
+                  title={rgShowPw ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  {rgShowPw ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
               </div>
-              {rgErr && <p className="error">{rgErr}</p>}
-            </form>
-          </section>
-        </div>
+              <span className="auth-hint">At least 8 characters</span>
+            </label>
+            <div className="auth-cta">
+              <button className="primary" type="submit" disabled={rgBusy}>
+                {rgBusy ? 'Creating…' : 'Create account'}
+              </button>
+              <button type="button" className="ghost auth-switch-btn" onClick={() => setActive('login')}>
+                Log in
+              </button>
+            </div>
+            {rgErr && <p className="error">{rgErr}</p>}
+          </form>
+        </section>
       </div>
     </div>
   );

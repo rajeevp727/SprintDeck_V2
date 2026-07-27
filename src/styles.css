@@ -321,9 +321,12 @@ input:focus {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
-/* the page-flip becomes an instant swap rather than a 3D turn */
-:root[data-perf='lite'] .auth-flip {
+/* the page-fold becomes an instant swap rather than a 3D turn */
+:root[data-perf='lite'] .auth-leaf {
   transition: none !important;
+}
+:root[data-perf='lite'] .auth-leaf.folded {
+  transform: none !important;
 }
 :root[data-perf='lite'] .pw-toggle {
   -webkit-backdrop-filter: none !important;
@@ -2667,80 +2670,80 @@ a.room-code:hover {
   max-width: 5rem;
   opacity: 1;
 }
-/* A leaf hinged on a fixed central "/" spine. It sits on the left (Log in) and
-   flips ACROSS the slash to the right, showing its back (Create account). */
-.auth-flip-wrap {
+/* Two leaves that meet at a fixed diagonal "/" spine. Each is pinned to top:0
+   and to the slash (edges coincide at width 50%+14px), so both share the exact
+   same top and touch the slash with 0 gap. Switching folds one away at the spine
+   while the other opens. */
+.auth-book {
   position: relative;
   width: min(920px, 100%);
+  height: 540px;
   margin: 0 auto;
   perspective: 2400px;
 }
-.auth-flip {
-  position: relative;
-  width: calc(50% - 15px);
-  transform-origin: right center; /* hinge on the central spine */
-  transform-style: preserve-3d;
-  transition: transform 0.9s cubic-bezier(0.2, 0.75, 0.25, 1);
-}
-/* the "/" — drawn on the NON-flipping wrapper, right on the hinge line
-   (flip's right edge = 50% - 15px), so it stays put while the card flips across
-   it and sits exactly on both cards' clipped edge → 0 gap, visible both sides.
-   Tilt matches the 28px/540 clip (3°). */
-.auth-flip-wrap::before {
-  content: '';
+.auth-leaf {
   position: absolute;
   top: 0;
-  left: calc(50% - 15px);
   height: 540px;
-  width: 2px;
-  z-index: 5;
-  transform-origin: top center;
-  transform: rotate(3deg);
-  background: linear-gradient(to bottom, transparent, var(--muted) 14%, var(--muted) 86%, transparent);
-  opacity: 0.55;
-  pointer-events: none;
-}
-.auth-flip.flipped {
-  /* swing across the spine on the SLASH's diagonal axis (3° tilt), not vertical */
-  transform: rotate3d(-0.052, 0.999, 0, -180deg);
-}
-.auth-face {
-  width: 100%;
-  /* fixed height so front (Log in) and back (Create account) share the exact
-     same top & bottom when flipping */
-  height: 540px;
+  width: calc(50% + 14px);
   display: flex;
   flex-direction: column;
   gap: 1rem;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  /* no filter/box-shadow here — either would flatten the 3D or be clipped,
-     and a filter can make the browser ignore backface-visibility */
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  transition: transform 0.85s cubic-bezier(0.2, 0.75, 0.25, 1), opacity 0.55s ease;
 }
-.auth-face h2 {
+.auth-leaf h2 {
   margin: 0;
 }
-/* front (Log in) — fills the LEFT, its right edge cut along the "/" (flush) */
-.auth-face.front {
-  position: relative;
+/* Log in — left, right edge cut along the "/" */
+.leaf-login {
+  left: 0;
+  transform-origin: right center;
   padding: 2rem 1.9rem;
   clip-path: polygon(0 0, 100% 0, calc(100% - 28px) 100%, 0 100%);
 }
-/* back (Create account) — fills the RIGHT, its left edge cut along the "/" */
-.auth-face.back {
-  position: absolute;
-  inset: 0;
-  /* less right padding — the diagonal clip already tightens the left, so a full
-     right padding looked lopsided */
-  padding: 2rem 1rem 2rem 1.9rem;
+/* Create account — right, left edge cut along the "/" (same line as Log in's) */
+.leaf-create {
+  right: 0;
+  transform-origin: left center;
+  padding: 2rem 1.9rem;
   clip-path: polygon(28px 0, 100% 0, 100% 100%, 0 100%);
-  /* pre-rotate on the SAME tilted axis so it lands upright after the flip */
-  transform: rotate3d(-0.052, 0.999, 0, 180deg);
 }
-/* submit + counterpart buttons stacked on each face */
+.auth-leaf.open {
+  transform: rotateY(0deg);
+  opacity: 1;
+  z-index: 2;
+}
+.leaf-login.folded {
+  transform: rotateY(-105deg);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.leaf-create.folded {
+  transform: rotateY(105deg);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+/* the "/" spine — fixed, on the shared diagonal edge (28px/540 ≈ 3°) */
+.auth-slash-line {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 540px;
+  width: 2px;
+  z-index: 3;
+  transform: translateX(-50%) rotate(3deg);
+  background: linear-gradient(to bottom, transparent, var(--muted) 14%, var(--muted) 86%, transparent);
+  opacity: 0.55;
+  pointer-events: none;
+}
+/* submit + counterpart buttons stacked on each leaf */
 .auth-cta {
   display: flex;
   flex-direction: column;
@@ -2751,34 +2754,33 @@ a.room-code:hover {
   width: 100%;
 }
 @media (max-width: 760px) {
-  .auth-flip-wrap {
+  .auth-book {
     width: min(460px, 100%);
-    perspective: 2000px;
-  }
-  .auth-flip {
-    width: 100%;
-    transform-origin: center;
-  }
-  .auth-flip.flipped {
-    transform: rotateY(180deg);
-  }
-  .auth-face.front,
-  .auth-face.back {
-    clip-path: none;
-    padding: 2rem 1.9rem;
     height: auto;
     min-height: 460px;
+    perspective: none;
   }
-  .auth-face.back {
-    transform: rotateY(180deg);
+  .auth-leaf {
+    position: relative;
+    width: 100%;
+    height: auto;
+    min-height: 460px;
+    clip-path: none;
+    padding: 2rem 1.9rem;
   }
-  .auth-flip-wrap::before {
+  .auth-leaf.folded {
+    display: none;
+  }
+  .auth-slash-line {
     display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .auth-flip {
-    transition: none;
+  .auth-leaf {
+    transition: opacity 0.3s ease;
+  }
+  .auth-leaf.folded {
+    transform: none;
   }
 }
 /* Saved-account suggestions (Instagram-style) */
