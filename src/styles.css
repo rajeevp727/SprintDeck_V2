@@ -2683,7 +2683,8 @@ a.room-code:hover {
   transition: transform 0.9s cubic-bezier(0.2, 0.75, 0.25, 1);
 }
 .auth-flip.flipped {
-  transform: rotateY(-180deg); /* swing across the spine to the other side */
+  /* swing across the spine on the SLASH's diagonal axis (9° tilt), not vertical */
+  transform: rotate3d(-0.156, 0.988, 0, -180deg);
 }
 .auth-face {
   width: 100%;
@@ -2707,26 +2708,21 @@ a.room-code:hover {
 .auth-face.back {
   position: absolute;
   inset: 0;
-  transform: rotateY(180deg);
+  /* pre-rotate on the SAME tilted axis so it lands upright after the flip */
+  transform: rotate3d(-0.156, 0.988, 0, 180deg);
 }
-/* fixed diagonal "/" spine down the centre — the leaf flips around it */
+/* fixed diagonal "/" spine down the centre — the leaf flips around this axis */
 .auth-spine {
   position: absolute;
   left: 50%;
-  top: -3%;
-  bottom: -3%;
-  width: 50px;
-  transform: translateX(-50%);
+  top: -4%;
+  bottom: -4%;
+  width: 2px;
+  transform: translateX(-50%) rotate(9deg);
   z-index: -1;
-  opacity: 0.4;
+  opacity: 0.5;
   pointer-events: none;
-  background: linear-gradient(
-    to top right,
-    transparent calc(50% - 1.5px),
-    var(--muted) calc(50% - 1.5px),
-    var(--muted) calc(50% + 1.5px),
-    transparent calc(50% + 1.5px)
-  );
+  background: linear-gradient(to bottom, transparent, var(--muted) 14%, var(--muted) 86%, transparent);
 }
 /* submit + counterpart buttons stacked on each face */
 .auth-cta {
@@ -2748,6 +2744,9 @@ a.room-code:hover {
     transform-origin: center;
   }
   .auth-flip.flipped {
+    transform: rotateY(180deg);
+  }
+  .auth-face.back {
     transform: rotateY(180deg);
   }
   .auth-spine {
