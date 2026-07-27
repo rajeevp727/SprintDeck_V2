@@ -2681,7 +2681,6 @@ a.room-code:hover {
   transform-origin: right center; /* hinge on the central spine */
   transform-style: preserve-3d;
   transition: transform 0.9s cubic-bezier(0.2, 0.75, 0.25, 1);
-  filter: drop-shadow(0 14px 30px rgba(0, 0, 0, 0.4)); /* follows the clipped shape */
 }
 .auth-flip.flipped {
   /* swing across the spine on the SLASH's diagonal axis (9° tilt), not vertical */
@@ -2696,7 +2695,10 @@ a.room-code:hover {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
+  /* no filter/box-shadow here — either would flatten the 3D or be clipped,
+     and a filter can make the browser ignore backface-visibility */
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 .auth-face h2 {
   margin: 0;
