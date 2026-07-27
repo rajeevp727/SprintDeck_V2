@@ -2682,6 +2682,22 @@ a.room-code:hover {
   transform-style: preserve-3d;
   transition: transform 0.9s cubic-bezier(0.2, 0.75, 0.25, 1);
 }
+/* the "/" — drawn on the flip's hinge (right) edge so it sits EXACTLY on the
+   card's clipped diagonal edge (both Log in's right edge and Create's left edge
+   are this same hinge) → guaranteed 0 gap. Tilt matches the 28px/540 clip (3°). */
+.auth-flip::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 2px;
+  transform-origin: top center;
+  transform: rotate(3deg) translateZ(1px);
+  background: linear-gradient(to bottom, transparent, var(--muted) 14%, var(--muted) 86%, transparent);
+  opacity: 0.55;
+  pointer-events: none;
+}
 .auth-flip.flipped {
   /* swing across the spine on the SLASH's diagonal axis (3° tilt), not vertical */
   transform: rotate3d(-0.052, 0.999, 0, -180deg);
@@ -2722,21 +2738,6 @@ a.room-code:hover {
   /* pre-rotate on the SAME tilted axis so it lands upright after the flip */
   transform: rotate3d(-0.052, 0.999, 0, 180deg);
 }
-/* fixed diagonal "/" spine down the centre — the leaf flips around this axis */
-.auth-spine {
-  position: absolute;
-  /* sit exactly on the cards' clipped diagonal edge (flip hinge at 50% - 15px,
-     clip centre 14px further in) so there's no gap between card and slash */
-  left: calc(50% - 29px);
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  transform: translateX(-50%) rotate(3deg);
-  z-index: -1;
-  opacity: 0.5;
-  pointer-events: none;
-  background: linear-gradient(to bottom, transparent, var(--muted) 14%, var(--muted) 86%, transparent);
-}
 /* submit + counterpart buttons stacked on each face */
 .auth-cta {
   display: flex;
@@ -2769,7 +2770,7 @@ a.room-code:hover {
   .auth-face.back {
     transform: rotateY(180deg);
   }
-  .auth-spine {
+  .auth-flip::after {
     display: none;
   }
 }

@@ -76,7 +76,6 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
       </button>
 
       <div className="auth-flip-wrap">
-        <div className="auth-spine" aria-hidden />
         <div className={`auth-flip ${flipped ? 'flipped' : ''}`}>
           {/* ---- front: Log in ---- */}
           <section className="auth-face front" aria-hidden={flipped}>
