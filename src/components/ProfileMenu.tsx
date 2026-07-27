@@ -61,9 +61,9 @@ export default function ProfileMenu() {
               </div>
             </div>
           </div>
-          <div className="profile-card-actions">
+          <div className="profile-split" role="group">
             <button
-              className="profile-item"
+              className="profile-half"
               onClick={() => {
                 setOpen(false);
                 setShowPw(true);
@@ -75,7 +75,7 @@ export default function ProfileMenu() {
               </svg>
               Change password
             </button>
-            <button className="profile-item danger" onClick={logout}>
+            <button className="profile-half danger" onClick={logout}>
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                 <polyline points="16 17 21 12 16 7" />

@@ -2234,43 +2234,50 @@ a.room-code:hover {
   flex-direction: column;
   gap: 0.4rem;
 }
-/* Frosted-glass action buttons */
-.profile-item {
+/* One joined pill split 50/50 — each half lights up its own colour on hover */
+.profile-split {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.55rem;
   width: 100%;
-  padding: 0.66rem 0.9rem;
   border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--text) 6%, transparent);
   -webkit-backdrop-filter: blur(10px) saturate(1.2);
   backdrop-filter: blur(10px) saturate(1.2);
+  overflow: hidden;
+}
+.profile-half {
+  flex: 1 1 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.66rem 0.7rem;
+  border: 0;
+  background: transparent;
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform var(--transition), background var(--transition), border-color var(--transition),
-    box-shadow var(--transition);
+  transition: background var(--transition), color var(--transition);
 }
-.profile-item svg {
+.profile-half svg {
   flex: none;
   color: var(--accent);
+  transition: color var(--transition);
 }
-.profile-item:hover {
-  transform: translateY(-1px);
-  background: color-mix(in srgb, var(--accent) 13%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 26%, transparent);
+/* divider between the two halves */
+.profile-half + .profile-half {
+  border-left: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
 }
-.profile-item.danger svg {
+.profile-half:hover {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+.profile-half.danger svg {
   color: var(--danger);
 }
-.profile-item.danger:hover {
-  background: color-mix(in srgb, var(--danger) 13%, transparent);
-  border-color: color-mix(in srgb, var(--danger) 42%, transparent);
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--danger) 24%, transparent);
+.profile-half.danger:hover {
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
   color: var(--danger);
 }
 
