@@ -2677,10 +2677,11 @@ a.room-code:hover {
 }
 .auth-flip {
   position: relative;
-  width: 50%;
+  width: calc(50% + 36px);
   transform-origin: right center; /* hinge on the central spine */
   transform-style: preserve-3d;
   transition: transform 0.9s cubic-bezier(0.2, 0.75, 0.25, 1);
+  filter: drop-shadow(0 14px 30px rgba(0, 0, 0, 0.4)); /* follows the clipped shape */
 }
 .auth-flip.flipped {
   /* swing across the spine on the SLASH's diagonal axis (9° tilt), not vertical */
@@ -2692,22 +2693,26 @@ a.room-code:hover {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 2rem 1.9rem;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
   backface-visibility: hidden;
 }
 .auth-face h2 {
   margin: 0;
 }
+/* front (Log in) — fills the LEFT, its right edge cut along the "/" */
 .auth-face.front {
   position: relative;
+  padding: 2rem 5.5rem 2rem 1.9rem;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 72px) 100%, 0 100%);
 }
+/* back (Create account) — fills the RIGHT, its left edge cut along the "/" */
 .auth-face.back {
   position: absolute;
   inset: 0;
+  padding: 2rem 1.9rem 2rem 5.5rem;
+  clip-path: polygon(72px 0, 100% 0, 100% 100%, 0 100%);
   /* pre-rotate on the SAME tilted axis so it lands upright after the flip */
   transform: rotate3d(-0.156, 0.988, 0, 180deg);
 }
@@ -2745,6 +2750,11 @@ a.room-code:hover {
   }
   .auth-flip.flipped {
     transform: rotateY(180deg);
+  }
+  .auth-face.front,
+  .auth-face.back {
+    clip-path: none;
+    padding: 2rem 1.9rem;
   }
   .auth-face.back {
     transform: rotateY(180deg);
