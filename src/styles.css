@@ -321,8 +321,8 @@ input:focus {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
-/* the fold becomes a quick fade rather than a 3D swing */
-:root[data-perf='lite'] .auth-side.placeholder .auth-side-inner {
+/* the fold becomes an instant swap rather than a 3D half-fold */
+:root[data-perf='lite'] .auth-duo.folding {
   transform: none !important;
 }
 :root[data-perf='lite'] .pw-toggle {
@@ -2631,6 +2631,7 @@ a.room-code:hover {
   max-width: 860px;
   margin: 0 auto;
   padding: 3rem 1.5rem 5rem;
+  perspective: 2200px;
 }
 /* Back button — a circle with "←" at rest; on hover expands into a rounded
    rectangle revealing "← Back". Width animates between two fixed sizes (never
@@ -2667,8 +2668,9 @@ a.room-code:hover {
   max-width: 5rem;
   opacity: 1;
 }
-/* Two sides split by a diagonal "/" spine. The active side is open; the other
-   is a blurred, folded placeholder that swings open from behind when clicked. */
+/* Two sides split by a diagonal "/" spine. Only the active side is shown; the
+   counterpart button folds the WHOLE card in half on the spine, then opens the
+   other side. */
 .auth-duo {
   display: flex;
   align-items: stretch;
@@ -2677,80 +2679,40 @@ a.room-code:hover {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   overflow: hidden;
-  perspective: 1900px;
+  transform-origin: center center;
+  backface-visibility: hidden;
+  transition: transform 0.48s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* folded in half — edge-on at the centre spine */
+.auth-duo.folding {
+  transform: rotateY(90deg);
 }
 .auth-side {
   flex: 1;
-  position: relative;
-  padding: 2rem 1.75rem;
-  min-height: 460px;
-}
-.auth-side-inner {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  backface-visibility: hidden;
-  transition: transform 1s cubic-bezier(0.2, 0.75, 0.25, 1), opacity 1.15s ease, filter 1.15s ease;
+  padding: 2rem 1.75rem;
+  min-height: 460px;
+  transition: opacity 0.3s ease;
 }
-.auth-side-inner h2 {
+.auth-side h2 {
   margin: 0;
 }
-.side-login .auth-side-inner {
-  transform-origin: right center;
-}
-.side-signup .auth-side-inner {
-  transform-origin: left center;
-}
-/* open — flat & sharp */
-.auth-side.open .auth-side-inner {
-  transform: rotateY(0deg);
-  opacity: 1;
-  filter: none;
-}
-/* placeholder — the leaving page flips past the spine to the "other side" of
-   the book and slowly fades out (backface hidden → it turns away and vanishes). */
-.auth-side.placeholder .auth-side-inner {
-  opacity: 0;
-  filter: blur(7px);
-  pointer-events: none;
-}
-.side-login.placeholder .auth-side-inner {
-  transform: rotateY(-105deg);
-}
-.side-signup.placeholder .auth-side-inner {
-  transform: rotateY(105deg);
-}
-/* click-to-open overlay, shown only on the placeholder side */
-.auth-side-open {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
+.auth-side.hidden {
+  visibility: hidden;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.6s ease;
-  z-index: 2;
 }
-.auth-side.placeholder .auth-side-open {
-  opacity: 1;
-  pointer-events: auto;
+/* submit + counterpart buttons stacked on the active side */
+.auth-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
 }
-.auth-side-open-pill {
-  padding: 0.72rem 1.5rem;
-  border-radius: 999px;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(115deg, var(--accent), var(--accent-2), #22d3ee);
-  background-size: 200% 200%;
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 35%, transparent);
-  transition: transform var(--transition), box-shadow var(--transition);
-}
-.auth-side-open:hover .auth-side-open-pill {
-  transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 12px 30px color-mix(in srgb, var(--accent) 45%, transparent);
+.auth-switch-btn {
+  width: 100%;
 }
 /* diagonal "/" spine both sides fold against */
 .auth-spine {
@@ -2771,32 +2733,25 @@ a.room-code:hover {
 @media (max-width: 640px) {
   .auth-duo {
     flex-direction: column;
-    perspective: none;
   }
-  .auth-side-inner {
-    transform: none !important;
-    opacity: 1 !important;
-    filter: none !important;
-    pointer-events: auto !important;
+  .auth-duo.folding {
+    transform: none;
   }
-  .auth-side-open {
-    display: none !important;
+  .auth-side.hidden {
+    display: none;
   }
   .auth-side {
     min-height: 0;
   }
   .auth-spine {
-    width: auto;
-    height: 1px;
-    background: var(--line);
-    opacity: 1;
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .auth-side-inner {
-    transition: opacity 0.3s ease, filter 0.3s ease;
+  .auth-duo {
+    transition: none;
   }
-  .auth-side.placeholder .auth-side-inner {
+  .auth-duo.folding {
     transform: none;
   }
 }
