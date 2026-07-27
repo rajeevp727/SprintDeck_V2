@@ -2681,7 +2681,7 @@ a.room-code:hover {
   position: absolute;
   top: 0;
   height: 480px;
-  width: calc(50% + 42px);
+  width: calc(50% + 30px);
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -2700,15 +2700,15 @@ a.room-code:hover {
 .leaf-login {
   left: 0;
   transform-origin: right center;
-  padding: 2rem 6rem 2rem 1.9rem;
-  clip-path: polygon(0 0, 100% 0, calc(100% - 85px) 100%, 0 100%);
+  padding: 2rem 4.5rem 2rem 1.9rem;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 59px) 100%, 0 100%);
 }
 /* Create account — right, left edge cut along the "/" (same line as Log in's) */
 .leaf-create {
   right: 0;
   transform-origin: left center;
-  padding: 2rem 1.9rem 2rem 6rem;
-  clip-path: polygon(85px 0, 100% 0, 100% 100%, 0 100%);
+  padding: 2rem 1.9rem 2rem 4.5rem;
+  clip-path: polygon(59px 0, 100% 0, 100% 100%, 0 100%);
 }
 .auth-leaf.open {
   transform: rotateY(0deg);
@@ -2732,10 +2732,10 @@ a.room-code:hover {
   position: absolute;
   top: 50%;
   left: 50%;
-  height: 490px;
+  height: 484px;
   width: 2px;
   z-index: 3;
-  transform: translate(-50%, -50%) rotate(10deg);
+  transform: translate(-50%, -50%) rotate(7deg);
   background: linear-gradient(to bottom, transparent, var(--muted) 14%, var(--muted) 86%, transparent);
   opacity: 0.55;
   pointer-events: none;
