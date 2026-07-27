@@ -54,16 +54,21 @@ async function post(path: string, body: unknown): Promise<{ token: string; user:
   return data as { token: string; user: AuthUser };
 }
 
-export async function register(email: string, password: string, name?: string): Promise<AuthUser> {
-  const { token, user } = await post('/api/auth/register', { email, password, name });
+export async function register(
+  email: string,
+  password: string,
+  name?: string,
+  remember = true,
+): Promise<AuthUser> {
+  const { token, user } = await post('/api/auth/register', { email, password, name, remember });
   setToken(token);
   cachedUser = user;
   notify();
   return user;
 }
 
-export async function login(email: string, password: string): Promise<AuthUser> {
-  const { token, user } = await post('/api/auth/login', { email, password });
+export async function login(email: string, password: string, remember = false): Promise<AuthUser> {
+  const { token, user } = await post('/api/auth/login', { email, password, remember });
   setToken(token);
   cachedUser = user;
   notify();

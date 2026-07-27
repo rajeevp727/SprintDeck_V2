@@ -200,6 +200,8 @@ input:focus {
   cursor: default;
 }
 .primary {
+  position: relative;
+  overflow: hidden;
   background-image: linear-gradient(115deg, var(--accent), var(--accent-2), #22d3ee, var(--accent));
   background-size: 220% 220%;
   animation: aurora-flow 9s ease-in-out infinite;
@@ -210,8 +212,29 @@ input:focus {
   font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: 0.01em;
-  box-shadow: 0 4px 14px rgba(79, 124, 255, 0.32);
+  box-shadow: 0 4px 14px rgba(79, 124, 255, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.25);
   transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
+}
+/* light-sheen sweep on hover — shared "future tech" language with the profile pill */
+.primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  transform: skewX(-18deg);
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+.primary:hover:not(:disabled)::after {
+  animation: sheen 0.8s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .primary:hover:not(:disabled)::after {
+    animation: none;
+  }
 }
 @keyframes aurora-flow {
   0%,
@@ -244,19 +267,26 @@ input:focus {
   cursor: not-allowed;
   box-shadow: none;
 }
+/* Secondary buttons — frosted glass that lights up with a neon glow on hover */
 .ghost {
-  background: var(--bg-2);
-  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
   color: var(--text);
   border-radius: var(--radius-sm);
   padding: 0.58rem 0.95rem;
   font-size: 0.9rem;
   font-weight: 500;
-  transition: background var(--transition), border-color var(--transition), color var(--transition);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: background var(--transition), border-color var(--transition), color var(--transition),
+    box-shadow var(--transition), transform var(--transition);
 }
 .ghost:hover:not(:disabled) {
-  background: var(--panel-2);
-  border-color: var(--accent);
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 22%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 .ghost:disabled {
   opacity: 0.4;
@@ -264,11 +294,13 @@ input:focus {
 }
 .ghost.danger {
   color: var(--danger);
-  border-color: #5a3340;
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
 }
 .ghost.danger:hover:not(:disabled) {
-  background: rgba(239, 94, 110, 0.12);
-  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 60%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--danger) 22%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--danger) 22%, transparent);
 }
 
 /* Ad slots */
@@ -920,6 +952,24 @@ a.room-code:hover {
   color: var(--muted);
   margin: 0 0 1rem;
   text-align: left;
+}
+.auth-remember {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.55rem !important;
+  font-size: 0.88rem;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+.auth-remember input {
+  width: auto;
+  accent-color: var(--accent);
+  flex: none;
+}
+.auth-remember-note {
+  color: var(--muted);
+  font-size: 0.8rem;
 }
 /* Connect-a-tool picker modal */
 .tool-modal {

@@ -13,6 +13,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
 
   const [liEmail, setLiEmail] = useState('');
   const [liPw, setLiPw] = useState('');
+  const [liRemember, setLiRemember] = useState(true);
   const [liErr, setLiErr] = useState('');
   const [liBusy, setLiBusy] = useState(false);
 
@@ -27,7 +28,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
     setLiErr('');
     setLiBusy(true);
     try {
-      await login(liEmail, liPw);
+      await login(liEmail, liPw, liRemember);
       onAuthed();
     } catch (err) {
       setLiErr((err as Error).message);
@@ -78,6 +79,16 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
                 required
                 onChange={(e) => setLiPw(e.target.value)}
               />
+            </label>
+            <label className="auth-remember">
+              <input
+                type="checkbox"
+                checked={liRemember}
+                onChange={(e) => setLiRemember(e.target.checked)}
+              />
+              <span>
+                Remember me <span className="auth-remember-note">— keep me signed in for 2 sprints (~28 days)</span>
+              </span>
             </label>
             <button className="primary" type="submit" disabled={liBusy}>
               {liBusy ? 'Logging in…' : 'Log in'}
