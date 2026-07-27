@@ -2681,7 +2681,7 @@ a.room-code:hover {
   position: absolute;
   top: 0;
   height: 480px;
-  width: calc(50% + 12px);
+  width: calc(50% + 42px);
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -2700,15 +2700,15 @@ a.room-code:hover {
 .leaf-login {
   left: 0;
   transform-origin: right center;
-  padding: 2rem 1.9rem;
-  clip-path: polygon(0 0, 100% 0, calc(100% - 24px) 100%, 0 100%);
+  padding: 2rem 6rem 2rem 1.9rem;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 85px) 100%, 0 100%);
 }
 /* Create account — right, left edge cut along the "/" (same line as Log in's) */
 .leaf-create {
   right: 0;
   transform-origin: left center;
-  padding: 2rem 1.9rem;
-  clip-path: polygon(24px 0, 100% 0, 100% 100%, 0 100%);
+  padding: 2rem 1.9rem 2rem 6rem;
+  clip-path: polygon(85px 0, 100% 0, 100% 100%, 0 100%);
 }
 .auth-leaf.open {
   transform: rotateY(0deg);
@@ -2730,12 +2730,12 @@ a.room-code:hover {
 /* the "/" spine — fixed, on the shared diagonal edge (175px/480 ≈ 20°) */
 .auth-slash-line {
   position: absolute;
-  top: 0;
+  top: 50%;
   left: 50%;
-  height: 480px;
+  height: 490px;
   width: 2px;
   z-index: 3;
-  transform: translateX(-50%) rotate(3deg);
+  transform: translate(-50%, -50%) rotate(10deg);
   background: linear-gradient(to bottom, transparent, var(--muted) 14%, var(--muted) 86%, transparent);
   opacity: 0.55;
   pointer-events: none;
