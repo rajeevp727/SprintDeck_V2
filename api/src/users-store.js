@@ -42,6 +42,10 @@ function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
 }
 
+function normalizeName(name) {
+  return String(name || '').trim().toLowerCase();
+}
+
 function hashPassword(password, salt) {
   return crypto.scryptSync(String(password), salt, 64).toString('hex');
 }
@@ -62,15 +66,39 @@ async function getByEmail(email) {
   return memory.get(id) || null;
 }
 
-// Create a user. Returns { user } or { error: 'exists' }.
+// Find a user by (case-insensitive) name, or null.
+async function getByName(name) {
+  const n = normalizeName(name);
+  if (!n) return null;
+  const c = getContainer();
+  if (c) {
+    const { resources } = await (await c).items
+      .query({
+        query: 'SELECT TOP 1 * FROM c WHERE c.nameLower = @n',
+        parameters: [{ name: '@n', value: n }],
+      })
+      .fetchAll();
+    return resources[0] || null;
+  }
+  for (const u of memory.values()) {
+    if ((u.nameLower || normalizeName(u.name)) === n) return u;
+  }
+  return null;
+}
+
+// Create a user. Returns { user } or { error: 'email-exists' | 'name-exists' }.
+// Both email and name must be unique (name case-insensitively).
 async function createUser(email, password, name) {
   const id = normalizeEmail(email);
-  if (await getByEmail(id)) return { error: 'exists' };
+  const cleanName = String(name || '').trim().slice(0, 80);
+  if (await getByEmail(id)) return { error: 'email-exists' };
+  if (cleanName && (await getByName(cleanName))) return { error: 'name-exists' };
   const salt = crypto.randomBytes(16).toString('hex');
   const user = {
     id,
     email: id,
-    name: String(name || '').trim().slice(0, 80),
+    name: cleanName,
+    nameLower: normalizeName(cleanName),
     salt,
     passwordHash: hashPassword(password, salt),
     createdAt: Date.now(),
@@ -105,4 +133,4 @@ function publicUser(user) {
   return { id: user.id, email: user.email, name: user.name || '' };
 }
 
-module.exports = { createUser, getByEmail, updatePassword, verifyPassword, publicUser };
+module.exports = { createUser, getByEmail, getByName, updatePassword, verifyPassword, publicUser };

@@ -47,12 +47,14 @@ app.http('register', {
     if (!secret()) return bad('Auth is not configured', 503);
     if (rateLimited(req, 'register', 10, 60_000)) return bad('Too many attempts — slow down', 429);
     const { email, password, name, remember } = await readBody(req);
+    if (String(name || '').trim().length < 2) return bad('Enter your name (at least 2 characters)');
     if (!emailRe.test(String(email || ''))) return bad('Enter a valid email');
     if (String(password || '').length < minPassword) {
       return bad(`Password must be at least ${minPassword} characters`);
     }
     const result = await users.createUser(email, password, name);
-    if (result.error === 'exists') return bad('An account with that email already exists', 409);
+    if (result.error === 'email-exists') return bad('An account with that email already exists', 409);
+    if (result.error === 'name-exists') return bad('That name is already taken — pick another', 409);
     return ok({ token: tokenFor(result.user, remember !== false), user: users.publicUser(result.user) });
   },
 });

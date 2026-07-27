@@ -1,7 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '../lib/auth';
 import { getAccounts, forgetAccount, type RememberedAccount } from '../lib/rememberedAccounts';
-import { EyeIcon, EyeOffIcon } from './icons';
 
 interface Props {
   onAuthed: () => void;
@@ -129,27 +128,16 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
             </label>
             <label>
               Password
-              <div className="pw-field">
-                <input
-                  ref={liPwRef}
-                  type={liShowPw ? 'text' : 'password'}
-                  value={liPw}
-                  autoComplete="current-password"
-                  required
-                  onChange={(e) => setLiPw(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="pw-toggle"
-                  onClick={() => setLiShowPw((s) => !s)}
-                  aria-label={liShowPw ? 'Hide password' : 'Show password'}
-                  aria-pressed={liShowPw}
-                  title={liShowPw ? 'Hide password' : 'Show password'}
-                  tabIndex={-1}
-                >
-                  {liShowPw ? <EyeOffIcon /> : <EyeIcon />}
-                </button>
-              </div>
+              <input
+                ref={liPwRef}
+                type={liShowPw ? 'text' : 'password'}
+                value={liPw}
+                autoComplete="current-password"
+                required
+                onDoubleClick={() => setLiShowPw((s) => !s)}
+                onChange={(e) => setLiPw(e.target.value)}
+              />
+              <span className="auth-hint">Double-click to {liShowPw ? 'hide' : 'show'}</span>
             </label>
             <label className="auth-remember">
               <input type="checkbox" checked={liRemember} onChange={(e) => setLiRemember(e.target.checked)} />
@@ -179,7 +167,13 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
             <div className="auth-row">
               <label>
                 Name
-                <input value={rgName} autoComplete="name" onChange={(e) => setRgName(e.target.value)} />
+                <input
+                  value={rgName}
+                  autoComplete="name"
+                  required
+                  minLength={2}
+                  onChange={(e) => setRgName(e.target.value)}
+                />
               </label>
               <label>
                 Email
@@ -194,28 +188,16 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
             </div>
             <label>
               Password
-              <div className="pw-field">
-                <input
-                  type={rgShowPw ? 'text' : 'password'}
-                  value={rgPw}
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                  onChange={(e) => setRgPw(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="pw-toggle"
-                  onClick={() => setRgShowPw((s) => !s)}
-                  aria-label={rgShowPw ? 'Hide password' : 'Show password'}
-                  aria-pressed={rgShowPw}
-                  title={rgShowPw ? 'Hide password' : 'Show password'}
-                  tabIndex={-1}
-                >
-                  {rgShowPw ? <EyeOffIcon /> : <EyeIcon />}
-                </button>
-              </div>
-              <span className="auth-hint">At least 8 characters</span>
+              <input
+                type={rgShowPw ? 'text' : 'password'}
+                value={rgPw}
+                autoComplete="new-password"
+                minLength={8}
+                required
+                onDoubleClick={() => setRgShowPw((s) => !s)}
+                onChange={(e) => setRgPw(e.target.value)}
+              />
+              <span className="auth-hint">At least 8 characters · double-click to {rgShowPw ? 'hide' : 'show'}</span>
             </label>
             <div className="auth-cta">
               <button className="primary" type="submit" disabled={rgBusy}>

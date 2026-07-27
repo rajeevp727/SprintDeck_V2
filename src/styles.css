@@ -328,10 +328,6 @@ input:focus {
 :root[data-perf='lite'] .auth-leaf.folded {
   transform: none !important;
 }
-:root[data-perf='lite'] .pw-toggle {
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-}
 
 /* Ad slots */
 .ad-slot {
@@ -2915,44 +2911,6 @@ a.room-code:hover {
 .auth-hint {
   font-size: 0.72rem;
   color: var(--muted);
-}
-/* Password field with a futuristic show/hide eye button */
-.pw-field {
-  position: relative;
-  display: flex;
-}
-.pw-field input {
-  flex: 1;
-  padding-right: 2.9rem;
-}
-.pw-toggle {
-  position: absolute;
-  top: 50%;
-  right: 6px;
-  transform: translateY(-50%);
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--text) 6%, transparent);
-  color: var(--muted);
-  cursor: pointer;
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-  transition: color var(--transition), border-color var(--transition), box-shadow var(--transition),
-    background var(--transition);
-}
-.pw-toggle:hover {
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent),
-    0 4px 14px color-mix(in srgb, var(--accent) 28%, transparent);
-}
-.pw-toggle:active {
-  transform: translateY(-50%) scale(0.94);
 }
 .retro-ended {
   margin-top: 1rem;
