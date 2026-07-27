@@ -321,12 +321,9 @@ input:focus {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
-/* the page-fold becomes an instant swap rather than a 3D turn */
-:root[data-perf='lite'] .auth-leaf {
+/* the cube turn becomes an instant swap rather than a 3D rotation */
+:root[data-perf='lite'] .auth-cube {
   transition: none !important;
-}
-:root[data-perf='lite'] .auth-leaf.folded {
-  transform: none !important;
 }
 :root[data-perf='lite'] .pw-toggle {
   -webkit-backdrop-filter: none !important;
@@ -2670,85 +2667,55 @@ a.room-code:hover {
   max-width: 5rem;
   opacity: 1;
 }
-/* Two leaves that meet at a fixed diagonal "/" spine. Each is pinned to top:0
-   and to the slash (edges coincide at width 50%+14px), so both share the exact
-   same top and touch the slash with 0 gap. Switching folds one away at the spine
-   while the other opens. */
-.auth-book {
-  position: relative;
-  width: min(920px, 100%);
-  height: 540px;
+/* Cube transition — Log in on the front face, Create account on the right face;
+   switching rotates the cube 90° so you see it physically turn. Half-width for
+   the faces = 230px (cube width 460). */
+.auth-cube-scene {
+  width: 460px;
+  max-width: 92vw;
   margin: 0 auto;
-  perspective: 2400px;
+  perspective: 1500px;
 }
-.auth-leaf {
-  position: absolute;
-  top: 0;
+.auth-cube {
+  position: relative;
+  width: 100%;
   height: 540px;
-  width: calc(50% + 14px);
+  transform-style: preserve-3d;
+  transform: translateZ(-230px);
+  transition: transform 1s cubic-bezier(0.45, 0.05, 0.2, 1);
+}
+.auth-cube.show-signup {
+  transform: translateZ(-230px) rotateY(-90deg);
+}
+.auth-face {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  padding: 2rem 1.9rem;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  transition: transform 1.5s cubic-bezier(0.2, 0.75, 0.25, 1), opacity 0.5s ease;
 }
-.auth-leaf h2 {
+.auth-face h2 {
   margin: 0;
 }
-/* Log in — left, right edge cut along the "/" */
-.leaf-login {
-  left: 0;
-  transform-origin: right center;
-  padding: 2rem 1.9rem;
-  clip-path: polygon(0 0, 100% 0, calc(100% - 28px) 100%, 0 100%);
+.face-login {
+  transform: rotateY(0deg) translateZ(230px);
 }
-/* Create account — right, left edge cut along the "/" (same line as Log in's) */
-.leaf-create {
-  right: 0;
-  transform-origin: left center;
-  padding: 2rem 1.9rem;
-  clip-path: polygon(28px 0, 100% 0, 100% 100%, 0 100%);
+.face-signup {
+  transform: rotateY(90deg) translateZ(230px);
 }
-.auth-leaf.open {
-  transform: rotateY(0deg);
-  opacity: 1;
-  z-index: 2;
-}
-.leaf-login.folded {
-  transform: rotateY(-105deg);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 1;
-}
-.leaf-create.folded {
-  transform: rotateY(105deg);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 1;
-}
-/* the "/" spine — fixed, on the shared diagonal edge (28px/540 ≈ 3°) */
-.auth-slash-line {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  height: 540px;
-  width: 2px;
-  z-index: 3;
-  transform: translateX(-50%) rotate(3deg);
-  background: linear-gradient(to bottom, transparent, var(--muted) 14%, var(--muted) 86%, transparent);
-  opacity: 0.55;
-  pointer-events: none;
-}
-/* let the form fill the leaf so the CTA can anchor to the bottom */
-.auth-leaf .auth-form {
+/* let the form fill the face so the CTA can anchor to the bottom */
+.auth-face .auth-form {
   flex: 1;
 }
-/* submit + counterpart buttons — anchored to the bottom so both leaves line up
-   regardless of how many fields are above */
+/* submit + counterpart buttons — anchored to the bottom so both faces line up */
 .auth-cta {
   display: flex;
   flex-direction: column;
@@ -2759,34 +2726,34 @@ a.room-code:hover {
 .auth-switch-btn {
   width: 100%;
 }
-@media (max-width: 760px) {
-  .auth-book {
-    width: min(460px, 100%);
-    height: auto;
-    min-height: 460px;
+@media (max-width: 520px) {
+  .auth-cube-scene {
+    width: 100%;
     perspective: none;
   }
-  .auth-leaf {
-    position: relative;
-    width: 100%;
+  .auth-cube,
+  .auth-cube.show-signup {
+    transform: none;
+    transform-style: flat;
     height: auto;
     min-height: 460px;
-    clip-path: none;
-    padding: 2rem 1.9rem;
   }
-  .auth-leaf.folded {
+  .auth-face {
+    position: relative;
+    inset: auto;
+    transform: none !important;
+    min-height: 460px;
+  }
+  .auth-cube:not(.show-signup) .face-signup {
     display: none;
   }
-  .auth-slash-line {
+  .auth-cube.show-signup .face-login {
     display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .auth-leaf {
-    transition: opacity 0.3s ease;
-  }
-  .auth-leaf.folded {
-    transform: none;
+  .auth-cube {
+    transition: none;
   }
 }
 /* Saved-account suggestions (Instagram-style) */
