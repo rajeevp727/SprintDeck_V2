@@ -2677,14 +2677,14 @@ a.room-code:hover {
 }
 .auth-flip {
   position: relative;
-  width: calc(50% + 36px);
+  width: calc(50% + 20px);
   transform-origin: right center; /* hinge on the central spine */
   transform-style: preserve-3d;
   transition: transform 0.9s cubic-bezier(0.2, 0.75, 0.25, 1);
 }
 .auth-flip.flipped {
-  /* swing across the spine on the SLASH's diagonal axis (9° tilt), not vertical */
-  transform: rotate3d(-0.156, 0.988, 0, -180deg);
+  /* swing across the spine on the SLASH's diagonal axis (5° tilt), not vertical */
+  transform: rotate3d(-0.087, 0.996, 0, -180deg);
 }
 .auth-face {
   width: 100%;
@@ -2706,17 +2706,17 @@ a.room-code:hover {
 /* front (Log in) — fills the LEFT, its right edge cut along the "/" */
 .auth-face.front {
   position: relative;
-  padding: 2rem 5.5rem 2rem 1.9rem;
-  clip-path: polygon(0 0, 100% 0, calc(100% - 72px) 100%, 0 100%);
+  padding: 2rem 2.5rem 2rem 1.9rem;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 40px) 100%, 0 100%);
 }
 /* back (Create account) — fills the RIGHT, its left edge cut along the "/" */
 .auth-face.back {
   position: absolute;
   inset: 0;
-  padding: 2rem 1.9rem 2rem 5.5rem;
-  clip-path: polygon(72px 0, 100% 0, 100% 100%, 0 100%);
+  padding: 2rem 1.9rem 2rem 2.5rem;
+  clip-path: polygon(40px 0, 100% 0, 100% 100%, 0 100%);
   /* pre-rotate on the SAME tilted axis so it lands upright after the flip */
-  transform: rotate3d(-0.156, 0.988, 0, 180deg);
+  transform: rotate3d(-0.087, 0.996, 0, 180deg);
 }
 /* fixed diagonal "/" spine down the centre — the leaf flips around this axis */
 .auth-spine {
@@ -2725,7 +2725,7 @@ a.room-code:hover {
   top: -4%;
   bottom: -4%;
   width: 2px;
-  transform: translateX(-50%) rotate(9deg);
+  transform: translateX(-50%) rotate(5deg);
   z-index: -1;
   opacity: 0.5;
   pointer-events: none;
