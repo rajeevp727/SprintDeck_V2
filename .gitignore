@@ -18,3 +18,5 @@ Thumbs.db
 vite.config.js
 vite.config.d.ts
 *.tsbuildinfo
+
+coverage

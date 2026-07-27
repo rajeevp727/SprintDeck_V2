@@ -84,7 +84,7 @@ function printPdf(doc: ExportDoc) {
       'table{border-collapse:collapse;width:100%;margin-bottom:1rem}' +
       'td,th{border:1px solid #ccc;padding:6px 10px;text-align:left;font-size:12px}th{background:#f2f2f2}' +
       `</style></head><body><h2>${esc(doc.title)}</h2>${tables}` +
-      '<script>window.onload=function(){window.print()}<\/script></body></html>',
+      '<script>window.onload=function(){window.print()}</script></body></html>',
   );
   w.document.close();
   w.focus();
