@@ -2725,7 +2725,9 @@ a.room-code:hover {
 /* fixed diagonal "/" spine down the centre — the leaf flips around this axis */
 .auth-spine {
   position: absolute;
-  left: 50%;
+  /* sit exactly on the cards' clipped diagonal edge (flip hinge at 50% - 15px,
+     clip centre 14px further in) so there's no gap between card and slash */
+  left: calc(50% - 29px);
   top: 0;
   bottom: 0;
   width: 2px;
