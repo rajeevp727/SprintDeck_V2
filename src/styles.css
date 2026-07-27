@@ -2722,8 +2722,8 @@ a.room-code:hover {
 .auth-spine {
   position: absolute;
   left: 50%;
-  top: -4%;
-  bottom: -4%;
+  top: 0;
+  bottom: 0;
   width: 2px;
   transform: translateX(-50%) rotate(5deg);
   z-index: -1;
