@@ -2682,18 +2682,20 @@ a.room-code:hover {
   transform-style: preserve-3d;
   transition: transform 0.9s cubic-bezier(0.2, 0.75, 0.25, 1);
 }
-/* the "/" — drawn on the flip's hinge (right) edge so it sits EXACTLY on the
-   card's clipped diagonal edge (both Log in's right edge and Create's left edge
-   are this same hinge) → guaranteed 0 gap. Tilt matches the 28px/540 clip (3°). */
-.auth-flip::after {
+/* the "/" — drawn on the NON-flipping wrapper, right on the hinge line
+   (flip's right edge = 50% - 15px), so it stays put while the card flips across
+   it and sits exactly on both cards' clipped edge → 0 gap, visible both sides.
+   Tilt matches the 28px/540 clip (3°). */
+.auth-flip-wrap::before {
   content: '';
   position: absolute;
   top: 0;
-  right: 0;
-  height: 100%;
+  left: calc(50% - 15px);
+  height: 540px;
   width: 2px;
+  z-index: 5;
   transform-origin: top center;
-  transform: rotate(3deg) translateZ(1px);
+  transform: rotate(3deg);
   background: linear-gradient(to bottom, transparent, var(--muted) 14%, var(--muted) 86%, transparent);
   opacity: 0.55;
   pointer-events: none;
@@ -2770,7 +2772,7 @@ a.room-code:hover {
   .auth-face.back {
     transform: rotateY(180deg);
   }
-  .auth-flip::after {
+  .auth-flip-wrap::before {
     display: none;
   }
 }
