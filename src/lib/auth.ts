@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { rememberAccount } from './rememberedAccounts';
 
 // Email + password auth client. The JWT from register/login is stored in
 // localStorage and attached as `Authorization: Bearer <token>` by lib/api.ts.
@@ -63,6 +64,7 @@ export async function register(
   const { token, user } = await post('/api/auth/register', { email, password, name, remember });
   setToken(token);
   cachedUser = user;
+  rememberAccount({ email: user.email, name: user.name });
   notify();
   return user;
 }
@@ -71,6 +73,7 @@ export async function login(email: string, password: string, remember = false): 
   const { token, user } = await post('/api/auth/login', { email, password, remember });
   setToken(token);
   cachedUser = user;
+  rememberAccount({ email: user.email, name: user.name });
   notify();
   return user;
 }

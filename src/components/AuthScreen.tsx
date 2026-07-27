@@ -1,27 +1,43 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '../lib/auth';
+import { getAccounts, forgetAccount, type RememberedAccount } from '../lib/rememberedAccounts';
 
 interface Props {
   onAuthed: () => void;
   onBack: () => void;
 }
 
-// One screen, split into two halves — Log in | Create account — divided by a
-// large "/" glyph. Stacks vertically on narrow screens.
+// Log in | Create account, split by a diagonal "/" spine. Focusing (or clicking)
+// one half folds the other back like paper, hinged on the slash.
 export default function AuthScreen({ onAuthed, onBack }: Props) {
   const { login, register } = useAuth();
+  const [active, setActive] = useState<'login' | 'signup' | null>(null);
+  const [accounts, setAccounts] = useState<RememberedAccount[]>(getAccounts());
 
   const [liEmail, setLiEmail] = useState('');
   const [liPw, setLiPw] = useState('');
   const [liRemember, setLiRemember] = useState(true);
   const [liErr, setLiErr] = useState('');
   const [liBusy, setLiBusy] = useState(false);
+  const liPwRef = useRef<HTMLInputElement>(null);
 
   const [rgName, setRgName] = useState('');
   const [rgEmail, setRgEmail] = useState('');
   const [rgPw, setRgPw] = useState('');
   const [rgErr, setRgErr] = useState('');
   const [rgBusy, setRgBusy] = useState(false);
+
+  // Tap a saved account → prefill its email and jump to the password field.
+  function pickAccount(a: RememberedAccount) {
+    setActive('login');
+    setLiEmail(a.email);
+    setLiErr('');
+    requestAnimationFrame(() => liPwRef.current?.focus());
+  }
+  function forget(email: string) {
+    forgetAccount(email);
+    setAccounts(getAccounts());
+  }
 
   async function doLogin(e: FormEvent) {
     e.preventDefault();
@@ -56,9 +72,44 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
         <span className="auth-back-label">Back</span>
       </button>
 
-      <div className="auth-split">
-        <section className="auth-half">
+      <div className={`auth-split ${active ? `active-${active}` : ''}`}>
+        <section
+          className="auth-half half-login"
+          onFocusCapture={() => setActive('login')}
+          onMouseDown={() => setActive('login')}
+        >
           <h2>Log in</h2>
+
+          {accounts.length > 0 && (
+            <div className="auth-suggest">
+              <div className="auth-suggest-label">Saved accounts</div>
+              <ul>
+                {accounts.map((a) => (
+                  <li key={a.email}>
+                    <button type="button" className="auth-suggest-row" onClick={() => pickAccount(a)}>
+                      <span className="auth-suggest-avatar" aria-hidden>
+                        {(a.name || a.email).charAt(0).toUpperCase()}
+                      </span>
+                      <span className="auth-suggest-id">
+                        <span className="auth-suggest-name">{a.name || a.email.split('@')[0]}</span>
+                        <span className="auth-suggest-email">{a.email}</span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="auth-suggest-x"
+                      onClick={() => forget(a.email)}
+                      aria-label={`Forget ${a.email}`}
+                      title="Forget this account"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <form className="auth-form" onSubmit={doLogin}>
             <label>
               Email
@@ -73,6 +124,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
             <label>
               Password
               <input
+                ref={liPwRef}
                 type="password"
                 value={liPw}
                 autoComplete="current-password"
@@ -99,7 +151,11 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
 
         <div className="auth-slash" aria-hidden />
 
-        <section className="auth-half">
+        <section
+          className="auth-half half-signup"
+          onFocusCapture={() => setActive('signup')}
+          onMouseDown={() => setActive('signup')}
+        >
           <h2>Create account</h2>
           <form className="auth-form" onSubmit={doRegister}>
             <label>
