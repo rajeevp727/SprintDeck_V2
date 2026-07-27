@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { retroApi } from '../lib/retroApi';
 import { saveIdentity } from '../lib/storage';
 import { useAuth } from '../lib/auth';
@@ -15,7 +15,10 @@ interface Props {
 export default function RetroStart({ onEnter, onBack }: Props) {
   const { user } = useAuth();
   const [mode, setMode] = useState<'create' | 'join'>('create');
-  const [name, setName] = useState(user?.name || '');
+  const [name, setName] = useState('');
+  useEffect(() => {
+    if (user) setName((n) => n || user.name || user.email.split('@')[0]);
+  }, [user]);
   const [boardName, setBoardName] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);

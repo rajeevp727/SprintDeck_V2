@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { saveIdentity } from '../lib/storage';
 import { useAuth } from '../lib/auth';
@@ -23,6 +23,11 @@ export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, on
   const [code, setCode] = useState(initialCode.toUpperCase());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  // Prefill "Your name" from the signed-in account (only while untouched).
+  useEffect(() => {
+    if (user) setName((n) => n || user.name || user.email.split('@')[0]);
+  }, [user]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
