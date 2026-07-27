@@ -2234,47 +2234,139 @@ a.room-code:hover {
   flex-direction: column;
   gap: 0.4rem;
 }
-/* One joined pill split 50/50 — each half is a vibrant gradient at rest */
+/* Holographic split pill — animated aurora border ring + neon halves */
 .profile-split {
+  position: relative;
   display: flex;
   width: 100%;
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  isolation: isolate;
+  background: transparent;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4);
+}
+/* rotating aurora ring */
+.profile-split::before {
+  content: '';
+  position: absolute;
+  inset: -150%;
+  z-index: -2;
+  background: conic-gradient(
+    from 0deg,
+    #6366f1,
+    #22d3ee,
+    #a855f7,
+    #f43f5e,
+    #22d3ee,
+    #6366f1
+  );
+  animation: holo-spin 6s linear infinite;
+}
+/* dark inner fill — leaves only a glowing 1.5px ring */
+.profile-split::after {
+  content: '';
+  position: absolute;
+  inset: 1.5px;
+  z-index: -1;
+  border-radius: 10.5px;
+  background: #0d1426;
+}
+@keyframes holo-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .profile-half {
+  position: relative;
   flex: 1 1 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
-  padding: 0.7rem 0.6rem;
+  gap: 0.5rem;
+  padding: 0.74rem 0.6rem;
   border: 0;
-  color: #fff;
+  background: transparent;
+  color: #c7d2fe;
   font-size: 0.86rem;
   font-weight: 600;
+  letter-spacing: 0.2px;
   white-space: nowrap;
   cursor: pointer;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  transition: filter var(--transition), transform var(--transition);
+  overflow: hidden;
+  transition: color var(--transition), background var(--transition), box-shadow var(--transition),
+    text-shadow var(--transition);
 }
 .profile-half svg {
   flex: none;
-  color: #fff;
-  opacity: 0.95;
-}
-/* subtle seam between the two halves */
-.profile-half + .profile-half {
-  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.18);
+  color: #818cf8;
+  filter: drop-shadow(0 0 4px currentColor);
+  transition: color var(--transition), filter var(--transition);
 }
 .profile-half.danger {
-  background: linear-gradient(135deg, #f0616d, var(--danger));
+  color: #fecdd3;
+}
+.profile-half.danger svg {
+  color: #fb7185;
+}
+/* faint neon seam down the middle */
+.profile-half + .profile-half::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 1px;
+  background: linear-gradient(transparent, rgba(129, 140, 248, 0.5), transparent);
+}
+/* light-sheen sweep on hover */
+.profile-half::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  transform: skewX(-18deg);
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  opacity: 0;
+  pointer-events: none;
 }
 .profile-half:hover {
-  filter: brightness(1.12) saturate(1.08);
+  color: #fff;
+  text-shadow: 0 0 10px currentColor;
+  background: radial-gradient(120% 140% at 50% 120%, rgba(99, 102, 241, 0.5), transparent 70%);
+  box-shadow: inset 0 0 24px rgba(99, 102, 241, 0.35);
 }
-.profile-half:active {
-  transform: translateY(1px);
+.profile-half:hover svg {
+  color: #fff;
+}
+.profile-half.danger:hover {
+  background: radial-gradient(120% 140% at 50% 120%, rgba(244, 63, 94, 0.5), transparent 70%);
+  box-shadow: inset 0 0 24px rgba(244, 63, 94, 0.4);
+}
+.profile-half:hover::after {
+  animation: sheen 0.8s ease;
+}
+@keyframes sheen {
+  0% {
+    left: -60%;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    left: 130%;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .profile-split::before {
+    animation: none;
+  }
+  .profile-half:hover::after {
+    animation: none;
+  }
 }
 
 /* Change-password modal */
