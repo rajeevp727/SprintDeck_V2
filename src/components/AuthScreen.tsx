@@ -260,10 +260,16 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
                 autoComplete="new-password"
                 minLength={8}
                 required
+                aria-invalid={rgPw.length > 0 && rgPw.length < 8}
+                className={rgPw.length > 0 && rgPw.length < 8 ? 'input-error' : undefined}
                 onDoubleClick={() => setRgShowPw((s) => !s)}
                 onChange={(e) => setRgPw(e.target.value)}
               />
-              <span className="auth-hint">At least 8 characters · double-click to {rgShowPw ? 'hide' : 'show'}</span>
+              {rgPw.length > 0 && rgPw.length < 8 ? (
+                <span className="auth-hint hint-error">At least 8 characters</span>
+              ) : (
+                <span className="auth-hint">Double-click to {rgShowPw ? 'hide' : 'show'}</span>
+              )}
             </label>
             <div className="auth-cta">
               <button className="primary" type="submit" disabled={rgBusy}>

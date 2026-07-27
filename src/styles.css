@@ -2959,6 +2959,9 @@ a.room-code:hover {
   font-size: 0.72rem;
   color: var(--muted);
 }
+.auth-hint.hint-error {
+  color: var(--danger);
+}
 .retro-ended {
   margin-top: 1rem;
   padding: 0.7rem 0.9rem;
