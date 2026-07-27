@@ -8,9 +8,8 @@ interface Props {
   onBack: () => void;
 }
 
-// Log in | Create account, split by a diagonal "/" spine. One half is open; the
-// other folds completely along the slash, collapsing to a counterpart button
-// that unfolds it back.
+// A card folded in half: one form faces front, the other is folded behind and
+// opens like a page when you tap the counterpart button below.
 export default function AuthScreen({ onAuthed, onBack }: Props) {
   const { login, register } = useAuth();
   const [active, setActive] = useState<'login' | 'signup'>('login');
@@ -76,9 +75,14 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
         <span className="auth-back-label">Back</span>
       </button>
 
-      <div className={`auth-split active-${active}`}>
-        <section className="auth-half half-login" onFocusCapture={() => setActive('login')}>
-          <div className="auth-panel" aria-hidden={active !== 'login'}>
+      <div className="auth-book">
+        <div className="auth-pages">
+          {/* ---- Log in ---- */}
+          <section
+            className={`auth-page page-login ${active === 'login' ? 'front' : 'back'}`}
+            aria-hidden={active !== 'login'}
+            onFocusCapture={() => setActive('login')}
+          >
             <h2>Log in</h2>
 
             {accounts.length > 0 && (
@@ -161,18 +165,14 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
               </button>
               {liErr && <p className="error">{liErr}</p>}
             </form>
-          </div>
+          </section>
 
-          {/* shown only when this half is folded */}
-          <button type="button" className="primary auth-unfold" onClick={() => setActive('login')}>
-            Log in
-          </button>
-        </section>
-
-        <div className="auth-slash" aria-hidden />
-
-        <section className="auth-half half-signup" onFocusCapture={() => setActive('signup')}>
-          <div className="auth-panel" aria-hidden={active !== 'signup'}>
+          {/* ---- Create account ---- */}
+          <section
+            className={`auth-page page-signup ${active === 'signup' ? 'front' : 'back'}`}
+            aria-hidden={active !== 'signup'}
+            onFocusCapture={() => setActive('signup')}
+          >
             <h2>Create account</h2>
             <form className="auth-form" onSubmit={doRegister}>
               <label>
@@ -219,13 +219,27 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
               </button>
               {rgErr && <p className="error">{rgErr}</p>}
             </form>
-          </div>
+          </section>
+        </div>
 
-          {/* shown only when this half is folded */}
-          <button type="button" className="primary auth-unfold" onClick={() => setActive('signup')}>
-            Create account
-          </button>
-        </section>
+        {/* counterpart switch — below the card */}
+        <div className="auth-switch">
+          {active === 'login' ? (
+            <>
+              <span>New to SprintDeck?</span>
+              <button type="button" className="ghost auth-switch-btn" onClick={() => setActive('signup')}>
+                Create account
+              </button>
+            </>
+          ) : (
+            <>
+              <span>Already have an account?</span>
+              <button type="button" className="ghost auth-switch-btn" onClick={() => setActive('login')}>
+                Log in
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
