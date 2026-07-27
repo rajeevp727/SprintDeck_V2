@@ -2677,18 +2677,20 @@ a.room-code:hover {
 }
 .auth-flip {
   position: relative;
-  width: calc(50% + 20px);
+  width: calc(50% + 14px);
   transform-origin: right center; /* hinge on the central spine */
   transform-style: preserve-3d;
   transition: transform 0.9s cubic-bezier(0.2, 0.75, 0.25, 1);
 }
 .auth-flip.flipped {
-  /* swing across the spine on the SLASH's diagonal axis (5° tilt), not vertical */
-  transform: rotate3d(-0.087, 0.996, 0, -180deg);
+  /* swing across the spine on the SLASH's diagonal axis (3° tilt), not vertical */
+  transform: rotate3d(-0.052, 0.999, 0, -180deg);
 }
 .auth-face {
   width: 100%;
-  min-height: 460px;
+  /* fixed height so front (Log in) and back (Create account) share the exact
+     same top & bottom when flipping */
+  height: 540px;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -2703,20 +2705,20 @@ a.room-code:hover {
 .auth-face h2 {
   margin: 0;
 }
-/* front (Log in) — fills the LEFT, its right edge cut along the "/" */
+/* front (Log in) — fills the LEFT, its right edge cut along the "/" (flush) */
 .auth-face.front {
   position: relative;
-  padding: 2rem 2.5rem 2rem 1.9rem;
-  clip-path: polygon(0 0, 100% 0, calc(100% - 40px) 100%, 0 100%);
+  padding: 2rem 1.9rem;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 28px) 100%, 0 100%);
 }
 /* back (Create account) — fills the RIGHT, its left edge cut along the "/" */
 .auth-face.back {
   position: absolute;
   inset: 0;
-  padding: 2rem 1.9rem 2rem 2.5rem;
-  clip-path: polygon(40px 0, 100% 0, 100% 100%, 0 100%);
+  padding: 2rem 1.9rem;
+  clip-path: polygon(28px 0, 100% 0, 100% 100%, 0 100%);
   /* pre-rotate on the SAME tilted axis so it lands upright after the flip */
-  transform: rotate3d(-0.087, 0.996, 0, 180deg);
+  transform: rotate3d(-0.052, 0.999, 0, 180deg);
 }
 /* fixed diagonal "/" spine down the centre — the leaf flips around this axis */
 .auth-spine {
@@ -2725,7 +2727,7 @@ a.room-code:hover {
   top: 0;
   bottom: 0;
   width: 2px;
-  transform: translateX(-50%) rotate(5deg);
+  transform: translateX(-50%) rotate(3deg);
   z-index: -1;
   opacity: 0.5;
   pointer-events: none;
@@ -2757,6 +2759,8 @@ a.room-code:hover {
   .auth-face.back {
     clip-path: none;
     padding: 2rem 1.9rem;
+    height: auto;
+    min-height: 460px;
   }
   .auth-face.back {
     transform: rotateY(180deg);
