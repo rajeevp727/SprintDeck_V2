@@ -16,10 +16,12 @@ const Dashboard = lazy(() => import('./components/Dashboard'));
 const RetroStart = lazy(() => import('./components/RetroStart'));
 import {
   getIdentity,
+  saveIdentity,
   getCurrentRoom,
   setCurrentRoom,
   clearCurrentRoom,
 } from './lib/storage';
+import { api } from './lib/api';
 import {
   getPendingOrder,
   clearPendingOrder,
@@ -179,6 +181,17 @@ export default function App() {
   function goPlan() {
     go('/plan', { kind: 'plan' });
   }
+  // Signed-in host: create a session with their account name and go straight in.
+  async function startPlanning() {
+    const hostName = user?.name || user?.email?.split('@')[0] || 'Host';
+    try {
+      const res = await api.createSession('', hostName, '');
+      saveIdentity(res.session.code, res.participantId, hostName);
+      goRoom(res.session.code);
+    } catch {
+      goPlan(); // fall back to the create form on failure
+    }
+  }
   function goRetroStart() {
     go('/retro-new', { kind: 'retroStart' });
   }
@@ -233,7 +246,7 @@ export default function App() {
     // Signed in → dashboard of ceremonies.
     page = (
       <Dashboard
-        onPlanning={goPlan}
+        onPlanning={startPlanning}
         onRetro={goRetroStart}
         onPrivacy={goPrivacy}
         onTerms={goTerms}
