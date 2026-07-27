@@ -2743,12 +2743,18 @@ a.room-code:hover {
   opacity: 0.55;
   pointer-events: none;
 }
-/* submit + counterpart buttons stacked on each leaf */
+/* let the form fill the leaf so the CTA can anchor to the bottom */
+.auth-leaf .auth-form {
+  flex: 1;
+}
+/* submit + counterpart buttons — anchored to the bottom so both leaves line up
+   regardless of how many fields are above */
 .auth-cta {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  margin-top: 0.4rem;
+  margin-top: auto;
+  padding-top: 0.4rem;
 }
 .auth-switch-btn {
   width: 100%;
