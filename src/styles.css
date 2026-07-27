@@ -2694,7 +2694,7 @@ a.room-code:hover {
   border-radius: var(--radius);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  transition: transform 1.5s cubic-bezier(0.2, 0.75, 0.25, 1), opacity 0.9s ease;
+  transition: transform 1.5s cubic-bezier(0.2, 0.75, 0.25, 1), opacity 0.5s ease;
 }
 .auth-leaf h2 {
   margin: 0;
