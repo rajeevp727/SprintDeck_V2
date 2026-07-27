@@ -2667,26 +2667,26 @@ a.room-code:hover {
   max-width: 5rem;
   opacity: 1;
 }
-/* A single leaf that flips like a book page — Log in on the front, Create
-   account on the back. Only one side ever shows; the other is folded behind. */
+/* A leaf hinged on a fixed central "/" spine. It sits on the left (Log in) and
+   flips ACROSS the slash to the right, showing its back (Create account). */
 .auth-flip-wrap {
   position: relative;
-  width: fit-content;
-  max-width: 100%;
+  width: min(920px, 100%);
   margin: 0 auto;
-  perspective: 2200px;
+  perspective: 2400px;
 }
 .auth-flip {
   position: relative;
+  width: 50%;
+  transform-origin: right center; /* hinge on the central spine */
   transform-style: preserve-3d;
-  transition: transform 0.8s cubic-bezier(0.2, 0.75, 0.25, 1);
+  transition: transform 0.9s cubic-bezier(0.2, 0.75, 0.25, 1);
 }
 .auth-flip.flipped {
-  transform: rotateY(180deg);
+  transform: rotateY(-180deg); /* swing across the spine to the other side */
 }
 .auth-face {
-  width: 440px;
-  max-width: 88vw;
+  width: 100%;
   min-height: 460px;
   display: flex;
   flex-direction: column;
@@ -2709,15 +2709,16 @@ a.room-code:hover {
   inset: 0;
   transform: rotateY(180deg);
 }
-/* diagonal "/" spine along the binding (right) edge */
+/* fixed diagonal "/" spine down the centre — the leaf flips around it */
 .auth-spine {
   position: absolute;
+  left: 50%;
   top: -3%;
   bottom: -3%;
-  right: -24px;
   width: 50px;
+  transform: translateX(-50%);
   z-index: -1;
-  opacity: 0.35;
+  opacity: 0.4;
   pointer-events: none;
   background: linear-gradient(
     to top right,
@@ -2736,6 +2737,22 @@ a.room-code:hover {
 }
 .auth-switch-btn {
   width: 100%;
+}
+@media (max-width: 760px) {
+  .auth-flip-wrap {
+    width: min(460px, 100%);
+    perspective: 2000px;
+  }
+  .auth-flip {
+    width: 100%;
+    transform-origin: center;
+  }
+  .auth-flip.flipped {
+    transform: rotateY(180deg);
+  }
+  .auth-spine {
+    display: none;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .auth-flip {
