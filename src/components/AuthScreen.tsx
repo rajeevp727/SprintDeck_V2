@@ -8,8 +8,8 @@ interface Props {
   onBack: () => void;
 }
 
-// A card folded in half: one form faces front, the other is folded behind and
-// opens like a page when you tap the counterpart button below.
+// Two sides split by a diagonal "/" spine: the active form is open, the other is
+// a blurred, folded placeholder you click to open (it swings out from behind).
 export default function AuthScreen({ onAuthed, onBack }: Props) {
   const { login, register } = useAuth();
   const [active, setActive] = useState<'login' | 'signup'>('login');
@@ -75,14 +75,10 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
         <span className="auth-back-label">Back</span>
       </button>
 
-      <div className="auth-book">
-        <div className="auth-pages">
-          {/* ---- Log in ---- */}
-          <section
-            className={`auth-page page-login ${active === 'login' ? 'front' : 'back'}`}
-            aria-hidden={active !== 'login'}
-            onFocusCapture={() => setActive('login')}
-          >
+      <div className={`auth-duo active-${active}`}>
+        {/* ---- Log in ---- */}
+        <section className={`auth-side side-login ${active === 'login' ? 'open' : 'placeholder'}`}>
+          <div className="auth-side-inner" aria-hidden={active !== 'login'} onFocusCapture={() => setActive('login')}>
             <h2>Log in</h2>
 
             {accounts.length > 0 && (
@@ -165,14 +161,25 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
               </button>
               {liErr && <p className="error">{liErr}</p>}
             </form>
-          </section>
+          </div>
 
-          {/* ---- Create account ---- */}
-          <section
-            className={`auth-page page-signup ${active === 'signup' ? 'front' : 'back'}`}
-            aria-hidden={active !== 'signup'}
-            onFocusCapture={() => setActive('signup')}
+          <button
+            type="button"
+            className="auth-side-open"
+            onClick={() => setActive('login')}
+            aria-label="Open the log in form"
+            aria-hidden={active === 'login'}
+            tabIndex={active === 'login' ? -1 : 0}
           >
+            <span className="auth-side-open-pill">Log in</span>
+          </button>
+        </section>
+
+        <div className="auth-spine" aria-hidden />
+
+        {/* ---- Create account ---- */}
+        <section className={`auth-side side-signup ${active === 'signup' ? 'open' : 'placeholder'}`}>
+          <div className="auth-side-inner" aria-hidden={active !== 'signup'} onFocusCapture={() => setActive('signup')}>
             <h2>Create account</h2>
             <form className="auth-form" onSubmit={doRegister}>
               <label>
@@ -219,27 +226,19 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
               </button>
               {rgErr && <p className="error">{rgErr}</p>}
             </form>
-          </section>
-        </div>
+          </div>
 
-        {/* counterpart switch — below the card */}
-        <div className="auth-switch">
-          {active === 'login' ? (
-            <>
-              <span>New to SprintDeck?</span>
-              <button type="button" className="ghost auth-switch-btn" onClick={() => setActive('signup')}>
-                Create account
-              </button>
-            </>
-          ) : (
-            <>
-              <span>Already have an account?</span>
-              <button type="button" className="ghost auth-switch-btn" onClick={() => setActive('login')}>
-                Log in
-              </button>
-            </>
-          )}
-        </div>
+          <button
+            type="button"
+            className="auth-side-open"
+            onClick={() => setActive('signup')}
+            aria-label="Open the create account form"
+            aria-hidden={active === 'signup'}
+            tabIndex={active === 'signup' ? -1 : 0}
+          >
+            <span className="auth-side-open-pill">Create account</span>
+          </button>
+        </section>
       </div>
     </div>
   );

@@ -321,8 +321,8 @@ input:focus {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
-/* the page-turn becomes a quick fade rather than a 3D fold */
-:root[data-perf='lite'] .auth-page.back {
+/* the fold becomes a quick fade rather than a 3D swing */
+:root[data-perf='lite'] .auth-side.placeholder .auth-side-inner {
   transform: none !important;
 }
 :root[data-perf='lite'] .pw-toggle {
@@ -2667,98 +2667,135 @@ a.room-code:hover {
   max-width: 5rem;
   opacity: 1;
 }
-/* A card folded in half: one form faces front, the other is folded behind on
-   the left spine and opens like a page. Counterpart button sits below. */
-.auth-book {
-  width: min(460px, 92vw);
-  margin: 0 auto;
-  perspective: 1800px;
-}
-.auth-pages {
-  position: relative;
-  transform-style: preserve-3d;
-}
-.auth-page {
+/* Two sides split by a diagonal "/" spine. The active side is open; the other
+   is a blurred, folded placeholder that swings open from behind when clicked. */
+.auth-duo {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 2rem 1.75rem;
+  align-items: stretch;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  transform-origin: left center;
-  backface-visibility: hidden;
-  transition: transform 0.6s cubic-bezier(0.2, 0.75, 0.25, 1), opacity 0.4s ease;
+  overflow: hidden;
+  perspective: 1900px;
 }
-.auth-page h2 {
+.auth-side {
+  flex: 1;
+  position: relative;
+  padding: 2rem 1.75rem;
+  min-height: 460px;
+}
+.auth-side-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  backface-visibility: hidden;
+  transition: transform 0.95s cubic-bezier(0.2, 0.75, 0.25, 1), opacity 0.75s ease, filter 0.75s ease;
+}
+.auth-side-inner h2 {
   margin: 0;
 }
-/* front page — in flow, defines the card height */
-.auth-page.front {
-  position: relative;
-  z-index: 2;
+.side-login .auth-side-inner {
+  transform-origin: right center;
+}
+.side-signup .auth-side-inner {
+  transform-origin: left center;
+}
+/* open — flat & sharp */
+.auth-side.open .auth-side-inner {
   transform: rotateY(0deg);
   opacity: 1;
+  filter: none;
 }
-/* back page — folded behind on the spine, hidden until it opens */
-.auth-page.back {
+/* placeholder — folded back behind the spine, blurred & dimmed (content hidden) */
+.auth-side.placeholder .auth-side-inner {
+  opacity: 0.22;
+  filter: blur(6px);
+  pointer-events: none;
+}
+.side-login.placeholder .auth-side-inner {
+  transform: rotateY(-72deg);
+}
+.side-signup.placeholder .auth-side-inner {
+  transform: rotateY(72deg);
+}
+/* click-to-open overlay, shown only on the placeholder side */
+.auth-side-open {
   position: absolute;
   inset: 0;
-  z-index: 1;
-  transform: rotateY(-118deg);
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
   opacity: 0;
   pointer-events: none;
+  transition: opacity 0.6s ease;
+  z-index: 2;
 }
-/* glowing spine on the fold (left) edge */
-.auth-pages::before {
-  content: '';
-  position: absolute;
-  top: 8%;
-  bottom: 8%;
-  left: -1px;
-  width: 2px;
-  border-radius: 2px;
+.auth-side.placeholder .auth-side-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.auth-side-open-pill {
+  padding: 0.72rem 1.5rem;
+  border-radius: 999px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(115deg, var(--accent), var(--accent-2), #22d3ee);
+  background-size: 200% 200%;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.auth-side-open:hover .auth-side-open-pill {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+/* diagonal "/" spine both sides fold against */
+.auth-spine {
+  flex: none;
+  align-self: stretch;
+  width: 52px;
+  position: relative;
   z-index: 3;
-  pointer-events: none;
-  opacity: 0.7;
   background: linear-gradient(
-    to bottom,
-    transparent,
-    color-mix(in srgb, var(--accent) 55%, transparent),
-    transparent
+    to top right,
+    transparent calc(50% - 1.5px),
+    var(--muted) calc(50% - 1.5px),
+    var(--muted) calc(50% + 1.5px),
+    transparent calc(50% + 1.5px)
   );
-}
-/* counterpart switch — below the card */
-.auth-switch {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  margin-top: 1.1rem;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-.auth-switch-btn {
-  min-width: 150px;
+  opacity: 0.4;
 }
 @media (max-width: 640px) {
-  .auth-book {
+  .auth-duo {
+    flex-direction: column;
     perspective: none;
   }
-  .auth-page.back {
-    transform: none;
+  .auth-side-inner {
+    transform: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    pointer-events: auto !important;
   }
-  .auth-pages::before {
-    display: none;
+  .auth-side-open {
+    display: none !important;
+  }
+  .auth-side {
+    min-height: 0;
+  }
+  .auth-spine {
+    width: auto;
+    height: 1px;
+    background: var(--line);
+    opacity: 1;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .auth-page {
-    transition: opacity 0.25s ease;
+  .auth-side-inner {
+    transition: opacity 0.3s ease, filter 0.3s ease;
   }
-  .auth-page.back {
+  .auth-side.placeholder .auth-side-inner {
     transform: none;
   }
 }
