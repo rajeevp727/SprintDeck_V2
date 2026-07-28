@@ -157,6 +157,26 @@ export default function StandupTimesheet({ onBack }: Props) {
     URL.revokeObjectURL(url);
   }
 
+  // Export the week as JSON in the exact shape the local Playwright filler reads
+  // (integrations/timesheet-filler → week.json), for keyless SSO push to Techraq/Keka.
+  function downloadJson() {
+    const out: Store = {};
+    for (const d of days) {
+      const iso = toISO(d);
+      const e = store[iso];
+      if (e && (e.summary || e.tasks.length > 0)) out[iso] = e;
+    }
+    const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `week-${toISO(weekMonday)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   const weekLabel = `${weekMonday.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${addDays(
     weekMonday,
     WEEKDAYS - 1,
@@ -262,6 +282,9 @@ export default function StandupTimesheet({ onBack }: Props) {
         </button>
         <button className="stx-btn" onClick={downloadCsv}>
           Download CSV
+        </button>
+        <button className="stx-btn" onClick={downloadJson} title="For the local Playwright filler (keyless SSO push to Techraq / Keka)">
+          Download JSON
         </button>
         <button
           className="stx-btn"
