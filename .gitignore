@@ -23,3 +23,4 @@ coverage
 
 # Local-only, keyless timesheet automation (not published)
 integrations/timesheet-filler/
+integrations/timesheet-extension/
