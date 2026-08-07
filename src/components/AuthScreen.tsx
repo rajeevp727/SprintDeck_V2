@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useAuth, checkName, peekName } from '../lib/auth';
 import { getAccounts, forgetAccount, type RememberedAccount } from '../lib/rememberedAccounts';
+import { InfoIcon } from './icons';
 
 interface Props {
   onAuthed: () => void;
@@ -168,7 +169,12 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
               />
             </label>
             <label>
-              Password
+              <span className="auth-label-row">
+                Password
+                <span className="pw-info" title="Double-click the field to show or hide your password">
+                  <InfoIcon />
+                </span>
+              </span>
               <input
                 ref={liPwRef}
                 type={liShowPw ? 'text' : 'password'}
@@ -178,7 +184,6 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
                 onDoubleClick={() => setLiShowPw((s) => !s)}
                 onChange={(e) => setLiPw(e.target.value)}
               />
-              <span className="auth-hint">Double-click to {liShowPw ? 'hide' : 'show'}</span>
             </label>
             <label className="auth-remember">
               <input type="checkbox" checked={liRemember} onChange={(e) => setLiRemember(e.target.checked)} />
@@ -260,7 +265,12 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
               </div>
             )}
             <label>
-              Password
+              <span className="auth-label-row">
+                Password
+                <span className="pw-info" title="Double-click the field to show or hide your password">
+                  <InfoIcon />
+                </span>
+              </span>
               <input
                 type={rgShowPw ? 'text' : 'password'}
                 value={rgPw}
@@ -274,9 +284,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
               />
               {rgPw.length > 0 && rgPw.length < 8 ? (
                 <span className="auth-hint hint-error">At least 8 characters</span>
-              ) : (
-                <span className="auth-hint">Double-click to {rgShowPw ? 'hide' : 'show'}</span>
-              )}
+              ) : null}
             </label>
             <div className="auth-cta">
               <button className="primary" type="submit" disabled={rgBusy}>

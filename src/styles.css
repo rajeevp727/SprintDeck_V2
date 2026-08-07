@@ -2788,6 +2788,22 @@ a.room-code:hover {
   flex: 1;
   min-width: 0;
 }
+/* Password label with inline info icon */
+.auth-label-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.pw-info {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  cursor: help;
+}
+.pw-info svg {
+  width: 14px;
+  height: 14px;
+}
 /* inline name validation + suggestion chips (signup) */
 .input-error {
   border-color: var(--danger) !important;
