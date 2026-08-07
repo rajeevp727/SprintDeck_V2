@@ -1,3 +1,4 @@
+import BrandLogo from './BrandLogo';
 import ProfileMenu from './ProfileMenu';
 import ThemeToggle from './ThemeToggle';
 
@@ -15,9 +16,8 @@ export default function Dashboard({ onPlanning, onRetro, onTimesheet, onPrivacy,
   return (
     <div className="dash">
       <header className="dash-head">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden>♠</span>
-          <h1>SprintDeck</h1>
+        <div className="brand brand-with-logo">
+          <BrandLogo />
         </div>
         <div className="dash-head-actions">
           <ThemeToggle />

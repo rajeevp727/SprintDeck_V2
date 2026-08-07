@@ -105,6 +105,17 @@ button:focus-visible {
   justify-content: center;
   gap: 0.6rem;
 }
+.brand-with-logo {
+  flex-direction: column;
+  gap: 0;
+}
+.brand-logo {
+  display: block;
+  height: 5.5rem;
+  width: auto;
+  max-width: min(280px, 72vw);
+  object-fit: contain;
+}
 .brand h1 {
   font-size: 1.95rem;
   margin: 0;
@@ -118,6 +129,13 @@ button:focus-visible {
 .brand-mark {
   font-size: 1.9rem;
   color: var(--accent);
+}
+.brand-mark-img {
+  display: block;
+  width: 1.9rem;
+  height: 1.9rem;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 .tagline {
   color: var(--muted);
@@ -487,6 +505,10 @@ a.room-code:hover {
   color: var(--accent);
   font-size: 1.2rem;
   line-height: 1;
+}
+.brand-mark-sm-img {
+  width: 1.35rem;
+  height: 1.35rem;
 }
 .room-actions {
   display: flex;
@@ -1411,6 +1433,15 @@ a.room-code:hover {
 .tier-icon {
   font-size: 1.6rem;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tier-logo-mark {
+  width: 1.75rem;
+  height: 1.75rem;
+  object-fit: contain;
+  display: block;
 }
 .tier-name {
   font-weight: 700;
@@ -2165,6 +2196,10 @@ a.room-code:hover {
   align-items: center;
   gap: 0.55rem;
 }
+.landing-hero .brand-with-logo .brand-logo {
+  height: 6.5rem;
+  max-width: min(320px, 80vw);
+}
 .landing-tagline {
   margin: 0.6rem 0 0;
   font-size: clamp(1.2rem, 2.6vw, 1.7rem);
@@ -2261,6 +2296,10 @@ a.room-code:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
+}
+.dash-head .brand-with-logo .brand-logo {
+  height: 3.25rem;
+  max-width: 180px;
 }
 /* Account chip + profile card (header) */
 .profile-trigger {

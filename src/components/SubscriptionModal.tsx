@@ -16,6 +16,7 @@ import {
 } from '../lib/subscription';
 import { createOrder, getStatus, type PaymentOrder } from '../lib/verifier';
 import { CloseIcon, InfoIcon } from './icons';
+import BrandLogo from './BrandLogo';
 
 interface Props {
   onClose: () => void;
@@ -201,7 +202,9 @@ export default function SubscriptionModal({ onClose }: Props) {
                 target="_blank"
                 rel="noreferrer"
               >
-                <span className="tier-icon" aria-hidden>♠</span>
+                <span className="tier-icon" aria-hidden>
+                  <BrandLogo variant="mark" className="tier-logo-mark" />
+                </span>
                 <span className="tier-name">Free</span>
                 <span className="tier-price">
                   ₹0<small>/mo</small>

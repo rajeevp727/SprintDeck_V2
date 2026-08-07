@@ -3,6 +3,7 @@ import { api } from '../lib/api';
 import { saveIdentity } from '../lib/storage';
 import { useAuth } from '../lib/auth';
 import AdBanner from './AdBanner';
+import BrandLogo from './BrandLogo';
 import ThemeToggle from './ThemeToggle';
 
 interface Props {
@@ -72,9 +73,8 @@ export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, on
           <span className="auth-back-label">Back</span>
         </button>
       )}
-      <header className="brand">
-        <span className="brand-mark" aria-hidden>♠</span>
-        <h1>SprintDeck</h1>
+      <header className="brand brand-with-logo">
+        <BrandLogo />
       </header>
       <p className="tagline">Estimate together, across every time zone.</p>
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import BrandLogo from './BrandLogo';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // StandupTimesheet — a fully self-contained weekly daily-scrum / timesheet capture
@@ -188,7 +189,7 @@ export default function StandupTimesheet({ onBack }: Props) {
 
       <header className="stx-head">
         <div className="stx-title">
-          <span className="stx-mark" aria-hidden>♠</span>
+          <BrandLogo variant="mark" className="stx-mark-img" />
           <h1>Daily Scrum &amp; Timesheet</h1>
         </div>
         {onBack && (
@@ -304,6 +305,7 @@ const STYLES = `
 .stx-title { display: flex; align-items: center; gap: 0.5rem; }
 .stx-title h1 { font-size: 1.25rem; margin: 0; }
 .stx-mark { color: #4f7cff; font-size: 1.3rem; }
+.stx-mark-img { width: 1.6rem; height: 1.6rem; object-fit: contain; display: block; }
 .stx-weekbar { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
 .stx-weeklabel { flex: 1; display: flex; flex-direction: column; align-items: center; font-weight: 600; }
 .stx-weektotal { font-weight: 400; font-size: 0.8rem; opacity: 0.7; }

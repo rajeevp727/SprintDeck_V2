@@ -1,3 +1,4 @@
+import BrandLogo from './BrandLogo';
 import ThemeToggle from './ThemeToggle';
 
 interface Props {
@@ -36,9 +37,8 @@ export default function Landing({ onSignIn, onGuest }: Props) {
         <ThemeToggle />
       </div>
       <header className="landing-hero">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden>♠</span>
-          <h1>SprintDeck</h1>
+        <div className="brand brand-with-logo">
+          <BrandLogo />
         </div>
         <p className="landing-tagline">Run your scrum ceremonies in one real-time room.</p>
         <p className="landing-sub">

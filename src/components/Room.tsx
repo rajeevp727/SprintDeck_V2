@@ -12,6 +12,7 @@ import { retroApi } from '../lib/retroApi';
 import { clearIdentity, getIdentity, saveIdentity } from '../lib/storage';
 import type { Session } from '../lib/types';
 import ConnectToolModal, { toolMeta, type ToolId } from './ConnectToolModal';
+import BrandLogo from './BrandLogo';
 import ThemeToggle from './ThemeToggle';
 import AdBanner from './AdBanner';
 import { CrownIcon } from './icons';
@@ -402,7 +403,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
             title="Go to your room"
             onClick={roomLinkClick}
           >
-            <span className="brand-mark-sm" aria-hidden>♠</span> SprintDeck
+            <BrandLogo variant="mark" className="brand-mark-img brand-mark-sm-img" /> SprintDeck
           </a>
           <a
             className="room-code"
