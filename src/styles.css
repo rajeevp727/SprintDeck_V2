@@ -2798,7 +2798,7 @@ a.room-code:hover {
   display: inline-flex;
   align-items: center;
   color: var(--muted);
-  cursor: help;
+  cursor: default;
 }
 .pw-info svg {
   width: 14px;
