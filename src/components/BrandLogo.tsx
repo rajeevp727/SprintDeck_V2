@@ -4,12 +4,12 @@ interface Props {
   className?: string;
 }
 
-/** SprintDeck brand mark — full logo or compact icon. */
+/** SprintDeck brand mark — full logo or compact icon (SVG). */
 export default function BrandLogo({ variant = 'full', className }: Props) {
   if (variant === 'mark') {
     return (
       <img
-        src="/logo-mark.png"
+        src="/logo-mark.svg"
         alt=""
         className={className ?? 'brand-mark-img'}
         aria-hidden
@@ -19,7 +19,7 @@ export default function BrandLogo({ variant = 'full', className }: Props) {
   }
   return (
     <img
-      src="/logo.png"
+      src="/logo.svg"
       alt="SprintDeck"
       className={className ?? 'brand-logo'}
       draggable={false}
