@@ -15,6 +15,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
   const { login, register } = useAuth();
   const [active, setActive] = useState<'login' | 'signup'>('login');
   const [accounts, setAccounts] = useState<RememberedAccount[]>(getAccounts());
+  const [showPwInfo, setShowPwInfo] = useState(false);
 
   const [liEmail, setLiEmail] = useState('');
   const [liPw, setLiPw] = useState('');
@@ -91,6 +92,23 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
       clearTimeout(t);
     };
   }, [rgName]);
+
+  // Close password info tooltip when clicking outside.
+  useEffect(() => {
+    if (!showPwInfo) return;
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && !target.closest('.pw-info') && !target.closest('.pw-tooltip')) {
+        setShowPwInfo(false);
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('touchstart', onDown);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('touchstart', onDown);
+    };
+  }, [showPwInfo]);
 
   function applySuggestion(s: string) {
     setRgName(s);
@@ -171,7 +189,19 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
             <label>
               <span className="auth-label-row">
                 Password
-                <span className="pw-info" title="Double-click the field to show or hide your password">
+                <span
+                  className="pw-info"
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Show password hint"
+                  onClick={() => setShowPwInfo((s) => !s)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setShowPwInfo((s) => !s);
+                    }
+                  }}
+                >
                   <InfoIcon />
                 </span>
               </span>
@@ -184,6 +214,11 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
                 onDoubleClick={() => setLiShowPw((s) => !s)}
                 onChange={(e) => setLiPw(e.target.value)}
               />
+              {showPwInfo && (
+                <span className="pw-tooltip" role="tooltip">
+                  Double-click the field to show or hide your password
+                </span>
+              )}
             </label>
             <label className="auth-remember">
               <input type="checkbox" checked={liRemember} onChange={(e) => setLiRemember(e.target.checked)} />
@@ -267,7 +302,19 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
             <label>
               <span className="auth-label-row">
                 Password
-                <span className="pw-info" title="Double-click the field to show or hide your password">
+                <span
+                  className="pw-info"
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Show password hint"
+                  onClick={() => setShowPwInfo((s) => !s)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setShowPwInfo((s) => !s);
+                    }
+                  }}
+                >
                   <InfoIcon />
                 </span>
               </span>
@@ -285,6 +332,11 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
               {rgPw.length > 0 && rgPw.length < 8 ? (
                 <span className="auth-hint hint-error">At least 8 characters</span>
               ) : null}
+              {showPwInfo && (
+                <span className="pw-tooltip" role="tooltip">
+                  Double-click the field to show or hide your password
+                </span>
+              )}
             </label>
             <div className="auth-cta">
               <button className="primary" type="submit" disabled={rgBusy}>
