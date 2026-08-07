@@ -1,5 +1,6 @@
 {
   "version": "2.0",
+  "workerRuntime": "node",
   "logging": {
     "applicationInsights": {
       "samplingSettings": {
