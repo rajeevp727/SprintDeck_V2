@@ -1,0 +1,9 @@
+{
+  "name": "SprintDeck V2",
+  "install": "npm install\nnpm --prefix api install\ntest -f api/local.settings.json || printf '%s\\n' '{' '  \"IsEncrypted\": false,' '  \"Values\": {' '    \"AzureWebJobsStorage\": \"\",' '    \"FUNCTIONS_WORKER_RUNTIME\": \"node\"' '  }' '}' > api/local.settings.json",
+  "start": "npm run dev:all",
+  "ports": [
+    { "name": "web", "port": 5273 },
+    { "name": "api", "port": 7072 }
+  ]
+}
