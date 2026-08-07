@@ -39,6 +39,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
   const [forgotBusy, setForgotBusy] = useState(false);
   const [forgotDone, setForgotDone] = useState(false);
   const [forgotErr, setForgotErr] = useState('');
+  const [forgotEmailErr, setForgotEmailErr] = useState('');
 
   // Tap a saved account → prefill its email and jump to the password field.
   function pickAccount(a: RememberedAccount) {
@@ -389,33 +390,48 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
             ) : (
               <>
                 <h3>Reset your password</h3>
-                <p className="auth-sub">
-                  We’ll send a password-reset link to <strong>{forgotEmail}</strong>.
-                </p>
-                <div className="auth-cta">
-                  <button
-                    className="primary"
-                    disabled={forgotBusy}
-                    onClick={async () => {
-                      setForgotErr('');
-                      setForgotBusy(true);
-                      try {
-                        await forgotPassword(forgotEmail);
-                        setForgotDone(true);
-                      } catch (err) {
-                        setForgotErr((err as Error).message);
-                      } finally {
-                        setForgotBusy(false);
-                      }
-                    }}
-                  >
-                    {forgotBusy ? 'Sending…' : 'Send reset link'}
-                  </button>
-                  <button type="button" className="ghost auth-switch-btn" onClick={() => setShowForgot(false)}>
-                    Cancel
-                  </button>
-                </div>
-                {forgotErr && <p className="error">{forgotErr}</p>}
+                <p className="auth-sub">Enter the email associated with your account.</p>
+                <form
+                  className="auth-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const val = forgotEmail.trim();
+                    if (!val || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+                      setForgotEmailErr('Please enter a valid email');
+                      return;
+                    }
+                    setForgotEmailErr('');
+                    setForgotBusy(true);
+                    forgotPassword(val)
+                      .then(() => setForgotDone(true))
+                      .catch((err) => setForgotErr((err as Error).message))
+                      .finally(() => setForgotBusy(false));
+                  }}
+                >
+                  <label>
+                    Email
+                    <input
+                      type="email"
+                      value={forgotEmail}
+                      autoComplete="email"
+                      required
+                      onChange={(e) => {
+                        setForgotEmail(e.target.value);
+                        if (forgotEmailErr) setForgotEmailErr('');
+                      }}
+                    />
+                    {forgotEmailErr && <span className="auth-hint hint-error">{forgotEmailErr}</span>}
+                  </label>
+                  <div className="auth-cta">
+                    <button type="submit" className="primary" disabled={forgotBusy}>
+                      {forgotBusy ? 'Sending…' : 'Send reset link'}
+                    </button>
+                    <button type="button" className="ghost auth-switch-btn" onClick={() => setShowForgot(false)}>
+                      Cancel
+                    </button>
+                  </div>
+                  {forgotErr && <p className="error">{forgotErr}</p>}
+                </form>
               </>
             )}
           </div>

@@ -168,21 +168,22 @@ app.http('forgotPassword', {
     if (!secret()) return ok({ ok: true });
     if (rateLimited(req, 'forgotpw', 5, 60_000)) return bad('Too many attempts — slow down', 429);
     const { email } = await readBody(req);
-    const user = await users.getByEmail(String(email || '').trim().toLowerCase());
-    // Always return 200 to avoid user-enumeration; only send mail when the
-    // account exists.
-    if (user) {
-      pruneResetTokens();
-      const token = crypto.randomBytes(32).toString('hex');
-      resetTokens.set(token, {
-        email: user.email,
-        userId: user.id,
-        createdAt: Date.now(),
-      });
-      const resetUrl = `${req.url.replace(/\/api\/auth\/forgot-password.*/, '')}/reset-password?token=${token}`;
-      console.log(`[forgot-password] reset link for ${user.email}: ${resetUrl}`);
-      // TODO: send the resetUrl via email (SMTP / SendGrid / Postmark etc.)
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!emailRe.test(normalized)) return bad('Enter a valid email', 400);
+    const user = await users.getByEmail(normalized);
+    if (!user) {
+      return bad('User not found — please check the email and try again', 404);
     }
+    pruneResetTokens();
+    const token = crypto.randomBytes(32).toString('hex');
+    resetTokens.set(token, {
+      email: user.email,
+      userId: user.id,
+      createdAt: Date.now(),
+    });
+    const resetUrl = `${req.url.replace(/\/api\/auth\/forgot-password.*/, '')}/reset-password?token=${token}`;
+    console.log(`[forgot-password] reset link for ${user.email}: ${resetUrl}`);
+    // TODO: send the resetUrl via email (SMTP / SendGrid / Postmark etc.)
     return ok({ ok: true });
   },
 });
