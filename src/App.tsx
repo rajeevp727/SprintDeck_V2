@@ -15,6 +15,7 @@ const Landing = lazy(() => import('./components/Landing'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const RetroStart = lazy(() => import('./components/RetroStart'));
 const StandupTimesheet = lazy(() => import('./components/StandupTimesheet'));
+const Whiteboard = lazy(() => import('./components/Whiteboard'));
 import {
   getIdentity,
   saveIdentity,
@@ -44,7 +45,8 @@ type Route =
   | { kind: 'plan' }
   | { kind: 'retroStart' }
   | { kind: 'timesheet' }
-  | { kind: 'home'; joinCode?: string };
+  | { kind: 'home'; joinCode?: string }
+  | { kind: 'whiteboard' };
 
 // The retrospective board has its own real URL path: /retro/CODE (unlike poker,
 // whose code stays out of the URL) so the facilitator can share a plain link.
@@ -71,6 +73,7 @@ function computeRoute(): Route {
   if (path === '/plan' || path === '/plan/') return { kind: 'plan' };
   if (path === '/retro-new' || path === '/retro-new/') return { kind: 'retroStart' };
   if (path === '/timesheet' || path === '/timesheet/') return { kind: 'timesheet' };
+  if (path === '/whiteboard' || path === '/whiteboard/') return { kind: 'whiteboard' };
 
   const retroMatch = path.match(RETRO_PATH_RE);
   if (retroMatch) {
@@ -201,6 +204,9 @@ export default function App() {
   function goTimesheet() {
     go('/timesheet', { kind: 'timesheet' });
   }
+  function goWhiteboard() {
+    go('/whiteboard', { kind: 'whiteboard' });
+  }
 
   let page;
   if (route.kind === 'privacy') {
@@ -236,6 +242,8 @@ export default function App() {
     page = <RetroStart onEnter={goRetro} onBack={goHome} />;
   } else if (route.kind === 'timesheet') {
     page = <StandupTimesheet onBack={goHome} />;
+  } else if (route.kind === 'whiteboard') {
+    page = <Whiteboard onBack={goHome} />;
   } else if (authLoading) {
     page = null; // resolving the session — avoid flashing the landing then the app
   } else if (route.joinCode) {
@@ -257,6 +265,7 @@ export default function App() {
         onPlanning={startPlanning}
         onRetro={goRetroStart}
         onTimesheet={goTimesheet}
+        onWhiteboard={goWhiteboard}
         onPrivacy={goPrivacy}
         onTerms={goTerms}
         onSecurity={goSecurity}

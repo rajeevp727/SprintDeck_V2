@@ -6,13 +6,14 @@ interface Props {
   onPlanning: () => void;
   onRetro: () => void;
   onTimesheet: () => void;
+  onWhiteboard: () => void;
   onPrivacy: () => void;
   onTerms: () => void;
   onSecurity: () => void;
 }
 
 // The home for signed-in (or guest) users: pick a ceremony.
-export default function Dashboard({ onPlanning, onRetro, onTimesheet, onPrivacy, onTerms, onSecurity }: Props) {
+export default function Dashboard({ onPlanning, onRetro, onTimesheet, onWhiteboard, onPrivacy, onTerms, onSecurity }: Props) {
   return (
     <div className="dash">
       <header className="dash-head">
@@ -51,6 +52,15 @@ export default function Dashboard({ onPlanning, onRetro, onTimesheet, onPrivacy,
           <span className="dash-card-title">Daily Scrum &amp; Timesheet</span>
           <span className="dash-card-desc">
             Log your daily standup &amp; task hours once, then hand off to Keka / timesheets (copy or CSV).
+          </span>
+          <span className="dash-card-cta">Open →</span>
+        </button>
+
+        <button className="dash-card" onClick={onWhiteboard}>
+          <span className="dash-card-icon" aria-hidden>🎨</span>
+          <span className="dash-card-title">Whiteboard</span>
+          <span className="dash-card-desc">
+            Freeform canvas — sketch ideas, sticky notes, shapes & diagrams like a Miro or MS Whiteboard.
           </span>
           <span className="dash-card-cta">Open →</span>
         </button>
