@@ -5,7 +5,7 @@ that connects to your **project management tool** (Linear, Jira, Azure DevOps),
 pulls the tickets you need to estimate, and **writes the agreed story points back**
 after the team votes. No login — you connect a tool with your own key.
 
-- **Live:** https://sprintdeckv2.rajeevstech.in
+- **Live:** `https://<your-swa-domain>.azurestaticapps.net`
 - **Free sibling (plain poker, no integrations):** https://sprintdeck.rajeevstech.in (repo `SprintDeck`)
 
 > **Status:** the integration layer is currently **mock/preview** — connecting a
@@ -51,7 +51,7 @@ npm run dev:all          # web :5273 + Functions :7072
   `.github/workflows/azure-static-web-apps-green-desert-0f2350910.yml`.
 - Build config: App `/`, **Api `api`**, **Output `dist`**.
 - Env vars (SWA → Configuration): `COSMOS_CONNECTION_STRING` (persistence).
-- Custom domain: `sprintdeckv2.rajeevstech.in` (CNAME → `…azurestaticapps.net`).
+- Custom domain: `https://<your-swa-domain>.azurestaticapps.net` (CNAME → `…azurestaticapps.net`).
 
 ## Data & retention
 - **Retention (configurable):** rooms auto-expire after idle/max windows —

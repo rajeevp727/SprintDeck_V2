@@ -96,6 +96,17 @@ export async function changePassword(currentPassword: string, newPassword: strin
   if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
 }
 
+export async function forgotPassword(email: string): Promise<void> {
+  const res = await fetch('/api/auth/forgot-password', {
+    method: 'POST',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+}
+
 // Check whether a name (username) is free; if taken, get a few suggestions.
 export interface NameCheck {
   available: boolean;

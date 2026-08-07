@@ -31,7 +31,7 @@ Added
 - **Light/dark theme** with system default (header toggle).
 - **Header links** — app name + room code are anchors (Ctrl/Cmd-click opens the room in a new tab).
 - **Unviewed-results** logic — Results badge + close warning only when unopened results exist.
-- Deployed as Azure Static Web App `SprintDeck-Enterprise` (Free) on `sprintdeckv2.rajeevstech.in`; branding "Enterprise Edition" + spade favicon.
+- Deployed as Azure Static Web App `SprintDeck-Enterprise` (Free) on `https://<your-swa-domain>.azurestaticapps.net`; branding "Enterprise Edition" + spade favicon.
 - Product docs: rewrote `README.md` for V2, added `PRD.md`, this `CHANGELOG.md`.
 
 Changed

@@ -4,7 +4,7 @@ _Maintained with Claude. Last updated: 2026-07-07._
 
 SprintDeck V2 is the **paid, integrations-hub** edition of SprintDeck — planning-poker
 estimation that connects to your project-management tool, pulls the tickets to estimate, and
-writes the agreed story points back. Live at **https://sprintdeckv2.rajeevstech.in**.
+writes the agreed story points back. Live at **https://<your-swa-domain>.azurestaticapps.net**.
 
 > V1 (free, plain planning poker) is a separate app at **https://sprintdeck.rajeevstech.in**.
 
@@ -114,7 +114,7 @@ time-trigger that re-checks internally). Dedups per message. See that file's hea
 
 - Push to `main` → SWA auto-builds/deploys (no manual `func publish`).
 - Verify live: the served bundle hash at the site root changes when a new build lands
-  (`curl -s https://sprintdeckv2.rajeevstech.in/ | grep assets/index-*.js`).
+  (`curl -s https://<your-swa-domain>.azurestaticapps.net/ | grep assets/index-*.js`).
 - Backend settings apply immediately (no redeploy); frontend needs a rebuild for VPA changes.
 
 ---

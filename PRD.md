@@ -13,7 +13,7 @@ closing the loop between estimation and the backlog.
 | | Product | URL | Model |
 |---|---|---|---|
 | **V1** | Plain planning poker (no integrations) | `sprintdeck.rajeevstech.in` | **Free** |
-| **V2** | Integrations hub (this repo) | `sprintdeckv2.rajeevstech.in` | **Paid** (see §7) |
+| **V2** | Integrations hub (this repo) | `https://<your-swa-domain>.azurestaticapps.net` | **Paid** (see §7) |
 
 ## 3. Target users
 Agile/scrum teams (esp. engineering) who plan sprints and track work in Linear,

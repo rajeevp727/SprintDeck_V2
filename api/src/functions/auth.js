@@ -8,6 +8,7 @@ const { app } = require('@azure/functions');
 const users = require('../users-store');
 const jwt = require('../jwt');
 const { rateLimited } = require('../ratelimit');
+const crypto = require('crypto');
 
 const noCache = { 'Cache-Control': 'no-store' };
 function ok(body) {
@@ -143,5 +144,67 @@ app.http('authMe', {
     const payload = token && jwt.verify(token, secret());
     if (!payload) return ok({ user: null });
     return ok({ user: { id: payload.sub, email: payload.email } });
+  },
+});
+
+// In-memory reset-token store (dev/local). In production, persist these in
+// Cosmos/Redis with a TTL so they survive restarts.
+const resetTokens = new Map();
+const RESET_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+function pruneResetTokens() {
+  const now = Date.now();
+  for (const [k, v] of resetTokens) {
+    if (now - v.createdAt > RESET_TTL_MS) resetTokens.delete(k);
+  }
+}
+
+// POST /api/auth/forgot-password  { email }
+app.http('forgotPassword', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'auth/forgot-password',
+  handler: async (req) => {
+    if (!secret()) return ok({ ok: true });
+    if (rateLimited(req, 'forgotpw', 5, 60_000)) return bad('Too many attempts — slow down', 429);
+    const { email } = await readBody(req);
+    const user = await users.getByEmail(String(email || '').trim().toLowerCase());
+    // Always return 200 to avoid user-enumeration; only send mail when the
+    // account exists.
+    if (user) {
+      pruneResetTokens();
+      const token = crypto.randomBytes(32).toString('hex');
+      resetTokens.set(token, {
+        email: user.email,
+        userId: user.id,
+        createdAt: Date.now(),
+      });
+      const resetUrl = `${req.url.replace(/\/api\/auth\/forgot-password.*/, '')}/reset-password?token=${token}`;
+      console.log(`[forgot-password] reset link for ${user.email}: ${resetUrl}`);
+      // TODO: send the resetUrl via email (SMTP / SendGrid / Postmark etc.)
+    }
+    return ok({ ok: true });
+  },
+});
+
+// POST /api/auth/reset-password  { token, newPassword }
+app.http('resetPassword', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'auth/reset-password',
+  handler: async (req) => {
+    if (!secret()) return bad('Auth is not configured', 503);
+    if (rateLimited(req, 'resetpw', 10, 60_000)) return bad('Too many attempts — slow down', 429);
+    const { token, newPassword } = await readBody(req);
+    const record = resetTokens.get(String(token || ''));
+    if (!record) return bad('Invalid or expired reset link', 400);
+    if (String(newPassword || '').length < minPassword) {
+      return bad(`New password must be at least ${minPassword} characters`);
+    }
+    const user = await users.getByEmail(record.email);
+    if (!user || user.id !== record.userId) return bad('Invalid reset link', 400);
+    await users.updatePassword(user.email, newPassword);
+    resetTokens.delete(String(token || ''));
+    return ok({ ok: true });
   },
 });

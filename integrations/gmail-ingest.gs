@@ -19,7 +19,7 @@
  */
 
 // ── Config ───────────────────────────────────────────────────────────────────
-const INGEST_URL = 'https://sprintdeckv2.rajeevstech.in/api/upi/ingest';
+const INGEST_URL = 'https://<your-swa-domain>.azurestaticapps.net/api/upi/ingest';
 const INGEST_SECRET = 'PASTE_YOUR_INGEST_SECRET_HERE'; // must equal the Azure INGEST_SECRET app setting
 
 // Gmail search for candidate alert emails. Broad by default; TIGHTEN it once

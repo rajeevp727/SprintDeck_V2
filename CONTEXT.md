@@ -8,7 +8,7 @@ SprintDeck Enterprise (V2) is a **real-time planning poker + integrations hub** 
 It connects to project management tools (Linear, Jira, Azure DevOps), pulls estimation tickets,
 and writes agreed story points back. No login required — share a room code.
 
-- **Live:** https://sprintdeckv2.rajeevstech.in
+- **Live:** `https://<your-swa-domain>.azurestaticapps.net`
 - **Free sibling (plain poker):** https://sprintdeck.rajeevstech.in
 - **Repo:** `rajeevp727/SprintDeck_V2`
 

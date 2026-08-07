@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useAuth, checkName, peekName } from '../lib/auth';
+import { useAuth, checkName, peekName, forgotPassword } from '../lib/auth';
 import { getAccounts, forgetAccount, type RememberedAccount } from '../lib/rememberedAccounts';
-import { InfoIcon } from './icons';
+import { InfoIcon, CloseIcon } from './icons';
 
 interface Props {
   onAuthed: () => void;
@@ -33,6 +33,12 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
   const [rgShowPw, setRgShowPw] = useState(false);
   const [rgErr, setRgErr] = useState('');
   const [rgBusy, setRgBusy] = useState(false);
+
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotBusy, setForgotBusy] = useState(false);
+  const [forgotDone, setForgotDone] = useState(false);
+  const [forgotErr, setForgotErr] = useState('');
 
   // Tap a saved account → prefill its email and jump to the password field.
   function pickAccount(a: RememberedAccount) {
@@ -220,6 +226,18 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
                 </span>
               )}
             </label>
+            <button
+              type="button"
+              className="ghost auth-forgot-btn"
+              onClick={() => {
+                setForgotEmail(liEmail);
+                setForgotDone(false);
+                setForgotErr('');
+                setShowForgot(true);
+              }}
+            >
+              Forgot password?
+            </button>
             <label className="auth-remember">
               <input type="checkbox" checked={liRemember} onChange={(e) => setLiRemember(e.target.checked)} />
               <span>
@@ -350,6 +368,59 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
           </form>
         </section>
       </div>
+
+      {showForgot && (
+        <div className="modal-overlay" onClick={() => setShowForgot(false)}>
+          <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="auth-close" onClick={() => setShowForgot(false)} aria-label="Close" title="Close">
+              <CloseIcon />
+            </button>
+
+            {forgotDone ? (
+              <>
+                <h3>Check your inbox</h3>
+                <p className="auth-sub">
+                  If an account exists for <strong>{forgotEmail}</strong>, we’ve sent a password-reset link.
+                </p>
+                <button className="primary" onClick={() => setShowForgot(false)}>
+                  Back to login
+                </button>
+              </>
+            ) : (
+              <>
+                <h3>Reset your password</h3>
+                <p className="auth-sub">
+                  We’ll send a password-reset link to <strong>{forgotEmail}</strong>.
+                </p>
+                <div className="auth-cta">
+                  <button
+                    className="primary"
+                    disabled={forgotBusy}
+                    onClick={async () => {
+                      setForgotErr('');
+                      setForgotBusy(true);
+                      try {
+                        await forgotPassword(forgotEmail);
+                        setForgotDone(true);
+                      } catch (err) {
+                        setForgotErr((err as Error).message);
+                      } finally {
+                        setForgotBusy(false);
+                      }
+                    }}
+                  >
+                    {forgotBusy ? 'Sending…' : 'Send reset link'}
+                  </button>
+                  <button type="button" className="ghost auth-switch-btn" onClick={() => setShowForgot(false)}>
+                    Cancel
+                  </button>
+                </div>
+                {forgotErr && <p className="error">{forgotErr}</p>}
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

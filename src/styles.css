@@ -2923,6 +2923,19 @@ a.room-code:hover {
 .auth-switch-btn {
   width: 100%;
 }
+.auth-forgot-btn {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 0.4rem 0;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+.auth-forgot-btn:hover {
+  color: var(--accent);
+}
 @media (prefers-reduced-motion: reduce) {
   .auth-leaf {
     transition: opacity 0.3s ease;
