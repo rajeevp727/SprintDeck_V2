@@ -1,9 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
 import { whiteboardApi } from '../lib/whiteboardApi';
 import { saveIdentity, getIdentity, getCurrentRoom } from '../lib/storage';
 import { useAuth } from '../lib/auth';
-import { getSubscriptionRef } from '../lib/subscription';
+import { getSubscriptionRef, useSubscription } from '../lib/subscription';
 import BrandLogo from './BrandLogo';
+
+const SubscriptionModal = lazy(() => import('./SubscriptionModal'));
 
 interface Props {
   onEnter: (code: string) => void;
@@ -16,6 +18,7 @@ interface Props {
 
 export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode }: Props) {
   const { user } = useAuth();
+  const { subscribed, loaded: subLoaded } = useSubscription();
   const [mode, setMode] = useState<'create' | 'join'>(joinCode || shareToken ? 'join' : 'create');
   const [name, setName] = useState('');
   const [boardName, setBoardName] = useState('');
@@ -23,7 +26,11 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
   const [token, setToken] = useState(shareToken || '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [showSubscribe, setShowSubscribe] = useState(false);
   const roomCode = getCurrentRoom();
+
+  const needsPro = subLoaded && !subscribed;
+  const createDisabled = busy || needsPro || !name.trim();
 
   useEffect(() => {
     if (user) setName((n) => n || user.name || user.email.split('@')[0]);
@@ -40,6 +47,10 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
     if (!name.trim()) return setError('Enter your name');
+    if (needsPro) {
+      setShowSubscribe(true);
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -97,7 +108,7 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
       </header>
       <p className="tagline">Shared Miro-style whiteboard for your team.</p>
       {roomCode ? (
-        <p className="tagline" style={{ marginTop: '-0.6rem' }}>
+        <p className="wb-room-note">
           Linked to planning room <strong>{roomCode}</strong> — roommates only unless you share a link.
         </p>
       ) : null}
@@ -105,6 +116,7 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
       <div className="card home-card">
         <div className="tabs">
           <button
+            type="button"
             className={mode === 'create' ? 'tab active' : 'tab'}
             onClick={() => {
               setMode('create');
@@ -114,6 +126,7 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
             New board
           </button>
           <button
+            type="button"
             className={mode === 'join' ? 'tab active' : 'tab'}
             onClick={() => {
               setMode('join');
@@ -125,54 +138,83 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
         </div>
 
         {mode === 'create' ? (
-          <form onSubmit={handleCreate} className="stack">
+          <form onSubmit={handleCreate} className="form">
             <label>
               Your name
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Alex" required />
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Alex"
+                autoFocus
+                maxLength={40}
+                required
+              />
             </label>
             <label>
-              Board name
+              Board name <span className="muted">(optional)</span>
               <input
                 value={boardName}
                 onChange={(e) => setBoardName(e.target.value)}
                 placeholder="Sprint planning canvas"
+                maxLength={60}
               />
             </label>
-            {error ? <p className="error">{error}</p> : null}
-            <button className="primary" disabled={busy} type="submit">
+            {needsPro ? (
+              <div className="wb-pro-notice" role="status">
+                <p>A Pro subscription is required to start a whiteboard.</p>
+                <button type="button" className="ghost wb-upgrade" onClick={() => setShowSubscribe(true)}>
+                  View plans →
+                </button>
+              </div>
+            ) : (
+              <p className="auth-hint">Hosting a whiteboard needs a Pro subscription.</p>
+            )}
+            <button className="primary" disabled={createDisabled} type="submit">
               {busy ? 'Creating…' : roomCode ? 'Create room whiteboard' : 'Create shared whiteboard'}
             </button>
           </form>
         ) : (
-          <form onSubmit={handleJoin} className="stack">
+          <form onSubmit={handleJoin} className="form">
             <label>
               Your name
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Alex" required />
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Alex"
+                autoFocus
+                maxLength={40}
+                required
+              />
             </label>
             <label>
               Board code
               <input
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
+                className="code-input"
                 placeholder="ABCDE"
+                maxLength={24}
                 required
               />
             </label>
             <label>
-              Share token (if invited via link)
-              <input
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder="optional"
-              />
+              Share token <span className="muted">(if invited via link)</span>
+              <input value={token} onChange={(e) => setToken(e.target.value)} placeholder="optional" />
             </label>
-            {error ? <p className="error">{error}</p> : null}
-            <button className="primary" disabled={busy} type="submit">
+            <button className="primary" disabled={busy || !name.trim() || !code.trim()} type="submit">
               {busy ? 'Joining…' : 'Join whiteboard'}
             </button>
           </form>
         )}
+
+        {error ? <p className="error">{error}</p> : null}
       </div>
+
+      {showSubscribe ? (
+        <Suspense fallback={null}>
+          <SubscriptionModal onClose={() => setShowSubscribe(false)} />
+        </Suspense>
+      ) : null}
     </div>
   );
 }
