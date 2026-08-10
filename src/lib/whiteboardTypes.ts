@@ -1,17 +1,27 @@
-export type WhiteboardTool = 'pen' | 'rectangle' | 'circle' | 'line' | 'text' | 'sticky' | 'eraser' | 'select';
+export type WhiteboardTool =
+  | 'select'
+  | 'hand'
+  | 'pen'
+  | 'eraser'
+  | 'rect'
+  | 'ellipse'
+  | 'arrow'
+  | 'line'
+  | 'text'
+  | 'sticky'
+  | 'frame';
 
 export interface WhiteboardElement {
   id: string;
-  type: WhiteboardTool;
-  x: number;
-  y: number;
-  width?: number;
-  height?: number;
-  radius?: number;
+  type: string;
+  color: string;
+  size?: number;
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
   points?: { x: number; y: number }[];
   text?: string;
-  color: string;
-  lineWidth: number;
   createdAt: number;
   createdBy: string;
   createdByName: string;
@@ -23,11 +33,40 @@ export interface WhiteboardViewport {
   zoom: number;
 }
 
+export interface WhiteboardParticipant {
+  id: string;
+  name: string;
+  isFacilitator: boolean;
+  canWrite: boolean;
+}
+
+export interface WhiteboardPresence {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  tool: string;
+  editingId: string | null;
+  isFacilitator: boolean;
+}
+
 export interface WhiteboardState {
   code: string;
+  name: string;
+  facilitatorId: string;
+  roomCode: string | null;
+  access: 'room' | 'link' | 'open';
+  hasShareLink: boolean;
+  shareToken: string | null;
+  phase: 'active' | 'ended';
   elements: WhiteboardElement[];
   viewport: WhiteboardViewport;
-  updatedAt: number;
+  followPresenter: boolean;
+  writers: string[];
+  canWrite: boolean;
+  isFacilitator: boolean;
+  participants: WhiteboardParticipant[];
+  presence: WhiteboardPresence[];
 }
 
 export interface WhiteboardJoinResult {

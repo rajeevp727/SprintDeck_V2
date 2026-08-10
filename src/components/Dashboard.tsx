@@ -60,7 +60,7 @@ export default function Dashboard({ onPlanning, onRetro, onTimesheet, onWhiteboa
           <span className="dash-card-icon" aria-hidden>🎨</span>
           <span className="dash-card-title">Whiteboard</span>
           <span className="dash-card-desc">
-            Freeform canvas — sketch ideas, sticky notes, shapes & diagrams like a Miro or MS Whiteboard.
+            Shared Miro-style canvas — live multiplayer, presenter write control, room-locked or shareable link.
           </span>
           <span className="dash-card-cta">Open →</span>
         </button>
