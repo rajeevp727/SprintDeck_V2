@@ -210,4 +210,26 @@ function publicUser(user) {
   return { id: user.id, email: user.email, name: user.name || '' };
 }
 
-module.exports = { createUser, getByEmail, getByName, isNameAvailable, updatePassword, updateUserName, verifyPassword, publicUser };
+async function deleteUser(email) {
+  const user = await getByEmail(email);
+  if (!user) return null;
+  const nameLower = normalizeName(user.name);
+  const c = getContainer();
+  if (!c) {
+    memory.delete(user.id);
+    if (nameLower) memory.delete(`name:${nameLower}`);
+    return { deleted: true };
+  }
+  const container = await c;
+  await container.item(user.id, user.id).delete();
+  if (nameLower) {
+    try {
+      await container.item(`name:${nameLower}`, `name:${nameLower}`).delete();
+    } catch (err) {
+      if (err.code !== 404) throw err;
+    }
+  }
+  return { deleted: true };
+}
+
+module.exports = { createUser, getByEmail, getByName, isNameAvailable, updatePassword, updateUserName, verifyPassword, publicUser, deleteUser };

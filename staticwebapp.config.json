@@ -19,6 +19,8 @@
     "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
     "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Resource-Policy": "same-site",
+    "X-Permitted-Cross-Domain-Policies": "none",
     "Content-Security-Policy": "default-src 'self'; script-src 'self' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.googleadservices.com https://*.doubleclick.net https://ep2.adtrafficquality.google; connect-src 'self' https://*.webpubsub.azure.com wss://*.webpubsub.azure.com https://pagead2.googlesyndication.com https://*.google.com https://*.doubleclick.net; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src https://googleads.g.doubleclick.net https://*.doubleclick.net https://*.google.com; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
   },
   "platform": {

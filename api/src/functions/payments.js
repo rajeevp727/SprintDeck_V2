@@ -93,6 +93,7 @@ app.http('subscriptionStatus', {
   authLevel: 'anonymous',
   route: 'subscription',
   handler: async (req) => {
+    if (rateLimited(req, 'subscription', 60, 60_000)) return bad('Too many requests — slow down', 429);
     const sub = await store.activeSubscription(req.query.get('orderId'));
     return sub ? ok({ active: true, tier: sub.tier, at: sub.at }) : ok({ active: false });
   },

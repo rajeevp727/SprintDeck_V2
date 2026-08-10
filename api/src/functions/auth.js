@@ -4,6 +4,8 @@ const { app } = require('@azure/functions');
 const users = require('../users-store');
 const jwt = require('../jwt');
 const { rateLimited } = require('../ratelimit');
+const { audit } = require('../audit');
+const payments = require('../payments-store');
 const crypto = require('crypto');
 
 const noCache = { 'Cache-Control': 'no-store' };
@@ -51,7 +53,7 @@ app.http('register', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'auth/register',
-  handler: async (req) => {
+  handler: async (req, context) => {
     if (!secret()) return bad('Auth is not configured', 503);
     if (rateLimited(req, 'register', 10, 60_000)) return bad('Too many attempts — slow down', 429);
     const { email, password, name, remember } = await readBody(req);
@@ -63,6 +65,7 @@ app.http('register', {
     const result = await users.createUser(email, password, name);
     if (result.error === 'email-exists') return bad('An account with that email already exists', 409);
     if (result.error === 'name-exists') return bad('That name is already taken — pick another', 409);
+    audit(context, 'auth.register', { email: result.user.email });
     return ok({ token: tokenFor(result.user, remember !== false), user: users.publicUser(result.user) });
   },
 });
@@ -85,15 +88,17 @@ app.http('login', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'auth/login',
-  handler: async (req) => {
+  handler: async (req, context) => {
     if (!secret()) return bad('Auth is not configured', 503);
     if (rateLimited(req, 'login', 10, 60_000)) return bad('Too many attempts — slow down', 429);
     const { email, password, remember } = await readBody(req);
     const user = await users.getByEmail(email);
-    
+
     if (!user || !users.verifyPassword(user, password)) {
+      audit(context, 'auth.login.failed', { email });
       return bad('Invalid email or password', 401);
     }
+    audit(context, 'auth.login', { email: user.email });
     return ok({ token: tokenFor(user, !!remember), user: users.publicUser(user) });
   },
 });
@@ -102,7 +107,7 @@ app.http('changePassword', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'auth/password',
-  handler: async (req) => {
+  handler: async (req, context) => {
     if (!secret()) return bad('Auth is not configured', 503);
     if (rateLimited(req, 'pwchange', 10, 60_000)) return bad('Too many attempts — slow down', 429);
     const token = req.headers.get('x-auth-token') || '';
@@ -114,9 +119,11 @@ app.http('changePassword', {
     }
     const user = await users.getByEmail(payload.email);
     if (!user || !users.verifyPassword(user, currentPassword)) {
+      audit(context, 'auth.password.failed', { email: payload.email });
       return bad('Current password is incorrect', 401);
     }
     await users.updatePassword(payload.email, newPassword);
+    audit(context, 'auth.password.changed', { email: payload.email });
     return ok({ ok: true });
   },
 });
@@ -170,23 +177,23 @@ app.http('forgotPassword', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'auth/forgot-password',
-  handler: async (req) => {
+  handler: async (req, context) => {
     if (!secret()) return ok({ ok: true });
     if (rateLimited(req, 'forgotpw', 5, 60_000)) return bad('Too many attempts — slow down', 429);
     const { email } = await readBody(req);
     const normalized = String(email || '').trim().toLowerCase();
     if (!emailRe.test(normalized)) return bad('Enter a valid email', 400);
     const user = await users.getByEmail(normalized);
-    if (!user) {
-      return bad('User not found — please check the email and try again', 404);
+    if (user) {
+      pruneResetTokens();
+      const token = crypto.randomBytes(32).toString('hex');
+      resetTokens.set(token, {
+        email: user.email,
+        userId: user.id,
+        createdAt: Date.now(),
+      });
+      audit(context, 'auth.forgot-password', { email: user.email });
     }
-    pruneResetTokens();
-    const token = crypto.randomBytes(32).toString('hex');
-    resetTokens.set(token, {
-      email: user.email,
-      userId: user.id,
-      createdAt: Date.now(),
-    });
     return ok({ ok: true });
   },
 });
@@ -209,5 +216,62 @@ app.http('resetPassword', {
     await users.updatePassword(user.email, newPassword);
     resetTokens.delete(String(token || ''));
     return ok({ ok: true });
+  },
+});
+
+app.http('deleteAccount', {
+  methods: ['DELETE'],
+  authLevel: 'anonymous',
+  route: 'auth/account',
+  handler: async (req, context) => {
+    if (!secret()) return bad('Auth is not configured', 503);
+    if (rateLimited(req, 'deleteacct', 5, 60_000)) return bad('Too many attempts — slow down', 429);
+    const token = req.headers.get('x-auth-token') || '';
+    const payload = token && jwt.verify(token, secret());
+    if (!payload) return bad('Please sign in again', 401);
+    const { password } = await readBody(req);
+    const user = await users.getByEmail(payload.email);
+    if (!user || !users.verifyPassword(user, password)) {
+      return bad('Password is incorrect', 401);
+    }
+    await payments.anonymizeOrdersForEmail(user.email);
+    const result = await users.deleteUser(user.email);
+    if (!result) return bad('Account not found', 404);
+    audit(context, 'auth.account.deleted', { email: user.email });
+    return ok({ deleted: true });
+  },
+});
+
+app.http('exportAccount', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'auth/export',
+  handler: async (req, context) => {
+    if (!secret()) return bad('Auth is not configured', 503);
+    if (rateLimited(req, 'export', 10, 60_000)) return bad('Too many attempts — slow down', 429);
+    const token = req.headers.get('x-auth-token') || '';
+    const payload = token && jwt.verify(token, secret());
+    if (!payload) return bad('Please sign in again', 401);
+    const user = await users.getByEmail(payload.email);
+    if (!user) return bad('Account not found', 404);
+    const orders = await payments.ordersForEmail(user.email);
+    audit(context, 'auth.account.export', { email: user.email });
+    return ok({
+      exportedAt: new Date().toISOString(),
+      account: {
+        id: user.id,
+        email: user.email,
+        name: user.name || '',
+        createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : null,
+        updatedAt: user.updatedAt ? new Date(user.updatedAt).toISOString() : null,
+      },
+      subscriptions: orders.map((o) => ({
+        orderId: o.id,
+        tier: o.tier,
+        status: o.status,
+        createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : null,
+        confirmedAt: o.confirmedAt ? new Date(o.confirmedAt).toISOString() : null,
+      })),
+    });
   },
 });

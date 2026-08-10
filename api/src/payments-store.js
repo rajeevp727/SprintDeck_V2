@@ -126,6 +126,40 @@ async function findReceiptByUtr(utr) {
   return null;
 }
 
+function redactBankText(text) {
+  return String(text || '')
+    .replace(/\b\d{10,18}\b/g, '[acct]')
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[email]')
+    .slice(0, 500);
+}
+
+async function ordersForEmail(email) {
+  const normalized = String(email || '').trim().toLowerCase();
+  if (!normalized) return [];
+  const c = getContainer();
+  if (c) {
+    const query = {
+      query: "SELECT c.id, c.type, c.tier, c.status, c.createdAt, c.confirmedAt FROM c WHERE c.type = 'order' AND c.email = @email",
+      parameters: [{ name: '@email', value: normalized }],
+    };
+    const { resources } = await (await c).items.query(query).fetchAll();
+    return resources;
+  }
+  return [...memory.values()].filter((r) => r.type === 'order' && r.email === normalized);
+}
+
+async function anonymizeOrdersForEmail(email) {
+  const normalized = String(email || '').trim().toLowerCase();
+  if (!normalized) return;
+  const c = getContainer();
+  const orders = await ordersForEmail(normalized);
+  for (const order of orders) {
+    order.email = null;
+    order.anonymizedAt = Date.now();
+    await putRecord(order);
+  }
+}
+
 async function ingestCredit({ amount, utr, rawText, source }) {
   const receipt = {
     id: genId(),
@@ -133,7 +167,7 @@ async function ingestCredit({ amount, utr, rawText, source }) {
     amount,
     utr: utr || null,
     source: source || 'unknown',
-    rawText: String(rawText || '').slice(0, 1000),
+    rawText: redactBankText(rawText),
     matchedOrderId: null,
     receivedAt: Date.now(),
   };
@@ -208,4 +242,6 @@ module.exports = {
   ingestCredit,
   activeSubscription,
   grantSubscription,
+  ordersForEmail,
+  anonymizeOrdersForEmail,
 };

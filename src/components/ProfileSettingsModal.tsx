@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { changePassword, checkName, peekName, updateProfile, type AuthUser } from '../lib/auth';
+import { changePassword, checkName, deleteAccount, exportAccountData, peekName, updateProfile, type AuthUser } from '../lib/auth';
 import { CloseIcon } from './icons';
 
 interface Props {
@@ -22,6 +22,12 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
   const [pwBusy, setPwBusy] = useState(false);
   const [pwDone, setPwDone] = useState(false);
   const [pwError, setPwError] = useState('');
+
+  const [deletePw, setDeletePw] = useState('');
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportError, setExportError] = useState('');
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -90,6 +96,41 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
       setPwError((err as Error).message);
     } finally {
       setPwBusy(false);
+    }
+  }
+
+  async function downloadExport() {
+    setExportError('');
+    setExportBusy(true);
+    try {
+      const data = await exportAccountData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sprintdeck-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setExportError((err as Error).message);
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
+  async function confirmDelete(e: FormEvent) {
+    e.preventDefault();
+    if (!deletePw) return setDeleteError('Enter your password to confirm deletion');
+    if (!window.confirm('Delete your account permanently? This cannot be undone.')) return;
+    setDeleteError('');
+    setDeleteBusy(true);
+    try {
+      await deleteAccount(deletePw);
+      onClose();
+    } catch (err) {
+      setDeleteError((err as Error).message);
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
@@ -175,6 +216,35 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
               {pwError ? <p className="error">{pwError}</p> : null}
             </form>
           )}
+        </section>
+
+        <section className="profile-settings-section profile-settings-gdpr">
+          <h4>Your data (GDPR)</h4>
+          <p className="auth-hint">
+            Download a copy of your account and subscription records, or permanently delete your account.
+          </p>
+          <div className="profile-gdpr-actions">
+            <button type="button" className="ghost" onClick={downloadExport} disabled={exportBusy}>
+              {exportBusy ? 'Preparing…' : 'Download my data'}
+            </button>
+          </div>
+          {exportError ? <p className="error">{exportError}</p> : null}
+          <form className="auth-form profile-delete-form" onSubmit={confirmDelete}>
+            <label>
+              Delete account
+              <input
+                type="password"
+                value={deletePw}
+                autoComplete="current-password"
+                placeholder="Enter password to confirm"
+                onChange={(e) => setDeletePw(e.target.value)}
+              />
+            </label>
+            <button type="submit" className="danger" disabled={deleteBusy}>
+              {deleteBusy ? 'Deleting…' : 'Delete my account'}
+            </button>
+            {deleteError ? <p className="error">{deleteError}</p> : null}
+          </form>
         </section>
 
         <p className="auth-hint profile-settings-email">Signed in as {user.email}</p>

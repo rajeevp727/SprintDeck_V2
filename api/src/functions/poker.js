@@ -3,6 +3,7 @@
 const { app } = require('@azure/functions');
 const store = require('../store');
 const linear = require('../linear');
+const { rateLimited } = require('../ratelimit');
 
 const noCache = { 'Cache-Control': 'no-store' };
 
@@ -21,15 +22,8 @@ async function readBody(req) {
   }
 }
 
-const _rlHits = new Map();
-function rateLimited(req, bucket, max, windowMs) {
-  const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
-  const key = `${bucket}:${ip}`;
-  const now = Date.now();
-  const recent = (_rlHits.get(key) || []).filter((t) => now - t < windowMs);
-  recent.push(now);
-  _rlHits.set(key, recent);
-  return recent.length > max;
+function redactLog(s) {
+  return String(s || '').replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[email]');
 }
 
 async function requireModerator(code, participantId) {
@@ -55,9 +49,9 @@ app.http('clientLog', {
   handler: async (req, context) => {
     if (rateLimited(req, 'log', 30, 60_000)) return { status: 429, headers: noCache };
     const body = await readBody(req);
-    const msg = String(body.message || '').slice(0, 1000);
-    const url = String(body.url || '').slice(0, 500);
-    const stack = String(body.stack || '').slice(0, 4000);
+    const msg = redactLog(String(body.message || '').slice(0, 1000));
+    const url = redactLog(String(body.url || '').slice(0, 500));
+    const stack = redactLog(String(body.stack || '').slice(0, 4000));
     context.error(`[client-error] ${msg} @ ${url}${stack ? `\n${stack}` : ''}`);
     return { status: 204, headers: noCache };
   },
@@ -87,6 +81,7 @@ app.http('joinSession', {
   authLevel: 'anonymous',
   route: 'session/{code}/join',
   handler: async (req) => {
+    if (rateLimited(req, 'join', 30, 60_000)) return bad('Too many requests — slow down', 429);
     const { name } = await readBody(req);
     const result = await store.joinSession(req.params.code, name);
     if (result.error === 'notFound') return bad('Session not found', 404);
@@ -120,6 +115,7 @@ app.http('castVote', {
   authLevel: 'anonymous',
   route: 'session/{code}/vote',
   handler: async (req) => {
+    if (rateLimited(req, 'vote', 120, 60_000)) return bad('Too many requests — slow down', 429);
     const { participantId, vote } = await readBody(req);
     const session = await store.loadSession(req.params.code);
     if (!session) return bad('Session not found', 404);
@@ -143,6 +139,7 @@ app.http('startVoting', {
   authLevel: 'anonymous',
   route: 'session/{code}/start',
   handler: async (req) => {
+    if (rateLimited(req, 'pokermod', 60, 60_000)) return bad('Too many requests — slow down', 429);
     const { participantId, story } = await readBody(req);
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
@@ -158,6 +155,7 @@ app.http('reveal', {
   authLevel: 'anonymous',
   route: 'session/{code}/reveal',
   handler: async (req) => {
+    if (rateLimited(req, 'pokermod', 60, 60_000)) return bad('Too many requests — slow down', 429);
     const { participantId } = await readBody(req);
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
@@ -173,6 +171,7 @@ app.http('reset', {
   authLevel: 'anonymous',
   route: 'session/{code}/reset',
   handler: async (req) => {
+    if (rateLimited(req, 'pokermod', 60, 60_000)) return bad('Too many requests — slow down', 429);
     const { participantId } = await readBody(req);
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
@@ -189,6 +188,7 @@ app.http('addToQueue', {
   authLevel: 'anonymous',
   route: 'session/{code}/queue',
   handler: async (req) => {
+    if (rateLimited(req, 'pokermod', 60, 60_000)) return bad('Too many requests — slow down', 429);
     const { participantId, stories } = await readBody(req);
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
@@ -205,6 +205,7 @@ app.http('removeFromQueue', {
   authLevel: 'anonymous',
   route: 'session/{code}/queue/{storyId}',
   handler: async (req) => {
+    if (rateLimited(req, 'pokermod', 60, 60_000)) return bad('Too many requests — slow down', 429);
     const participantId = req.query.get('participantId');
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
@@ -220,6 +221,7 @@ app.http('reorderQueue', {
   authLevel: 'anonymous',
   route: 'session/{code}/queue/reorder',
   handler: async (req) => {
+    if (rateLimited(req, 'pokermod', 60, 60_000)) return bad('Too many requests — slow down', 429);
     const { participantId, order } = await readBody(req);
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
@@ -235,6 +237,7 @@ app.http('kickParticipant', {
   authLevel: 'anonymous',
   route: 'session/{code}/kick',
   handler: async (req) => {
+    if (rateLimited(req, 'pokermod', 60, 60_000)) return bad('Too many requests — slow down', 429);
     const { participantId, targetId } = await readBody(req);
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
@@ -250,6 +253,7 @@ app.http('endSession', {
   authLevel: 'anonymous',
   route: 'session/{code}/end',
   handler: async (req) => {
+    if (rateLimited(req, 'pokermod', 60, 60_000)) return bad('Too many requests — slow down', 429);
     const { participantId } = await readBody(req);
     const { error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
@@ -264,6 +268,7 @@ app.http('nextStory', {
   authLevel: 'anonymous',
   route: 'session/{code}/next',
   handler: async (req) => {
+    if (rateLimited(req, 'pokermod', 60, 60_000)) return bad('Too many requests — slow down', 429);
     const { participantId } = await readBody(req);
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
@@ -282,6 +287,7 @@ app.http('setRetro', {
   authLevel: 'anonymous',
   route: 'session/{code}/retro',
   handler: async (req) => {
+    if (rateLimited(req, 'pokermod', 60, 60_000)) return bad('Too many requests — slow down', 429);
     const { participantId, retroCode } = await readBody(req);
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
@@ -304,6 +310,7 @@ app.http('linearImport', {
   authLevel: 'anonymous',
   route: 'session/{code}/linear/import',
   handler: async (req) => {
+    if (rateLimited(req, 'pokermod', 60, 60_000)) return bad('Too many requests — slow down', 429);
     if (!linear.isEnabled()) return bad('Linear is not configured', 400);
     const { participantId, identifiers } = await readBody(req);
     const { session, error } = await requireModerator(req.params.code, participantId);
@@ -326,6 +333,7 @@ app.http('linearImportEstimation', {
   authLevel: 'anonymous',
   route: 'session/{code}/linear/import-estimation',
   handler: async (req) => {
+    if (rateLimited(req, 'pokermod', 60, 60_000)) return bad('Too many requests — slow down', 429);
     const { participantId } = await readBody(req);
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
@@ -341,6 +349,7 @@ app.http('linearPush', {
   authLevel: 'anonymous',
   route: 'session/{code}/linear/push',
   handler: async (req) => {
+    if (rateLimited(req, 'pokermod', 60, 60_000)) return bad('Too many requests — slow down', 429);
     const { participantId, entryId, estimate } = await readBody(req);
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
