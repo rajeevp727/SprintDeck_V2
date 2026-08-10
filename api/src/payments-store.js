@@ -194,9 +194,37 @@ async function activeSubscription(orderId) {
   return { tier: order.tier, at: new Date(order.confirmedAt).toISOString() };
 }
 
+// Admin/dev: create a pre-confirmed subscription order (no payment required).
+async function grantSubscription(email, tier) {
+  const normalizedTier = String(tier || 'pro').toLowerCase();
+  if (!['pro', 'expert', 'master'].includes(normalizedTier)) {
+    return { error: 'invalid-tier' };
+  }
+  const prices = { pro: 199, expert: 499, master: 999 };
+  const now = Date.now();
+  const order = {
+    id: genId(),
+    type: 'order',
+    tier: normalizedTier,
+    email: email ? String(email).trim().toLowerCase() : null,
+    baseAmount: prices[normalizedTier],
+    payAmount: prices[normalizedTier],
+    status: 'confirmed',
+    utr: 'admin-grant',
+    receiptId: null,
+    createdAt: now,
+    seq: (seq += 1),
+    confirmedAt: now,
+    grantedBy: 'admin',
+  };
+  await putRecord(order);
+  return { order };
+}
+
 module.exports = {
   createOrder,
   getOrder,
   ingestCredit,
   activeSubscription,
+  grantSubscription,
 };
