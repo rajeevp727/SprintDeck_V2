@@ -96,6 +96,30 @@ export async function changePassword(currentPassword: string, newPassword: strin
   if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
 }
 
+export async function updateProfile(name: string): Promise<AuthUser> {
+  const token = getToken();
+  const res = await fetch('/api/auth/profile', {
+    method: 'POST',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json', ...(token ? { 'x-auth-token': token } : {}) },
+    body: JSON.stringify({ name: name.trim() }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+  const user = data.user as AuthUser;
+  cachedUser = user;
+  rememberAccount({ email: user.email, name: user.name });
+  notify();
+  return user;
+}
+
+/** Display name for greetings — prefers profile name, then email local-part. */
+export function displayNameFor(user: AuthUser | null | undefined): string {
+  if (!user) return '';
+  const raw = (user.name || user.email.split('@')[0] || '').trim();
+  return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : user.email;
+}
+
 export async function forgotPassword(email: string): Promise<void> {
   const res = await fetch('/api/auth/forgot-password', {
     method: 'POST',

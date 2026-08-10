@@ -1,8 +1,8 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { useAuth } from '../lib/auth';
+import { displayNameFor, useAuth } from '../lib/auth';
 import { tiers, useSubscription } from '../lib/subscription';
 
-const ChangePasswordModal = lazy(() => import('./ChangePasswordModal'));
+const ProfileSettingsModal = lazy(() => import('./ProfileSettingsModal'));
 const SubscriptionModal = lazy(() => import('./SubscriptionModal'));
 
 function formatSubDate(iso: string) {
@@ -19,7 +19,7 @@ export default function ProfileMenu() {
   const { user, logout } = useAuth();
   const { subscription, subscribed, loaded } = useSubscription();
   const [open, setOpen] = useState(false);
-  const [showPw, setShowPw] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [showSubscribe, setShowSubscribe] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -39,8 +39,7 @@ export default function ProfileMenu() {
 
   if (!user) return null;
 
-  const raw = (user.name || user.email.split('@')[0] || '').trim();
-  const displayName = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : user.email;
+  const displayName = displayNameFor(user);
   const initial = displayName.charAt(0).toUpperCase();
   const plan = subscription ? tiers.find((t) => t.id === subscription.tier) : null;
 
@@ -124,14 +123,14 @@ export default function ProfileMenu() {
               className="profile-half"
               onClick={() => {
                 setOpen(false);
-                setShowPw(true);
+                setShowSettings(true);
               }}
             >
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <rect x="4" y="11" width="16" height="10" rx="2" />
-                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
               </svg>
-              Change password
+              Edit profile
             </button>
             <button className="profile-half danger" onClick={logout}>
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -145,9 +144,9 @@ export default function ProfileMenu() {
         </div>
       )}
 
-      {showPw && (
+      {showSettings && (
         <Suspense fallback={null}>
-          <ChangePasswordModal onClose={() => setShowPw(false)} />
+          <ProfileSettingsModal user={user} onClose={() => setShowSettings(false)} />
         </Suspense>
       )}
 

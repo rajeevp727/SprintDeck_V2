@@ -17,7 +17,8 @@ export default function RetroStart({ onEnter, onBack }: Props) {
   const [mode, setMode] = useState<'create' | 'join'>('create');
   const [name, setName] = useState('');
   useEffect(() => {
-    if (user) setName((n) => n || user.name || user.email.split('@')[0]);
+    if (!user) return;
+    setName((n) => n || user.name?.trim() || user.email.split('@')[0]);
   }, [user]);
   const [boardName, setBoardName] = useState('');
   const [code, setCode] = useState('');

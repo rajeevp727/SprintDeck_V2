@@ -168,6 +168,52 @@ async function updatePassword(email, newPassword) {
   return user;
 }
 
+// Update display name. Returns { user } or { error: 'name-exists' | 'name-too-short' }.
+async function updateUserName(email, name) {
+  const user = await getByEmail(email);
+  if (!user) return null;
+  const cleanName = String(name || '').trim().slice(0, 80);
+  const nameLower = normalizeName(cleanName);
+  if (nameLower.length < 2) return { error: 'name-too-short' };
+
+  const oldLower = normalizeName(user.name);
+  if (oldLower === nameLower) return { user };
+
+  const taken = await getByName(cleanName);
+  if (taken && taken.id !== user.id) return { error: 'name-exists' };
+
+  user.name = cleanName;
+  user.nameLower = nameLower;
+  user.updatedAt = Date.now();
+
+  const c = getContainer();
+  if (!c) {
+    if (oldLower && memory.has(`name:${oldLower}`)) memory.delete(`name:${oldLower}`);
+    memory.set(user.id, user);
+    if (nameLower) memory.set(`name:${nameLower}`, { id: `name:${nameLower}`, owner: user.id });
+    return { user };
+  }
+
+  const container = await c;
+  await container.items.upsert(user);
+  if (oldLower && oldLower !== nameLower) {
+    try {
+      await container.item(`name:${oldLower}`, `name:${oldLower}`).delete();
+    } catch (err) {
+      if (err.code !== 404) throw err;
+    }
+  }
+  if (nameLower) {
+    try {
+      await container.items.create({ id: `name:${nameLower}`, type: 'name-reservation', owner: user.id, createdAt: Date.now() });
+    } catch (err) {
+      if (err && err.code === 409) return { error: 'name-exists' };
+      throw err;
+    }
+  }
+  return { user };
+}
+
 function verifyPassword(user, password) {
   if (!user || !user.salt || !user.passwordHash) return false;
   const got = Buffer.from(hashPassword(password, user.salt));
@@ -180,4 +226,4 @@ function publicUser(user) {
   return { id: user.id, email: user.email, name: user.name || '' };
 }
 
-module.exports = { createUser, getByEmail, getByName, isNameAvailable, updatePassword, verifyPassword, publicUser };
+module.exports = { createUser, getByEmail, getByName, isNameAvailable, updatePassword, updateUserName, verifyPassword, publicUser };

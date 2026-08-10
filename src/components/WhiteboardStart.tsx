@@ -40,7 +40,8 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
   const createDisabled = busy || needsPro || !name.trim();
 
   useEffect(() => {
-    if (user) setName((n) => n || user.name || user.email.split('@')[0]);
+    if (!user) return;
+    setName((n) => n || user.name?.trim() || user.email.split('@')[0]);
   }, [user]);
 
   // Auto-resume if we already have identity for this code
