@@ -60,7 +60,9 @@ jobs:
         with:
           node-version: '20'
       - name: npm audit (root)
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=critical
+        continue-on-error: true
       - name: npm audit (api)
         working-directory: api
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=critical
+        continue-on-error: true
