@@ -3,6 +3,7 @@ import { whiteboardApi } from '../lib/whiteboardApi';
 import { saveIdentity, getIdentity, getCurrentRoom } from '../lib/storage';
 import { useAuth } from '../lib/auth';
 import { getSubscriptionRef, useSubscription } from '../lib/subscription';
+import { useProfileNamePrefill } from '../lib/useProfileName';
 import BrandLogo from './BrandLogo';
 import ProfileMenu from './ProfileMenu';
 import ThemeToggle from './ThemeToggle';
@@ -24,7 +25,7 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
   const { user } = useAuth();
   const { subscribed, loaded: subLoaded } = useSubscription();
   const [mode, setMode] = useState<'create' | 'join'>(joinCode || shareToken ? 'join' : 'create');
-  const [name, setName] = useState('');
+  const [name, setName] = useProfileNamePrefill();
   const [boardName, setBoardName] = useState('');
   const [code, setCode] = useState(joinCode || '');
   const [token, setToken] = useState(shareToken || '');
@@ -38,11 +39,6 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
   const isMemberFlow = mode === 'join';
   const showSubscriptionUpsell = !isMemberFlow && needsPro;
   const createDisabled = busy || needsPro || !name.trim();
-
-  useEffect(() => {
-    if (!user) return;
-    setName((n) => n || user.name?.trim() || user.email.split('@')[0]);
-  }, [user]);
 
   // Auto-resume if we already have identity for this code
   useEffect(() => {

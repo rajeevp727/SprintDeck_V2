@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { api } from '../lib/api';
 import { saveIdentity } from '../lib/storage';
 import { useAuth } from '../lib/auth';
+import { useProfileNamePrefill } from '../lib/useProfileName';
 import AdBanner from './AdBanner';
 import BrandLogo from './BrandLogo';
 import ThemeToggle from './ThemeToggle';
@@ -20,16 +21,11 @@ export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, on
   const { user, logout } = useAuth();
   // Only "New session" is offered; the join form is used solely for invite links.
   const mode: 'create' | 'join' = initialCode ? 'join' : 'create';
-  const [name, setName] = useState('');
+  const [name, setName] = useProfileNamePrefill();
   const [sessionName, setSessionName] = useState('');
   const [code, setCode] = useState(initialCode.toUpperCase());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-
-  // Prefill "Your name" from the signed-in account (only while untouched).
-  useEffect(() => {
-    if (user) setName((n) => n || user.name || user.email.split('@')[0]);
-  }, [user]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();

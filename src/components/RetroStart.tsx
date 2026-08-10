@@ -1,8 +1,8 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { retroApi } from '../lib/retroApi';
 import { saveIdentity } from '../lib/storage';
-import { useAuth } from '../lib/auth';
 import { getSubscriptionRef } from '../lib/subscription';
+import { useProfileNamePrefill } from '../lib/useProfileName';
 import AdBanner from './AdBanner';
 
 interface Props {
@@ -13,13 +13,8 @@ interface Props {
 // Create or join a retrospective from the dashboard (standalone — carry-over of
 // action items only applies to retros started from inside a planning room).
 export default function RetroStart({ onEnter, onBack }: Props) {
-  const { user } = useAuth();
   const [mode, setMode] = useState<'create' | 'join'>('create');
-  const [name, setName] = useState('');
-  useEffect(() => {
-    if (!user) return;
-    setName((n) => n || user.name?.trim() || user.email.split('@')[0]);
-  }, [user]);
+  const [name, setName] = useProfileNamePrefill();
   const [boardName, setBoardName] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);

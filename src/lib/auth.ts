@@ -108,6 +108,7 @@ export async function updateProfile(name: string): Promise<AuthUser> {
   if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
   const user = data.user as AuthUser;
   cachedUser = user;
+  clearNameCheckCache();
   rememberAccount({ email: user.email, name: user.name });
   notify();
   return user;
@@ -143,6 +144,9 @@ const nameCheckCache = new Map<string, NameCheck>();
 // (no debounce, no "checking" flash, no network).
 export function peekName(name: string): NameCheck | null {
   return nameCheckCache.get(name.trim().toLowerCase()) ?? null;
+}
+export function clearNameCheckCache() {
+  nameCheckCache.clear();
 }
 export async function checkName(name: string): Promise<NameCheck> {
   const key = name.trim().toLowerCase();
