@@ -23,10 +23,10 @@ const features = [
     desc: 'Review last sprint’s action items, then capture What went well / to improve / actions.',
   },
   {
-    key: 'chat',
-    emoji: '💬',
-    title: 'Team Chat',
-    desc: 'A members-only back-channel with replies & reactions — no separate call needed.',
+    key: 'whiteboard',
+    emoji: '🎨',
+    title: 'Whiteboard',
+    desc: 'Infinite Miro-style canvas — sticky notes, shapes, pen sketches & diagrams.',
   },
 ];
 
