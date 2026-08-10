@@ -14,5 +14,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
       - run: npm install
+      - run: npm run lint
       - run: npm test
+      - run: npm run build
+      - name: API install
+        working-directory: api
+        run: npm install

@@ -1,0 +1,68 @@
+name: Aikido Security Scan
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.cfg.outputs.enabled }}
+    steps:
+      - id: cfg
+        env:
+          AIKIDO_SECRET_KEY: ${{ secrets.AIKIDO_SECRET_KEY }}
+        run: |
+          if [ -n "$AIKIDO_SECRET_KEY" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Aikido scan skipped — add AIKIDO_SECRET_KEY repo secret to enable."
+          fi
+
+  aikido:
+    needs: detect
+    if: needs.detect.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Aikido PR scan
+        uses: AikidoSec/github-actions-workflow@v1.0.13
+        with:
+          secret-key: ${{ secrets.AIKIDO_SECRET_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fail-on-timeout: true
+          fail-on-dependency-scan: true
+          fail-on-sast-scan: true
+          fail-on-iac-scan: true
+          fail-on-secrets-scan: true
+          minimum-severity: HIGH
+          timeout-seconds: 300
+          post-scan-status-comment: 'on'
+          post-sast-review-comments: 'off'
+
+  audit-fallback:
+    needs: detect
+    if: needs.detect.outputs.enabled != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: npm audit (root)
+        run: npm audit --audit-level=critical
+        continue-on-error: true
+      - name: npm audit (api)
+        working-directory: api
+        run: npm audit --audit-level=critical
+        continue-on-error: true
