@@ -2409,6 +2409,67 @@ a.room-code:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.profile-plan {
+  margin-bottom: 0.75rem;
+}
+.profile-plan-loading {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--muted);
+  padding: 0.35rem 0;
+}
+.profile-plan-active,
+.profile-plan-free {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+.profile-plan-active:hover,
+.profile-plan-free:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-2));
+}
+.profile-plan-icon {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+}
+.profile-plan-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.profile-plan-name {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+.profile-plan-meta {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.profile-plan-action {
+  flex: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+}
 /* Holographic split pill — animated aurora border ring + neon halves */
 .profile-split {
   position: relative;
