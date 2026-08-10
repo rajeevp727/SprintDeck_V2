@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { api } from '../lib/api';
 import { retroApi } from '../lib/retroApi';
+import { whiteboardApi } from '../lib/whiteboardApi';
 import { clearIdentity, getIdentity, saveIdentity } from '../lib/storage';
 import type { Session } from '../lib/types';
 import ConnectToolModal, { toolMeta, type ToolId } from './ConnectToolModal';
@@ -39,9 +40,10 @@ interface Props {
   onMissingIdentity: () => void;
   onGoRoom: () => void;
   onGoRetro: (code: string) => void;
+  onGoWhiteboard: (code: string) => void;
 }
 
-export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoRetro }: Props) {
+export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoRetro, onGoWhiteboard }: Props) {
   const identity = getIdentity(code);
   const participantId = identity?.participantId ?? '';
 
@@ -317,6 +319,25 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
     }
   }
 
+  async function startWhiteboard() {
+    if (!session) return;
+    const myName = session.participants.find((p) => p.id === participantId)?.name || 'Facilitator';
+    try {
+      const res = await whiteboardApi.createBoard({
+        name: `${session.name} — Whiteboard`,
+        facilitatorName: myName,
+        roomCode: code,
+        roomParticipantId: participantId,
+        subRef: getSubscriptionRef() ?? '',
+        access: 'room',
+      });
+      saveIdentity(res.whiteboard.code, res.participantId, myName);
+      onGoWhiteboard(res.whiteboard.code);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
   async function endRoom() {
     if (hasUnviewed) {
       window.alert('You have unviewed results — please review them before closing the room.');
@@ -471,6 +492,11 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
                 Start Retro
               </button>
             )
+          )}
+          {isModerator && (
+            <button className="ghost" onClick={startWhiteboard}>
+              Whiteboard
+            </button>
           )}
           {isModerator ? (
             <button className="ghost danger" onClick={endRoom}>

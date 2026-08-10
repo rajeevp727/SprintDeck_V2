@@ -3,15 +3,12 @@
 const { app } = require('@azure/functions');
 const realtime = require('../realtime');
 const retroStore = require('../retroStore');
+const whiteboardStore = require('../whiteboardStore');
 const { rateLimited } = require('../ratelimit');
 
 const noCache = { 'Cache-Control': 'no-store' };
 
-// GET /api/negotiate?group=retro:CODE&participantId=...  → { url } (null when
-// Web PubSub isn't configured OR the caller isn't a member of the board, so the
-// client transparently falls back to polling). Only retro groups are supported,
-// and a token (with group send, for the typing indicator) is issued only to a
-// verified board member — not to anyone who names a group.
+// GET /api/negotiate?group=retro:CODE|whiteboard:CODE&participantId=...
 app.http('negotiate', {
   methods: ['GET'],
   authLevel: 'anonymous',
@@ -22,14 +19,27 @@ app.http('negotiate', {
     }
     const group = req.query.get('group') || '';
     const participantId = req.query.get('participantId') || '';
-    const match = group.match(/^retro:(.+)$/);
-    if (!match) return { status: 400, jsonBody: { error: 'unsupported group' }, headers: noCache };
 
-    const board = await retroStore.loadBoard(match[1]);
-    if (!board || !board.participants[participantId]) {
-      return { status: 200, jsonBody: { url: null }, headers: noCache }; // non-member → poll
+    const retroMatch = group.match(/^retro:(.+)$/);
+    if (retroMatch) {
+      const board = await retroStore.loadBoard(retroMatch[1]);
+      if (!board || !board.participants[participantId]) {
+        return { status: 200, jsonBody: { url: null }, headers: noCache };
+      }
+      const url = await realtime.negotiate(group);
+      return { status: 200, jsonBody: { url: url || null }, headers: noCache };
     }
-    const url = await realtime.negotiate(group);
-    return { status: 200, jsonBody: { url: url || null }, headers: noCache };
+
+    const wbMatch = group.match(/^whiteboard:(.+)$/);
+    if (wbMatch) {
+      const board = await whiteboardStore.loadBoard(wbMatch[1]);
+      if (!board || !board.participants[participantId]) {
+        return { status: 200, jsonBody: { url: null }, headers: noCache };
+      }
+      const url = await realtime.negotiate(group);
+      return { status: 200, jsonBody: { url: url || null }, headers: noCache };
+    }
+
+    return { status: 400, jsonBody: { error: 'unsupported group' }, headers: noCache };
   },
 });

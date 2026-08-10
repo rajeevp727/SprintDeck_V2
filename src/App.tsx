@@ -16,6 +16,7 @@ const Dashboard = lazy(() => import('./components/Dashboard'));
 const RetroStart = lazy(() => import('./components/RetroStart'));
 const StandupTimesheet = lazy(() => import('./components/StandupTimesheet'));
 const Whiteboard = lazy(() => import('./components/Whiteboard'));
+const WhiteboardStart = lazy(() => import('./components/WhiteboardStart'));
 import {
   getIdentity,
   saveIdentity,
@@ -46,11 +47,13 @@ type Route =
   | { kind: 'retroStart' }
   | { kind: 'timesheet' }
   | { kind: 'home'; joinCode?: string }
-  | { kind: 'whiteboard' };
+  | { kind: 'whiteboardStart'; joinCode?: string; shareToken?: string }
+  | { kind: 'whiteboard'; code: string };
 
 // The retrospective board has its own real URL path: /retro/CODE (unlike poker,
 // whose code stays out of the URL) so the facilitator can share a plain link.
 const RETRO_PATH_RE = /^\/retro\/([A-Za-z0-9-]+)\/?$/;
+const WB_PATH_RE = /^\/whiteboard\/([A-Za-z0-9-]+)\/?$/;
 
 // The room code is NOT kept in the URL — it lives in storage (see storage.ts).
 // Invite links carry the code as a ?room=CODE query param, which is read on
@@ -73,7 +76,19 @@ function computeRoute(): Route {
   if (path === '/plan' || path === '/plan/') return { kind: 'plan' };
   if (path === '/retro-new' || path === '/retro-new/') return { kind: 'retroStart' };
   if (path === '/timesheet' || path === '/timesheet/') return { kind: 'timesheet' };
-  if (path === '/whiteboard' || path === '/whiteboard/') return { kind: 'whiteboard' };
+  if (path === '/whiteboard' || path === '/whiteboard/') {
+    const t = new URLSearchParams(window.location.search).get('t') || undefined;
+    return { kind: 'whiteboardStart', shareToken: t };
+  }
+
+  const wbMatch = path.match(WB_PATH_RE);
+  if (wbMatch) {
+    const wc = wbMatch[1].toUpperCase();
+    const t = new URLSearchParams(window.location.search).get('t') || undefined;
+    return getIdentity(wc)
+      ? { kind: 'whiteboard', code: wc }
+      : { kind: 'whiteboardStart', joinCode: wc, shareToken: t };
+  }
 
   const retroMatch = path.match(RETRO_PATH_RE);
   if (retroMatch) {
@@ -204,8 +219,12 @@ export default function App() {
   function goTimesheet() {
     go('/timesheet', { kind: 'timesheet' });
   }
-  function goWhiteboard() {
-    go('/whiteboard', { kind: 'whiteboard' });
+  function goWhiteboardStart() {
+    go('/whiteboard', { kind: 'whiteboardStart' });
+  }
+  function goWhiteboard(code: string) {
+    const c = code.toUpperCase();
+    go(`/whiteboard/${c}`, { kind: 'whiteboard', code: c });
   }
 
   let page;
@@ -223,6 +242,7 @@ export default function App() {
         onMissingIdentity={goHome}
         onGoRoom={() => goRoom(route.code)}
         onGoRetro={goRetro}
+        onGoWhiteboard={goWhiteboard}
       />
     );
   } else if (route.kind === 'retro') {
@@ -242,8 +262,23 @@ export default function App() {
     page = <RetroStart onEnter={goRetro} onBack={goHome} />;
   } else if (route.kind === 'timesheet') {
     page = <StandupTimesheet onBack={goHome} />;
+  } else if (route.kind === 'whiteboardStart') {
+    page = (
+      <WhiteboardStart
+        onEnter={goWhiteboard}
+        onBack={goHome}
+        joinCode={route.joinCode}
+        shareToken={route.shareToken}
+      />
+    );
   } else if (route.kind === 'whiteboard') {
-    page = <Whiteboard onBack={goHome} />;
+    page = (
+      <Whiteboard
+        code={route.code}
+        onLeave={goHome}
+        onMissingIdentity={() => go('/whiteboard/' + route.code, { kind: 'whiteboardStart', joinCode: route.code })}
+      />
+    );
   } else if (authLoading) {
     page = null; // resolving the session — avoid flashing the landing then the app
   } else if (route.joinCode) {
@@ -265,7 +300,7 @@ export default function App() {
         onPlanning={startPlanning}
         onRetro={goRetroStart}
         onTimesheet={goTimesheet}
-        onWhiteboard={goWhiteboard}
+        onWhiteboard={goWhiteboardStart}
         onPrivacy={goPrivacy}
         onTerms={goTerms}
         onSecurity={goSecurity}
