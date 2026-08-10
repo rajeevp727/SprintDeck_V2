@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
 import { whiteboardApi } from '../lib/whiteboardApi';
 import { saveIdentity, getIdentity, getCurrentRoom } from '../lib/storage';
 import { useAuth } from '../lib/auth';
-import { getSubscriptionRef, tiers, useSubscription } from '../lib/subscription';
+import { getSubscriptionRef, useSubscription } from '../lib/subscription';
 import BrandLogo from './BrandLogo';
 import ProfileMenu from './ProfileMenu';
 import ThemeToggle from './ThemeToggle';
@@ -22,7 +22,7 @@ const FEATURES = ['Live sync', 'Presenter controls', 'SVG & PDF export'] as cons
 
 export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode }: Props) {
   const { user } = useAuth();
-  const { subscription, subscribed, loaded: subLoaded } = useSubscription();
+  const { subscribed, loaded: subLoaded } = useSubscription();
   const [mode, setMode] = useState<'create' | 'join'>(joinCode || shareToken ? 'join' : 'create');
   const [name, setName] = useState('');
   const [boardName, setBoardName] = useState('');
@@ -35,8 +35,9 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
   const roomCode = getCurrentRoom();
 
   const needsPro = subLoaded && !subscribed;
+  const isMemberFlow = mode === 'join';
+  const showSubscriptionUpsell = !isMemberFlow && needsPro;
   const createDisabled = busy || needsPro || !name.trim();
-  const plan = subscription ? tiers.find((t) => t.id === subscription.tier) : null;
 
   useEffect(() => {
     if (user) setName((n) => n || user.name || user.email.split('@')[0]);
@@ -135,20 +136,13 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
         </div>
       ) : null}
 
-      {subLoaded ? (
+      {showSubscriptionUpsell ? (
         <button
           type="button"
-          className={`wb-plan-pill${subscribed ? ' active' : ''}`}
+          className="wb-plan-pill"
           onClick={() => setShowSubscribe(true)}
         >
-          {subscribed && plan ? (
-            <>
-              <span aria-hidden>{plan.icon}</span>
-              {plan.name} plan
-            </>
-          ) : (
-            <>✨ Free · Upgrade to host</>
-          )}
+          ✨ Free · Upgrade to host
         </button>
       ) : null}
 
@@ -198,16 +192,16 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
                 maxLength={60}
               />
             </label>
-            {needsPro ? (
+            {showSubscriptionUpsell ? (
               <div className="wb-pro-notice" role="status">
                 <p>A Pro subscription is required to start a whiteboard.</p>
                 <button type="button" className="ghost wb-upgrade" onClick={() => setShowSubscribe(true)}>
                   View plans →
                 </button>
               </div>
-            ) : (
+            ) : !isMemberFlow ? (
               <p className="auth-hint">You can grant write access to teammates after creating the board.</p>
-            )}
+            ) : null}
             <button className="primary wb-submit" disabled={createDisabled} type="submit">
               {busy ? 'Creating…' : roomCode ? 'Create room whiteboard' : 'Create shared whiteboard'}
             </button>
