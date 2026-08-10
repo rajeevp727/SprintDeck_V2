@@ -9,20 +9,11 @@ interface Props {
   onConnected: (tool: ToolId, key: string) => void;
 }
 
-/**
- * Per-tool API-key connect. The user pastes a read/write key/token; we use it to
- * pull estimation tickets and to write agreed story points back after planning.
- *
- * MOCK for now: the key isn't sent anywhere yet — connecting loads sample tickets.
- * Once the provider adapter (roadmap T1/T10) lands, the key goes to the server
- * (encrypted) and drives the real read/write calls.
- */
 export default function ToolConnectModal({ tool, onBack, onClose, onConnected }: Props) {
   const meta = toolMeta[tool];
   const [key, setKey] = useState('');
   const [shake, setShake] = useState(false);
 
-  // Outside-click must NOT close — shake the card and flash the ✕.
   function refuseOutsideClose() {
     setShake(true);
     setTimeout(() => setShake(false), 500);

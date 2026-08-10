@@ -15,12 +15,10 @@ function formatTime(at: number): string {
   return new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-// The liker's display name — self shows as "*You".
 function likerName(like: ChatLike, myId: string): string {
   return like.id === myId ? '*You' : like.name || 'Someone';
 }
 
-// aria-label for the like badge: "Liked by *You, Alice".
 function likeTitle(likes: ChatLike[], myId: string): string {
   return `Liked by ${likes.map((l) => likerName(l, myId)).join(', ')}`;
 }
@@ -47,8 +45,8 @@ function MessageItem({
   onHideLikers,
 }: MessageItemProps) {
   const rawLikes = message.likes ?? [];
-  // Only surface likers whose name we have (self always shows as *You). Nameless
-  // legacy likes are hidden rather than shown as a "Someone" placeholder.
+  
+  
   const likes = rawLikes.filter((l) => l.id === myId || (l.name && l.name.trim() !== ''));
   return (
     <div className={`chat-msg-row ${mine ? 'mine' : ''}`}>
@@ -66,9 +64,9 @@ function MessageItem({
         <div className="chat-msg-text">{message.text}</div>
       </div>
       <div className="chat-msg-under">
-        {/* Persistent like indicator — shown whenever the message has likes.
-            Hover for the list of who liked. Clicking likes it (once) — a like
-            can't be taken back or repeated once you've liked. */}
+        {
+
+}
         {likes.length > 0 && (
           <button
             className={`chat-likes-badge ${likedByMe ? 'liked' : ''}`}
@@ -82,8 +80,8 @@ function MessageItem({
             👍 <span className="chat-likes-count">{likes.length}</span>
           </button>
         )}
-        {/* Hover-only actions. The Like button appears only when there are no
-            likes yet; once liked the badge handles it and Like isn't offered. */}
+        {
+}
         <div className="chat-msg-actions">
           {likes.length === 0 && (
             <button className="chat-act" aria-label="Like" onClick={() => onLike(message)}>
@@ -144,15 +142,11 @@ export default function ChatPanel({ code, participantId }: Props) {
         const { messages: history } = await api.chatHistory(code, participantId);
         history.forEach((m) => seen.current.add(m.id));
         setMessages(history.map((m) => ({ ...m, likes: m.likes ?? [] })));
-      } catch {
-        /* history is best-effort */
-      }
+      } catch { void 0; }
       try {
         conn = await connectChat(code, participantId, onEvent);
         if (stopped) conn.stop();
-      } catch {
-        /* live channel unavailable — history still renders */
-      }
+      } catch { void 0; }
     })();
     return () => {
       stopped = true;
@@ -164,16 +158,16 @@ export default function ChatPanel({ code, participantId }: Props) {
     if (open && listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [messages, open]);
 
-  // Position the who-liked list relative to the chat panel so it stays inside
-  // the window (not portaled to the body, where it overflowed outside).
+  
+  
   const showLikers = useCallback((likes: ChatLike[], anchor: HTMLElement) => {
     const chat = chatRef.current;
     if (!chat) return;
     const a = anchor.getBoundingClientRect();
     const c = chat.getBoundingClientRect();
-    const above = a.top - c.top > 110; // enough room above inside the panel?
-    // Left-align to the badge, clamped so the tooltip never spills outside the
-    // panel (panel has overflow:hidden, so a centered tip near the edge clips).
+    const above = a.top - c.top > 110; 
+    
+    
     const tipWidth = 230;
     const x = Math.max(8, Math.min(a.left - c.left, c.width - tipWidth - 8));
     setLikeTip({ likes, x, y: (above ? a.top : a.bottom) - c.top, above });
@@ -195,9 +189,7 @@ export default function ChatPanel({ code, participantId }: Props) {
     try {
       const { likes } = await api.likeChatMessage(code, participantId, message.id);
       applyLike(message.id, likes);
-    } catch {
-      /* ignore */
-    }
+    } catch { void 0; }
   }
 
   async function send(e: FormEvent) {
@@ -211,12 +203,11 @@ export default function ChatPanel({ code, participantId }: Props) {
       const { message } = await api.sendChatMessage(code, participantId, text, reply);
       addMessage(message);
     } catch {
-      setInput(text); // restore the draft so nothing is lost
+      setInput(text);
       setReplyTo(reply);
     }
   }
 
-  // Likers most-recent first for the hover list.
   const tipLikes = likeTip ? [...likeTip.likes].sort((a, b) => (b.at ?? 0) - (a.at ?? 0)) : [];
 
   return (

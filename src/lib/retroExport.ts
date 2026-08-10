@@ -1,7 +1,5 @@
 import type { RetroBoard } from './retroTypes';
 
-// Self-contained export for the retrospective (txt / csv / PDF-via-print). No
-// external libraries — CSV opens in Excel, PDF is the browser's print dialog.
 export type ExportFormat = 'txt' | 'csv' | 'pdf';
 
 export const exportFormats: { format: ExportFormat; label: string }[] = [
@@ -62,7 +60,7 @@ function toCsv(doc: ExportDoc): string {
     lines.push(t.headers.map(csvCell).join(','));
     for (const row of t.rows) lines.push(row.map(csvCell).join(','));
   });
-  return '﻿' + lines.join('\r\n'); // BOM so Excel detects UTF-8
+  return '﻿' + lines.join('\r\n');
 }
 
 function printPdf(doc: ExportDoc) {

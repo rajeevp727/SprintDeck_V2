@@ -9,16 +9,11 @@ interface Props {
   onExit: () => void;
 }
 
-// The name of the poker room this person is already in (if any) — used to join
-// the retro directly, with no login step.
 function knownNameFromRoom(): string {
   const room = getCurrentRoom();
   return room ? getIdentity(room)?.name ?? '' : '';
 }
 
-// Retro boards are created by a room's moderator and shared via their /retro/CODE
-// link. Members already in the poker room land here and are auto-joined with
-// their existing name; only outsiders with no session see the name form.
 export default function RetroHome({ joinCode, onEnter, onExit }: Props) {
   const knownName = knownNameFromRoom();
   const [name, setName] = useState(knownName);
@@ -32,13 +27,12 @@ export default function RetroHome({ joinCode, onEnter, onExit }: Props) {
     onEnter(res.board.code);
   }
 
-  // Auto-join with the existing poker-room identity, no login required.
   useEffect(() => {
     if (!knownName) return;
     let cancelled = false;
     join(knownName).catch((err) => {
       if (cancelled) return;
-      setError((err as Error).message); // fall back to the manual form (board full / not found)
+      setError((err as Error).message);
       setAutoJoining(false);
     });
     return () => {

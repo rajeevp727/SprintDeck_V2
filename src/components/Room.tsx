@@ -21,17 +21,13 @@ import { nearestDeckValue } from '../lib/estimate';
 import { useSubscription, getSubscriptionRef, tiers } from '../lib/subscription';
 import { notifyPresence } from '../lib/presence';
 
-// Modals loaded on demand — SubscriptionModal pulls in qrcode.react, so keeping
-// it out of the initial bundle speeds first load (esp. for non-moderators).
 const ResultsModal = lazy(() => import('./ResultsModal'));
 const ToolConnectModal = lazy(() => import('./ToolConnectModal'));
 const SubscriptionModal = lazy(() => import('./SubscriptionModal'));
 const ChatPanel = lazy(() => import('./ChatPanel'));
 
 const pollMs = 1500;
-// Only leave the room after this many CONSECUTIVE "not found" polls — tolerates
-// transient misses (tab loses focus & throttles, cold start, instance split) so
-// you stay put until you leave or the moderator actually ends the room.
+
 const maxMisses = 6;
 
 interface Props {
@@ -53,7 +49,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
   const [queueDraft, setQueueDraft] = useState('');
   const [copied, setCopied] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [viewedCount, setViewedCount] = useState(0); // history entries the moderator has opened
+  const [viewedCount, setViewedCount] = useState(0);
   const [linearEnabled, setLinearEnabled] = useState(false);
   const [linearDraft, setLinearDraft] = useState('');
   const [linearMissing, setLinearMissing] = useState<string[]>([]);
@@ -69,7 +65,6 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
   const missCount = useRef(0);
   const prevParticipants = useRef<{ id: string; name: string }[] | null>(null);
 
-  // No identity for this room (e.g. opened an invite link directly) → bounce to join.
   useEffect(() => {
     if (!participantId) onMissingIdentity();
   }, [participantId, onMissingIdentity]);
@@ -77,11 +72,10 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
   const isModerator = session?.moderatorId === participantId;
   const { subscription, subscribed, loaded: subLoaded } = useSubscription();
 
-  // Results the moderator hasn't opened yet (new rounds since they last viewed).
   const unviewedCount = session ? Math.max(0, session.history.length - viewedCount) : 0;
   const hasUnviewed = unviewedCount > 0;
-  // Mirror into a ref so the beforeunload handler reads the latest value without
-  // needing to re-register the listener on every change.
+  
+  
   const hasUnviewedRef = useRef(false);
   hasUnviewedRef.current = hasUnviewed;
 
@@ -89,25 +83,25 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
     if (!participantId) return;
     try {
       const { session: s } = await api.getSession(code, participantId);
-      missCount.current = 0; // successful poll resets the miss streak
-      // Removed by the moderator (kicked) → the room still exists but we're no
-      // longer in it. Leave gracefully.
+      missCount.current = 0; 
+      
+      
       const me = s.participants.find((p) => p.id === participantId);
       if (!me) {
         clearIdentity(code);
         onMissingIdentity();
         return;
       }
-      // Toast the moderator when someone joins/leaves the room.
+      
       notifyPresence(s.participants, s.moderatorId === participantId, participantId, prevParticipants, `room ${code}`);
       setSession(s);
       setError('');
-      setMyVote(me.vote); // keep my selected card in sync with the server
+      setMyVote(me.vote);
     } catch (err) {
       const msg = (err as Error).message;
       if (msg.includes('not found')) {
-        // Tolerate transient misses; only exit after a sustained run of them
-        // (room truly gone / moderator ended it).
+        
+        
         missCount.current += 1;
         if (missCount.current >= maxMisses) {
           clearIdentity(code);
@@ -121,8 +115,8 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
 
   useEffect(() => {
     refresh();
-    // Pause polling while the tab is backgrounded (no point syncing an unseen
-    // room); refresh immediately when it becomes visible again.
+    
+    
     const id = setInterval(() => {
       if (!document.hidden) refresh();
     }, pollMs);
@@ -136,12 +130,12 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
     };
   }, [refresh]);
 
-  // Remind the moderator to review results before they close/refresh/navigate away.
-  // (Browsers show their own generic confirm text, but this guarantees the prompt.)
+  
+  
   useEffect(() => {
     if (!isModerator) return;
     const handler = (e: BeforeUnloadEvent) => {
-      if (!hasUnviewedRef.current) return; // only warn when unviewed results exist
+      if (!hasUnviewedRef.current) return; 
       e.preventDefault();
       e.returnValue = 'You have unviewed sprint results — review them before leaving.';
     };
@@ -149,13 +143,13 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
     return () => window.removeEventListener('beforeunload', handler);
   }, [isModerator]);
 
-  // Is the Linear flow available on the server? (LINEAR_API_KEY configured.)
+  
   useEffect(() => {
     api.linearStatus().then((r) => setLinearEnabled(r.enabled)).catch(() => {});
   }, []);
 
-  // Show the subscription popup on every moderator login (unless already
-  // subscribed), 2 seconds after entering the room so it zooms in over the UI.
+  
+  
   useEffect(() => {
     if (!subLoaded || subChecked.current || !isModerator || subscribed) return;
     subChecked.current = true;
@@ -163,8 +157,8 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
     return () => clearTimeout(t);
   }, [isModerator, subscribed, subLoaded]);
 
-  // Unlock the shared chat when a subscribed moderator is in a room that doesn't
-  // yet have it on (i.e. they subscribed after creating the room).
+  
+  
   useEffect(() => {
     if (!isModerator || !session || session.chatEnabled || chatSynced.current) return;
     if (!subscribed) return;
@@ -175,9 +169,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
       .catch(() => {});
   }, [isModerator, subscribed, session, code, participantId]);
 
-  // On a freshly revealed Linear-backed round, prefill the push value with the
-  // median-nearest deck value — once per entry, so polling doesn't clobber a
-  // manual selection.
+  
   useEffect(() => {
     if (!session) return;
     const entry = session.history.find((h) => h.id === session.currentEntryId);
@@ -189,8 +181,8 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
 
   async function castVote(card: string) {
     if (!session || session.status !== 'voting') return;
-    const next = myVote === card ? null : card; // click again to clear
-    setMyVote(next); // optimistic
+    const next = myVote === card ? null : card; 
+    setMyVote(next); 
     try {
       const { session: s } = await api.vote(code, participantId, next);
       setSession(s);
@@ -234,8 +226,6 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
     }
   }
 
-  // Load the Linear "Estimation" view tickets into the queue (mock data for now;
-  // becomes a live fetch once OAuth credentials are configured server-side).
   async function loadEstimation() {
     try {
       const { session: s } = await api.linearImportEstimation(code, participantId);
@@ -246,20 +236,16 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
     }
   }
 
-  // Tool picked from the picker → open its key-entry modal.
   function selectTool(tool: ToolId) {
     setShowToolPicker(false);
     setPendingTool(tool);
   }
 
-  // Closing the key-entry modal steps back to the tool picker (not a full close).
   function backToPicker() {
     setPendingTool(null);
     setShowToolPicker(true);
   }
 
-  // Read/write key entered → (mock) connect and load the estimation tickets. The
-  // key isn't sent anywhere yet; real read/write lands with the provider adapter.
   function onToolConnected(tool: ToolId) {
     setPendingTool(null);
     setLinearConnected(true);
@@ -285,10 +271,10 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
     moderatorAction(() => api.kick(code, participantId, targetId));
   }
 
-  // Header links are real anchors (to the invite URL) so Ctrl/Cmd/middle-click
-  // opens a new tab. A plain left-click stays in-app via SPA navigation.
+  
+  
   function roomLinkClick(e: ReactMouseEvent) {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // allow open-in-new-tab
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; 
     e.preventDefault();
     onGoRoom();
   }
@@ -298,9 +284,9 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
     onLeave();
   }
 
-  // Moderator opens a retrospective for the room (PRO+ only, verified server-side
-  // via the subscription order ref). The board carries this room's action items
-  // from its previous retro; roomCode links them across sprints.
+  
+  
+  
   async function startRetro() {
     if (!session) return;
     const subRef = getSubscriptionRef();
@@ -345,16 +331,14 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
     if (!window.confirm('End this room for everyone? This cannot be undone.')) return;
     try {
       await api.end(code, participantId);
-    } catch {
-      /* even if it fails, leave locally */
-    }
+    } catch { void 0; }
     clearIdentity(code);
     onLeave();
   }
 
   async function copyInvite() {
-    // Invite link carries the code as a query param; the app reads it on open
-    // and strips it from the URL, so the code isn't left in the address bar.
+    
+    
     const url = `${location.origin}/?room=${code}`;
     try {
       await navigator.clipboard.writeText(url);
@@ -374,19 +358,19 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
     );
   }
 
-  // Only members vote — the moderator facilitates, so the tally excludes them.
+  
   const voters = session.participants.filter((p) => !p.isModerator);
   const voted = voters.filter((p) => p.hasVoted).length;
   const total = voters.length;
 
-  // The just-revealed round — used by the Linear "confirm & push estimate" control.
+  
   const currentEntry = session.history.find((h) => h.id === session.currentEntryId);
   const showLinearPush = session.status === 'revealed' && !!currentEntry?.linearId;
 
-  // Estimation list state: the story being voted now (selected), the pending
-  // queue, and the already-estimated stories (greyed). Works for both Linear
-  // tickets and manually-added tasks. The active story only appears as "current"
-  // while voting, then moves to "done" once revealed.
+  
+  
+  
+  
   const currentStory =
     session.status === 'voting' && session.story
       ? {
@@ -399,8 +383,8 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
   const linearUrl = (identifier?: string | null, url?: string | null) =>
     url ?? (identifier ? `https://linear.app/trivinna/issue/${identifier}` : undefined);
 
-  // Position-aware label for the Start button (first / next / last / only),
-  // based purely on the queue — stories are always pulled from it.
+  
+  
   const queued = session.queue.length;
   const done = session.history.length;
   let startLabel = 'Start voting';
@@ -410,8 +394,8 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
     else if (queued === 1) startLabel = 'Start last story';
     else startLabel = 'Start next story';
   }
-  // Don't allow starting a round with nothing to estimate — require either a
-  // Linear connection or at least one queued ticket.
+  
+  
   const canStart = linearConnected || queued > 0;
 
   return (
@@ -467,7 +451,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
               title="View results"
               onClick={() => {
                 setShowResults(true);
-                setViewedCount(session.history.length); // mark all current results viewed
+                setViewedCount(session.history.length); 
               }}
             >
               Results
@@ -479,8 +463,8 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
               {copied ? 'Copied!' : 'Invite'}
             </button>
           )}
-          {/* Retrospective (PRO+). If one is open for the room, everyone can join;
-              otherwise a subscribed moderator can start one. */}
+          {
+}
           {session.retroCode ? (
             <button className="ghost" onClick={() => onGoRetro(session.retroCode as string)}>
               Join Retrospective
@@ -544,11 +528,8 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
         })}
       </section>
 
-      {/* Section-level ad */}
       <AdBanner className="ad-section" />
 
-
-      {/* Moderator controls */}
       {isModerator && (
         <>
           <div className="panel">
@@ -603,7 +584,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
               )}
             </div>
 
-            {/* Linear: confirm the agreed estimate and write it back to the issue */}
+            {}
             {showLinearPush && currentEntry && (
               <div className="linear-push">
                 {currentEntry.pushedEstimate != null ? (
@@ -638,7 +619,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
             )}
           </div>
 
-          {/* Linear — Connect (OAuth) + Estimation-view tickets */}
+          {}
           <div className="queue-panel linear-panel">
             <div className="queue-head">
               <span className="queue-title">Linear · Estimation</span>
@@ -655,7 +636,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
 
             {currentStory || session.queue.length > 0 || doneStories.length > 0 ? (
               <ul className="queue-list est-list">
-                {/* Story being estimated right now — selected/highlighted */}
+                {}
                 {currentStory && (
                   <li className="est-current">
                     <span className="est-dot" aria-hidden />
@@ -675,7 +656,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
                   </li>
                 )}
 
-                {/* Up next — pending tickets */}
+                {}
                 {session.queue.map((q, i) => (
                   <li key={q.id}>
                     <span className="q-num">{i + 1}</span>
@@ -699,7 +680,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
                   </li>
                 ))}
 
-                {/* Already estimated — greyed out with the agreed points */}
+                {}
                 {doneStories.map((h) => {
                   const url = linearUrl(h.identifier, h.url);
                   return (
@@ -724,7 +705,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
               </p>
             )}
 
-            {/* Live paste-ID import — only when a server API key is configured */}
+            {}
             {linearEnabled && (
               <div className="queue-add">
                 <textarea
@@ -742,7 +723,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
               <p className="linear-missing">Not found: {linearMissing.join(', ')}</p>
             )}
 
-            {/* Manual entry — add tasks to estimate without Linear */}
+            {}
             <div className="queue-add">
               <textarea
                 value={queueDraft}
@@ -762,8 +743,8 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
         <p className="wait-msg">Waiting for the moderator to start voting…</p>
       )}
 
-      {/* The deck — voting cards are for members only; the moderator facilitates
-          the round but doesn't vote, so it's hidden from them. */}
+      {
+}
       {!isModerator && (
         <section className={`deck ${session.status === 'voting' ? '' : 'disabled'}`}>
           {session.deck.map((card) => (
@@ -783,8 +764,8 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
         </section>
       )}
 
-      {/* Team chat (PRO+) — team-members-only back-channel below the deck.
-          The moderator unlocks it but never sees or joins it. */}
+      {
+}
       {session.chatEnabled && !isModerator && (
         <Suspense fallback={null}>
           <ChatPanel code={code} participantId={participantId} />
@@ -793,7 +774,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
 
       {error && <p className="error room-error">{error}</p>}
 
-      {/* Page-level ad */}
+      {}
       <AdBanner className="ad-page" />
 
       <Suspense fallback={null}>

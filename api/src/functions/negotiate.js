@@ -8,7 +8,6 @@ const { rateLimited } = require('../ratelimit');
 
 const noCache = { 'Cache-Control': 'no-store' };
 
-// GET /api/negotiate?group=retro:CODE|whiteboard:CODE&participantId=...
 app.http('negotiate', {
   methods: ['GET'],
   authLevel: 'anonymous',

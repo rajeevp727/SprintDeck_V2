@@ -4,40 +4,24 @@ const crypto = require('crypto');
 const { CosmosClient } = require('@azure/cosmos');
 const realtime = require('./realtime');
 
-// ───────────────────────────────────────────────────────────────────────────
-// Retrospective board store — parallel to store.js (planning poker) but fully
-// isolated so the poker flow is never touched.
-//
-// Boards live in a SEPARATE Cosmos container ("retros") in the same database
-// ("sprintdeck"). If no COSMOS_CONNECTION_STRING is configured it falls back to
-// an in-memory Map (single instance, local dev). Cosmos native TTL auto-deletes
-// idle boards (see boardIdleMs).
-// ───────────────────────────────────────────────────────────────────────────
 const conn = process.env.COSMOS_CONNECTION_STRING || '';
 const dbName = 'sprintdeck';
 const containerName = 'retros';
 
-const memory = new Map(); // board fallback when no connection string
-const containerCache = new Map(); // container name -> Promise<container>
+const memory = new Map(); 
+const containerCache = new Map(); 
 
-// A board is treated as gone when EITHER it has had no activity for boardIdleMs
-// (4h) or its total age exceeds boardMaxAgeMs (8h). Retros run longer than a
-// poker round, so these are more generous than the poker limits.
-const boardMaxAgeMs = 8 * 60 * 60 * 1000; // 8h
-const boardIdleMs = 4 * 60 * 60 * 1000; // 4h
+const boardMaxAgeMs = 8 * 60 * 60 * 1000; 
+const boardIdleMs = 4 * 60 * 60 * 1000; 
 const maxParticipants = 30;
 const maxNoteLen = 500;
-const maxNotes = 500; // per-board cap — guards against doc bloat / DoS
+const maxNotes = 500; 
 const maxNameLen = 80;
 
-// Action items persist across sprints in a separate, long-lived container keyed
-// by the poker room code, so the next retro for that room can review them.
 const ledgerContainerName = 'retroledger';
-const ledgerTtlSeconds = 90 * 24 * 60 * 60; // ~90 days
-const ledgerMemory = new Map(); // ledger fallback when no connection string
+const ledgerTtlSeconds = 90 * 24 * 60 * 60; 
+const ledgerMemory = new Map(); 
 
-// Each participant is auto-assigned a colour (round-robin via the board's
-// colorSeq), so all of that person's notes share one colour — no manual picking.
 const participantColors = [
   '#ffd76a', '#a0e8a4', '#8fd0ff', '#f7a8c4', '#c9b3ff',
   '#ffb38a', '#7fe3d4', '#ffd0e0', '#c7e59a', '#9ab8ff',
@@ -47,15 +31,13 @@ function colorForSeq(seq) {
   return participantColors[seq % participantColors.length];
 }
 
-// Cached promise for a Cosmos container (created on first use). Shared by the
-// board and ledger containers — both use partition key /code and native TTL.
 function containerFor(name, ttlSeconds) {
   if (!conn) return null;
   if (!containerCache.has(name)) {
     const client = new CosmosClient(conn);
     const promise = (async () => {
-      // Provisioned (free-tier) accounts need shared throughput; serverless
-      // accounts reject it — try with, fall back to without.
+      
+      
       let database;
       try {
         ({ database } = await client.databases.createIfNotExists({ id: dbName, throughput: 400 }));
@@ -69,7 +51,7 @@ function containerFor(name, ttlSeconds) {
       });
       return container;
     })().catch((e) => {
-      containerCache.delete(name); // don't cache a failed init — retry next time
+      containerCache.delete(name); 
       throw e;
     });
     containerCache.set(name, promise);
@@ -79,7 +61,6 @@ function containerFor(name, ttlSeconds) {
 
 const getContainer = () => containerFor(containerName, boardIdleMs / 1000);
 
-// Low-level persistence (code already normalized to upper-case).
 async function readRaw(code) {
   const c = getContainer();
   if (c) {
@@ -101,7 +82,7 @@ async function writeRaw(board) {
       id: board.code,
       code: board.code,
       doc: board,
-      ttl: boardIdleMs / 1000, // refresh idle expiry on every write
+      ttl: boardIdleMs / 1000, 
     });
   } else {
     memory.set(board.code, board);
@@ -121,13 +102,8 @@ async function removeRaw(code) {
   }
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-// Action-items ledger (durable, keyed by poker room code) — carries a room's
-// action items from one sprint's retro to the next.
-// ───────────────────────────────────────────────────────────────────────────
 const getLedgerContainer = () => containerFor(ledgerContainerName, ledgerTtlSeconds);
 
-// Returns the room's stored action items ([{ id, text }]) or [] if none.
 async function loadActionItems(roomCode) {
   const key = normalize(roomCode);
   if (!key) return [];
@@ -155,10 +131,7 @@ async function saveActionItems(roomCode, items) {
   }
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-// Helpers
-// ───────────────────────────────────────────────────────────────────────────
-const codeChars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L ambiguity
+const codeChars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; 
 
 function randomCode() {
   let code = '';
@@ -189,8 +162,6 @@ async function genUniqueCode() {
 
 const codeRe = /^[A-Z0-9-]{3,24}$/;
 
-// Default retro template — three classic columns. Each carries an accent color
-// used as the column header tint on the client.
 function defaultColumns() {
   return [
     { id: genId(), title: 'What went well', color: '#5ec47f' },
@@ -199,9 +170,6 @@ function defaultColumns() {
   ];
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-// Board lifecycle
-// ───────────────────────────────────────────────────────────────────────────
 async function loadBoard(code) {
   const b = await readRaw(normalize(code));
   if (!b) return null;
@@ -215,7 +183,7 @@ async function loadBoard(code) {
 async function saveBoard(board) {
   board.lastActivity = Date.now();
   await writeRaw(board);
-  realtime.notifyGroup('retro:' + board.code); // push a "changed" ping (no-op if unconfigured)
+  realtime.notifyGroup('retro:' + board.code); 
 }
 
 async function deleteBoard(code) {
@@ -236,23 +204,23 @@ async function createBoard(name, facilitatorName, desiredCode, roomCode) {
   }
   const pid = genId();
   const now = Date.now();
-  // Carry the room's action items from its previous retro into a review checklist.
+  
   const carry = await loadActionItems(roomCode);
   const board = {
     code,
     name: (name || '').trim().slice(0, maxNameLen) || 'Sprint Retrospective',
     facilitatorId: pid,
-    roomCode: normalize(roomCode) || null, // parent poker room — unlinked on end
-    // Every retro opens on a review gate: the facilitator reviews last sprint's
-    // action items, then unlocks the board ('active').
-    phase: 'review', // 'review' | 'active'
+    roomCode: normalize(roomCode) || null, 
+    
+    
+    phase: 'review', 
     carryOverItems: carry.map((it) => ({ id: it.id, text: it.text, done: false })),
     columns: defaultColumns(),
-    notes: [], // [{ id, columnId, authorId, authorName, text, color, createdAt }]
+    notes: [], 
     participants: {
       [pid]: { id: pid, name: (facilitatorName || '').trim().slice(0, maxNameLen) || 'Facilitator', color: colorForSeq(0) },
     },
-    colorSeq: 1, // next participant's colour index (facilitator took 0)
+    colorSeq: 1, 
     createdAt: now,
     lastActivity: now,
   };
@@ -278,7 +246,6 @@ function isFacilitator(board, participantId) {
   return board.facilitatorId === participantId;
 }
 
-// A member removes themselves from the board (the facilitator ends instead).
 function leaveBoard(board, participantId) {
   if (participantId === board.facilitatorId) return false;
   if (!board.participants[participantId]) return false;
@@ -286,15 +253,11 @@ function leaveBoard(board, participantId) {
   return true;
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-// Note mutators — operate on a loaded board (sync); caller persists after.
-// They return true on success, false when the request is invalid/not allowed.
-// ───────────────────────────────────────────────────────────────────────────
 function addNote(board, participantId, columnId, text) {
   const author = board.participants[participantId];
   if (!author) return false;
   if (!board.columns.some((c) => c.id === columnId)) return false;
-  if (board.notes.length >= maxNotes) return false; // board full — guards doc bloat
+  if (board.notes.length >= maxNotes) return false; 
   const body = String(text || '').trim();
   if (!body) return false;
   board.notes.push({
@@ -303,18 +266,16 @@ function addNote(board, participantId, columnId, text) {
     authorId: participantId,
     authorName: author.name,
     text: body.slice(0, maxNoteLen),
-    color: author.color || colorForSeq(0), // the author's auto-assigned colour
+    color: author.color || colorForSeq(0),
     createdAt: Date.now(),
   });
   return true;
 }
 
-// A participant may edit their own note. Text and column are optional partial
-// updates. Colour is not editable — it's fixed to the author's assigned colour.
 function updateNote(board, participantId, noteId, patch) {
   const note = board.notes.find((n) => n.id === noteId);
   if (!note) return false;
-  if (note.authorId !== participantId) return false; // only the author edits their note
+  if (note.authorId !== participantId) return false; 
   if (typeof patch.text === 'string') {
     const body = patch.text.trim();
     if (!body) return false;
@@ -327,7 +288,6 @@ function updateNote(board, participantId, noteId, patch) {
   return true;
 }
 
-// The author may delete their own note; the facilitator may delete any note.
 function deleteNote(board, participantId, noteId) {
   const note = board.notes.find((n) => n.id === noteId);
   if (!note) return false;
@@ -336,8 +296,6 @@ function deleteNote(board, participantId, noteId) {
   return true;
 }
 
-// Review-phase mutators. During 'review' the facilitator ticks off last sprint's
-// carried-over action items, then opens the board for the new sprint.
 function toggleCarryOverItem(board, itemId) {
   const item = (board.carryOverItems || []).find((i) => i.id === itemId);
   if (!item) return false;
@@ -349,22 +307,16 @@ function openBoard(board) {
   board.phase = 'active';
 }
 
-// Finalize the retro: it becomes read-only and export is unlocked. The board is
-// kept (not deleted) so results can be exported; it expires later via TTL.
 function endBoard(board) {
   board.phase = 'ended';
 }
 
-// The action items authored in this retro (the "Action items" column), captured
-// on end so the room's next retro can review them.
 function actionItemsFromBoard(board) {
   const col = board.columns.find((c) => /action items/i.test(c.title));
   if (!col) return [];
   return board.notes.filter((n) => n.columnId === col.id).map((n) => ({ id: n.id, text: n.text }));
 }
 
-// Client-safe view. In this MVP every note is visible to everyone as soon as
-// it's added (no hide-until-reveal), so we return the whole board.
 function publicView(board) {
   return {
     code: board.code,

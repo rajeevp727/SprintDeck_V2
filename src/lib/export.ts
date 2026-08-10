@@ -18,7 +18,6 @@ function fmt(n: number | null) {
   return n === null ? '—' : String(n);
 }
 
-// Plain-text report.
 export function exportText(sessionName: string, history: HistoryEntry[]) {
   const lines: string[] = [];
   lines.push(`SprintDeck results — ${sessionName}`);
@@ -38,7 +37,6 @@ export function exportText(sessionName: string, history: HistoryEntry[]) {
   downloadBlob(lines.join('\n'), `${appName}.txt`, 'text/plain;charset=utf-8');
 }
 
-// CSV (opens in Excel). One row per story; individual votes joined in a column.
 export function exportCsv(history: HistoryEntry[]) {
   const esc = (val: string | number | null) => {
     const s = val === null ? '' : String(val);
@@ -60,11 +58,10 @@ export function exportCsv(history: HistoryEntry[]) {
       ].join(','),
     );
   });
-  // BOM so Excel detects UTF-8 correctly.
+
   downloadBlob('﻿' + rows.join('\r\n'), `${appName}.csv`, 'text/csv;charset=utf-8');
 }
 
-// Full session data as JSON — for archival / data portability.
 export function exportJson(sessionName: string, history: HistoryEntry[]) {
   const data = {
     app: appName,

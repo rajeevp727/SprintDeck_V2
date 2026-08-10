@@ -10,13 +10,11 @@ interface ToastItem {
 const toastEvent = 'sprintdeck:toast';
 let seq = 0;
 
-// Fire a toast from anywhere: toast('Priya joined the room').
 export function toast(message: string, type: ToastType = 'info') {
   seq += 1;
   window.dispatchEvent(new CustomEvent(toastEvent, { detail: { id: seq, message, type } }));
 }
 
-// Renders the toast stack (top-right). Mount once at the app root.
 export function ToastHost() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 

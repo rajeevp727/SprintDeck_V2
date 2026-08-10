@@ -1,11 +1,5 @@
 'use strict';
 
-// Persistence for PSP-free UPI verification: pending ORDERS (a plan someone
-// intends to pay for, tagged with a unique amount) and RECEIPTS (parsed bank
-// credit alerts). Reuses the same Cosmos account as sessions (DB 'sprintdeck',
-// container 'payments'), with an in-memory Map fallback when no connection
-// string is set (local dev / tests). @azure/cosmos is required lazily.
-
 const crypto = require('crypto');
 const { sameAmount } = require('./parse');
 
@@ -13,13 +7,11 @@ const conn = process.env.COSMOS_CONNECTION_STRING || '';
 const dbName = 'sprintdeck';
 const containerName = 'payments';
 
-// A pending order reserves its unique amount for this long, then expires so the
-// paise offset can be reused. Configurable via app setting.
 const orderTtlMs = (Number(process.env.ORDER_TTL_MINUTES) || 30) * 60 * 1000;
 
-const memory = new Map(); // id → record (fallback)
+const memory = new Map(); 
 let containerPromise = null;
-let seq = 0; // monotonic tiebreaker for orders created in the same millisecond
+let seq = 0; 
 
 function getContainer() {
   if (!conn) return null;
@@ -39,7 +31,7 @@ function getContainer() {
       });
       return container;
     })().catch((e) => {
-      containerPromise = null; // don't cache a failed init — retry next request
+      containerPromise = null; 
       throw e;
     });
   }
@@ -74,7 +66,6 @@ async function getRecord(id) {
   return memory.get(id) || null;
 }
 
-// All currently-pending orders (not yet confirmed, not expired).
 async function pendingOrders() {
   const now = Date.now();
   const fresh = (o) => o.type === 'order' && o.status === 'pending' && now - o.createdAt < orderTtlMs;
@@ -88,9 +79,9 @@ async function pendingOrders() {
 }
 
 async function createOrder({ tier, email, baseAmount }) {
-  // The payable amount is exactly the plan price (clean ₹199 / ₹499 / ₹999).
-  // Incoming credits are matched to the most-recent pending order of that
-  // amount (see ingestCredit) — no paise-tagging.
+  
+  
+  
   const order = {
     id: genId(),
     type: 'order',
@@ -98,7 +89,7 @@ async function createOrder({ tier, email, baseAmount }) {
     email: email || null,
     baseAmount,
     payAmount: baseAmount,
-    status: 'pending', // 'pending' | 'confirmed' | 'expired'
+    status: 'pending', 
     utr: null,
     receiptId: null,
     createdAt: Date.now(),
@@ -135,8 +126,6 @@ async function findReceiptByUtr(utr) {
   return null;
 }
 
-// Ingest a parsed credit: store the receipt (always, for audit) and try to
-// match it to a pending order by exact amount. Returns { receipt, order?, duplicate? }.
 async function ingestCredit({ amount, utr, rawText, source }) {
   const receipt = {
     id: genId(),
@@ -149,8 +138,6 @@ async function ingestCredit({ amount, utr, rawText, source }) {
     receivedAt: Date.now(),
   };
 
-  // Dedupe: the same UTR ingested twice (SMS + email, or a retry) must not
-  // confirm two orders.
   const already = utr ? await findReceiptByUtr(utr) : null;
   if (already) {
     receipt.duplicateOf = already.id;
@@ -158,9 +145,8 @@ async function ingestCredit({ amount, utr, rawText, source }) {
     return { receipt, order: null, duplicate: true };
   }
 
-  // Match the MOST RECENT pending order of this amount — that's the one the
-  // payer is most likely settling now. Older unpaid orders for the same price
-  // stay pending and expire on their own.
+  
+  
   const pending = await pendingOrders();
   const match = pending
     .filter((o) => sameAmount(o.payAmount, amount))
@@ -181,10 +167,6 @@ async function ingestCredit({ amount, utr, rawText, source }) {
   return { receipt, order: match };
 }
 
-// The active subscription behind a confirmed order, or null. The tier is derived
-// from Cosmos (the payment record) — never trusted from the client. Active for
-// 30 days from confirmation. Shared by the subscription endpoint and the retro
-// PRO+ gate so entitlement is enforced server-side, not just in the UI.
 const subscriptionDays = 30;
 async function activeSubscription(orderId) {
   if (!orderId) return null;
@@ -194,7 +176,6 @@ async function activeSubscription(orderId) {
   return { tier: order.tier, at: new Date(order.confirmedAt).toISOString() };
 }
 
-// Admin/dev: create a pre-confirmed subscription order (no payment required).
 async function grantSubscription(email, tier) {
   const normalizedTier = String(tier || 'pro').toLowerCase();
   if (!['pro', 'expert', 'master'].includes(normalizedTier)) {

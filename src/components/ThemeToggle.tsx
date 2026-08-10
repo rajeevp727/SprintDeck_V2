@@ -1,16 +1,12 @@
 import { useState } from 'react';
 import { getTheme, setTheme } from '../lib/theme';
 
-// The effective theme right now: an explicit choice if made, else whatever the
-// OS prefers (the default is still "system" until the user toggles).
 function effectiveTheme(): 'light' | 'dark' {
   const t = getTheme();
   if (t === 'light' || t === 'dark') return t;
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
-// Binary Light ↔ Dark toggle (no System option in the button). Shows an SVG of
-// what you'll switch to: a sun while dark, a moon while light.
 const SunIcon = () => (
   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
     <circle cx="12" cy="12" r="4" />

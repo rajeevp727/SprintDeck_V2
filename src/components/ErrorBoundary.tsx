@@ -8,8 +8,6 @@ interface State {
   hasError: boolean;
 }
 
-// Catches any render/runtime error in the tree so the user sees a recover
-// prompt instead of a blank white screen (e.g. a stale bundle vs. updated API).
 export default class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false };
 

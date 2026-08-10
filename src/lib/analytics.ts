@@ -1,22 +1,18 @@
 import type { HistoryEntry } from './types';
 
 export interface SessionAnalytics {
-  count: number; // stories with a numeric estimate
-  totalPoints: number; // sum of agreed points (pushedEstimate ?? median)
-  consensusRate: number; // % of estimated rounds that reached unanimity (0–100)
-  avgSpread: number; // mean (max − min) across estimated rounds, 1 dp
-  contested: number; // rounds where votes disagreed (spread > 0)
-  distribution: { value: number; count: number }[]; // agreed-point histogram
+  count: number; 
+  totalPoints: number; 
+  consensusRate: number; 
+  avgSpread: number; 
+  contested: number; 
+  distribution: { value: number; count: number }[]; 
 }
 
-// The value the team settled on for a round: the pushed estimate if any, else the median.
 function agreed(h: HistoryEntry): number | null {
   return h.pushedEstimate != null ? h.pushedEstimate : h.median;
 }
 
-// Session-level estimation summary, computed from the round history.
-// (Cross-sprint velocity/trends would need persisted history + team identity —
-// out of reach while the app is anonymous/ephemeral; see README.)
 export function sessionAnalytics(history: HistoryEntry[]): SessionAnalytics {
   const numeric = history.filter((h) => h.median != null);
   const count = numeric.length;

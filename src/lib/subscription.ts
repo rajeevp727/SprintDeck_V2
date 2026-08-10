@@ -1,9 +1,4 @@
-// Subscription tiers + server-verified "paid" state for SprintDeck V2.
-//
-// The subscription is NOT stored client-side as a tier (that was editable in
-// localStorage). The browser keeps only the confirmed order id; the tier is
-// fetched from /api/subscription, which validates it against the payment record
-// in Cosmos. See refreshSubscription() / useSubscription() below.
+
 
 import { useEffect, useState } from 'react';
 import { getServerSubscription } from './verifier';
@@ -13,9 +8,9 @@ export type TierId = 'pro' | 'expert' | 'master';
 export interface Tier {
   id: TierId;
   name: string;
-  price: number; // INR / month (illustrative — adjust freely)
+  price: number; 
   tagline: string;
-  icon: string; // emoji shown on the plan card
+  icon: string; 
   features: string[];
   highlight?: boolean;
 }
@@ -68,14 +63,7 @@ export interface Subscription {
   at: string;
 }
 
-// ── Server-verified subscription ────────────────────────────────────────────
-// The authoritative subscription lives in Cosmos (the confirmed payment order).
-// The browser stores only a REFERENCE — the confirmed order's id — never the
-// tier, so editing localStorage can't grant a plan. isSubscribed() /
-// getActiveSubscription() read an in-memory cache populated from the server via
-// refreshSubscription(); components use the useSubscription() hook to stay in sync.
-
-const subRefKey = 'sprintdeck.subscription'; // stores { orderId }
+const subRefKey = 'sprintdeck.subscription'; 
 
 function getOrderRef(): string | null {
   try {
@@ -87,19 +75,14 @@ function getOrderRef(): string | null {
   }
 }
 
-// The confirmed order id backing this browser's subscription (passed to the
-// server so it can verify PRO+ from Cosmos before, e.g., starting a retro).
 export function getSubscriptionRef(): string | null {
   return getOrderRef();
 }
 
-// Remember which confirmed order backs this browser's subscription.
 export function setSubscriptionRef(orderId: string) {
   try {
     localStorage.setItem(subRefKey, JSON.stringify({ orderId }));
-  } catch {
-    /* ignore storage failures */
-  }
+  } catch { void 0; }
 }
 
 let cachedSub: Subscription | null = null;
@@ -109,8 +92,6 @@ function notify() {
   for (const l of listeners) l();
 }
 
-// Ask the server whether the stored order still grants an active plan, and
-// refresh the in-memory cache. Safe to call often.
 export async function refreshSubscription(): Promise<Subscription | null> {
   const orderId = getOrderRef();
   if (!orderId) {
@@ -122,9 +103,7 @@ export async function refreshSubscription(): Promise<Subscription | null> {
   try {
     const res = await getServerSubscription(orderId);
     cachedSub = res.active && res.tier ? { tier: res.tier as TierId, at: res.at ?? new Date().toISOString() } : null;
-  } catch {
-    /* transient network error — keep the last known cache */
-  }
+  } catch { void 0; }
   fetched = true;
   notify();
   return cachedSub;
@@ -138,8 +117,6 @@ export function isSubscribed(): boolean {
   return cachedSub != null;
 }
 
-// React hook: refresh from the server on mount and re-render on changes.
-// `loaded` flips true once the first server check completes.
 export function useSubscription(): { subscription: Subscription | null; subscribed: boolean; loaded: boolean } {
   const [, bump] = useState(0);
   useEffect(() => {
@@ -157,11 +134,8 @@ export function tierPrice(id: TierId): number {
   return tiers.find((t) => t.id === id)?.price ?? 0;
 }
 
-// Flat platform fee added to every paid transaction (Free has no payment).
 export const platformFee = 2;
 
-// What a user pays to move to tier `to`: the full price (or the upgrade balance
-// new − current within an active subscription), plus the platform fee.
 export function amountForTier(to: TierId): number {
   const active = getActiveSubscription();
   const target = tierPrice(to);
@@ -169,10 +143,6 @@ export function amountForTier(to: TierId): number {
   return base + platformFee;
 }
 
-// A payment can confirm minutes after the modal closes (bank email → ingest is
-// async). We persist the pending order so a background watcher can keep checking
-// its status — across the QR window elapsing and even across reloads — and
-// activate the plan whenever it finally confirms.
 const pendingKey = 'sprintdeck.pendingOrder';
 
 export interface PendingOrder {
@@ -184,9 +154,7 @@ export interface PendingOrder {
 export function setPendingOrder(orderId: string, tier: TierId) {
   try {
     localStorage.setItem(pendingKey, JSON.stringify({ orderId, tier, at: new Date().toISOString() }));
-  } catch {
-    /* ignore */
-  }
+  } catch { void 0; }
 }
 
 export function getPendingOrder(): PendingOrder | null {
@@ -201,18 +169,11 @@ export function getPendingOrder(): PendingOrder | null {
 export function clearPendingOrder() {
   try {
     localStorage.removeItem(pendingKey);
-  } catch {
-    /* ignore */
-  }
+  } catch { void 0; }
 }
 
-// Payee VPA, injected at build from the GitHub secret UPI_ID (workflow maps
-// secrets.UPI_ID → VITE_UPI_ID; .env.local for local dev). Never hardcoded.
 export const upiId: string = import.meta.env.VITE_UPI_ID || '';
 
-// UPI intent link. The VPA (`pa`) is left LITERAL — several UPI apps throw a
-// "temporary technical issue" if `@` is percent-encoded (%40). Only the human
-// note is encoded, with %20 for spaces (encodeURIComponent), not `+`.
 export function upiLink(amount: number, note: string): string {
   const parts = [
     `pa=${upiId}`,

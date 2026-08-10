@@ -10,8 +10,6 @@ interface Props {
   onBack: () => void;
 }
 
-// Create or join a retrospective from the dashboard (standalone — carry-over of
-// action items only applies to retros started from inside a planning room).
 export default function RetroStart({ onEnter, onBack }: Props) {
   const [mode, setMode] = useState<'create' | 'join'>('create');
   const [name, setName] = useProfileNamePrefill();

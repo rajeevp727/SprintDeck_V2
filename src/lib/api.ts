@@ -5,13 +5,13 @@ export async function request<T>(url: string, method: string, body?: unknown): P
   const token = getToken();
   const headers: Record<string, string> = {};
   if (body) headers['Content-Type'] = 'application/json';
-  // Custom header, not Authorization — Azure Static Web Apps strips Authorization
-  // before forwarding to the Functions API.
+  
+  
   if (token) headers['x-auth-token'] = token;
   const res = await fetch(url, {
     method,
-    // Polling reads must never come from the HTTP cache, or other devices
-    // show stale state until a manual refresh forces revalidation.
+    
+    
     cache: 'no-store',
     headers: Object.keys(headers).length ? headers : undefined,
     body: body ? JSON.stringify(body) : undefined,
@@ -21,9 +21,7 @@ export async function request<T>(url: string, method: string, body?: unknown): P
     try {
       const data = await res.json();
       if (data?.error) message = data.error;
-    } catch {
-      /* keep default */
-    }
+    } catch { void 0; }
     throw new Error(message);
   }
   return res.json() as Promise<T>;
@@ -72,7 +70,7 @@ export const api = {
   next: (code: string, participantId: string) =>
     request<{ session: Session }>(`/api/session/${code}/next`, 'POST', { participantId }),
 
-  // Link a retrospective board to this room so members see "Join Retrospective".
+  
   setRetro: (code: string, participantId: string, retroCode: string) =>
     request<{ session: Session }>(`/api/session/${code}/retro`, 'POST', { participantId, retroCode }),
 
@@ -85,7 +83,7 @@ export const api = {
   finish: (code: string, participantId: string) =>
     request<{ session: Session }>(`/api/session/${code}/finish`, 'POST', { participantId }),
 
-  // Linear V1 flow — paste ticket IDs, write agreed estimates back.
+  
   linearStatus: () => request<{ enabled: boolean }>('/api/linear/status', 'GET'),
 
   linearImport: (code: string, participantId: string, identifiers: string[]) =>
@@ -106,7 +104,7 @@ export const api = {
       estimate,
     }),
 
-  // Team chat (PRO+).
+  
   enableChat: (code: string, participantId: string, subRef: string) =>
     request<{ session: Session }>(`/api/session/${code}/chat/enable`, 'POST', { participantId, subRef }),
 

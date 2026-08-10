@@ -1,25 +1,8 @@
 'use strict';
 
-// Parse a bank credit alert (SMS or email body) into { isCredit, amount, utr }.
-//
-// We only ever act on CREDITS to the account (money received). Debit/spend
-// alerts are ignored so an outgoing payment can never be mistaken for a
-// received one. Amount is returned in rupees as a Number (e.g. 499.02); UTR is
-// the UPI reference / RRN used for audit + dedupe.
-//
-// Bank SMS formats vary and change over time — these regexes are deliberately
-// tolerant. When a bank tweaks its wording, adjust here (and add a test case).
-
 const creditRe = /\b(credited|received|deposited)\b/i;
-// Only the debit VERBS — NOT the bare noun "debit", which appears in footers
-// ("debit card", "credit/debit") and would wrongly reject genuine credits.
 const debitRe = /\b(debited|withdrawn|spent)\b/i;
-
-// INR 499.02 | Rs. 499.02 | Rs 499 | ₹499.02  (thousands separators allowed)
 const amountRe = /(?:INR|Rs\.?|₹)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i;
-
-// "UPI Ref no 412345678901", "Ref No. 4123 4567 8901", "RRN 412345678901",
-// "UTR 412345678901". Falls back to a bare 12-digit run if none matched.
 const utrLabelledRe = /(?:UPI\s*Ref(?:erence)?(?:\s*(?:no|number))?|Ref(?:erence)?\s*(?:no|number)?|RRN|UTR)[:.\s-]*([0-9][0-9\s]{9,21}[0-9])/i;
 const utrBareRe = /\b(\d{12})\b/;
 
@@ -51,9 +34,8 @@ function parse(text) {
   };
 }
 
-// Compare two rupee amounts to the paise (avoids float wobble).
 function sameAmount(a, b) {
   return Math.round(Number(a) * 100) === Math.round(Number(b) * 100);
 }
 
-module.exports = { parse, parseAmount, parseUtr, isCredit, sameAmount };
+module.exports = { parse, sameAmount };

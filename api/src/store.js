@@ -1,18 +1,5 @@
 'use strict';
 
-// @azure/cosmos is required lazily inside getContainer() so this module can be
-// imported (e.g. by unit tests) without the dependency being installed/loaded.
-
-// ───────────────────────────────────────────────────────────────────────────
-// Backend selection.
-// If a Cosmos DB connection string is configured (app setting
-// COSMOS_CONNECTION_STRING), sessions are persisted in Cosmos — shared across
-// every Function instance and durable across cold starts. This fixes "room not
-// available" (instance split) and "rooms expired" (cold-start memory loss).
-// Cosmos native TTL also auto-deletes idle rooms (see idleSeconds below).
-// Without a connection string it falls back to an in-memory Map (single
-// instance only) so local dev / unconfigured deploys still run.
-// ───────────────────────────────────────────────────────────────────────────
 const crypto = require('crypto');
 const conn = process.env.COSMOS_CONNECTION_STRING || '';
 const dbName = 'sprintdeck';
@@ -21,7 +8,7 @@ const maxNameLen = 80;
 const maxTitleLen = 200;
 const maxQueue = 100;
 
-const memory = new Map(); // fallback when no connection string
+const memory = new Map(); 
 let containerPromise = null;
 
 function getContainer() {
@@ -30,8 +17,8 @@ function getContainer() {
     const { CosmosClient } = require('@azure/cosmos');
     const client = new CosmosClient(conn);
     containerPromise = (async () => {
-      // Provisioned (free-tier) accounts need shared throughput; serverless
-      // accounts reject it — try with, fall back to without.
+      
+      
       let database;
       try {
         ({ database } = await client.databases.createIfNotExists({ id: dbName, throughput: 400 }));
@@ -41,14 +28,14 @@ function getContainer() {
       const { container } = await database.containers.createIfNotExists({
         id: containerName,
         partitionKey: { paths: ['/code'] },
-        // Native TTL: a room auto-deletes this many seconds after its last write
-        // (_ts), giving us automatic idle expiry without any cleanup job.
+        
+        
         defaultTtl: sessionIdleMs / 1000,
       });
       return container;
     })().catch((e) => {
-      // Don't cache a failed init (bad/rotated key, transient outage) — reset so
-      // the next request retries instead of replaying the same stale error.
+      
+      
       containerPromise = null;
       throw e;
     });
@@ -56,7 +43,6 @@ function getContainer() {
   return containerPromise;
 }
 
-// Low-level persistence (code already normalized to upper-case).
 async function readRaw(code) {
   const c = getContainer();
   if (c) {
@@ -78,7 +64,7 @@ async function writeRaw(session) {
       id: session.code,
       code: session.code,
       doc: session,
-      ttl: sessionIdleMs / 1000, // refresh idle expiry on every write
+      ttl: sessionIdleMs / 1000, 
     });
   } else {
     memory.set(session.code, session);
@@ -98,9 +84,6 @@ async function removeRaw(code) {
   }
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-// Deck
-// ───────────────────────────────────────────────────────────────────────────
 const deckMax = 21;
 
 function buildFibonacciDeck(max) {
@@ -116,23 +99,13 @@ function buildFibonacciDeck(max) {
 
 const deck = buildFibonacciDeck(deckMax);
 
-// ───────────────────────────────────────────────────────────────────────────
-// Limits
-// ───────────────────────────────────────────────────────────────────────────
-// A session is treated as gone when EITHER it has had no activity for
-// sessionIdleMs or its total age exceeds sessionMaxAgeMs. "Activity" includes a
-// member polling the room (see touchSession), so an open room stays alive while
-// anyone is viewing it; idle expiry only fires once everyone has left. Override
-// via app settings SESSION_IDLE_HOURS (default 2) and SESSION_MAX_AGE_HOURS
-// (default 24). Cosmos native TTL uses sessionIdleMs, refreshed on each touch.
 const sessionIdleMs = (Number(process.env.SESSION_IDLE_HOURS) || 2) * 60 * 60 * 1000;
 const sessionMaxAgeMs = (Number(process.env.SESSION_MAX_AGE_HOURS) || 24) * 60 * 60 * 1000;
-const maxParticipants = 20; // moderator included
-// A polled read keeps the room alive, but only refreshes its lifetime once per
-// this window (not on every 1.5s poll) to avoid hammering Cosmos RUs.
+const maxParticipants = 20; 
+
 const touchIntervalMs = 5 * 60 * 1000;
 
-const codeChars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L ambiguity
+const codeChars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; 
 
 function randomCode() {
   let code = '';
@@ -153,11 +126,6 @@ function isExpired(s) {
   return now - s.lastActivity > sessionIdleMs || now - s.createdAt > sessionMaxAgeMs;
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-// Public session API (all async — they hit storage)
-// ───────────────────────────────────────────────────────────────────────────
-
-// Load a session, lazily dropping it if it has expired.
 async function loadSession(code) {
   const s = await readRaw(normalize(code));
   if (!s) return null;
@@ -168,7 +136,6 @@ async function loadSession(code) {
   return s;
 }
 
-// Persist a session; every save bumps lastActivity (keeps the room alive).
 async function saveSession(session) {
   session.lastActivity = Date.now();
   await writeRaw(session);
@@ -178,10 +145,6 @@ async function deleteSession(code) {
   await removeRaw(normalize(code));
 }
 
-// Keep an actively-viewed room alive: a polling read counts as activity, so a
-// room open in someone's browser doesn't age out from under them. Throttled to
-// touchIntervalMs. Uses a Cosmos partial patch (not a full upsert) so a
-// concurrent vote/message write is never clobbered by a stale read-modify-write.
 async function touchSession(session) {
   const now = Date.now();
   if (now - session.lastActivity < touchIntervalMs) return;
@@ -193,12 +156,10 @@ async function touchSession(session) {
         { op: 'set', path: '/doc/lastActivity', value: now },
         { op: 'set', path: '/ttl', value: Math.floor(sessionIdleMs / 1000) },
       ]);
-    } catch {
-      /* best-effort keep-alive — ignore transient patch failures */
-    }
+    } catch { void 0; }
   }
-  // In-memory fallback: `session` is the stored object reference, so mutating
-  // lastActivity above already persists it; no write needed.
+  
+  
 }
 
 async function genUniqueCode() {
@@ -228,18 +189,18 @@ async function createSession(name, moderatorName, desiredCode) {
     name: (name || '').trim().slice(0, maxNameLen) || 'SprintDeck',
     moderatorId: pid,
     story: '',
-    status: 'waiting', // 'waiting' | 'voting' | 'revealed'
-    finished: false, // moderator clicked Finish → unlocks Results
-    currentEntryId: null, // history entry id for the story being estimated
-    currentLinear: null, // { linearId, identifier } when the current story is a Linear issue
+    status: 'waiting', 
+    finished: false, 
+    currentEntryId: null, 
+    currentLinear: null, 
     deck: deck,
     participants: {
       [pid]: { id: pid, name: (moderatorName || '').trim().slice(0, maxNameLen) || 'Moderator', vote: null },
     },
-    queue: [], // [{ id, title, linearId?, identifier? }]
-    history: [], // [{ id, title, average, median, min, max, consensus, votes, at }]
-    chatEnabled: false, // unlocked only via enableChat, which verifies PRO+ server-side
-    messages: [], // [{ id, participantId, name, text, at, replyTo }]
+    queue: [], 
+    history: [], 
+    chatEnabled: false, 
+    messages: [], 
     createdAt: now,
     lastActivity: now,
   };
@@ -263,7 +224,6 @@ function isModerator(session, participantId) {
   return session.moderatorId === participantId;
 }
 
-// Moderator removes a participant. The moderator can't be kicked.
 function kickParticipant(session, targetId) {
   if (targetId === session.moderatorId) return false;
   if (!session.participants[targetId]) return false;
@@ -271,21 +231,14 @@ function kickParticipant(session, targetId) {
   return true;
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-// Domain mutators — operate on a loaded session object (sync); the caller
-// persists with saveSession afterwards.
-// ───────────────────────────────────────────────────────────────────────────
 function addToQueue(session, titles) {
   for (const t of titles) {
-    if (session.queue.length >= maxQueue) break; // cap queue size
+    if (session.queue.length >= maxQueue) break; 
     const title = String(t || '').trim().slice(0, maxTitleLen);
     if (title) session.queue.push({ id: genId(), title });
   }
 }
 
-// Queue resolved Linear issues, carrying the linkage needed to write estimates
-// back later. Title is the plain description; the identifier is stored separately
-// so the UI can render it as a clickable "ENG-876" link before the description.
 function addLinearToQueue(session, issues) {
   for (const issue of Array.isArray(issues) ? issues : []) {
     if (!issue?.linearId || !issue?.identifier) continue;
@@ -306,8 +259,6 @@ function removeFromQueue(session, id) {
   session.queue = session.queue.filter((s) => s.id !== id);
 }
 
-// Reorder the queue to match the given list of story ids (any not listed are
-// appended in their existing order, so a stale client can't drop stories).
 function reorderQueue(session, orderedIds) {
   const ids = Array.isArray(orderedIds) ? orderedIds : [];
   const byId = new Map(session.queue.map((s) => [s.id, s]));
@@ -323,13 +274,9 @@ function reorderQueue(session, orderedIds) {
   session.queue = reordered;
 }
 
-// Open a voting round. Uses an explicit title if given, else the next queued
-// story. A story is OPTIONAL — with no title and an empty queue this starts a
-// plain "just vote" round (story = '').
 function startStory(session, explicitTitle) {
   let title = String(explicitTitle || '').trim();
-  // A queued story (pulled when no explicit title is given) may be Linear-backed;
-  // remember its linkage for this round so reveal can carry it into history.
+
   session.currentLinear = null;
   if (!title && session.queue.length > 0) {
     const next = session.queue.shift();
@@ -343,21 +290,17 @@ function startStory(session, explicitTitle) {
       };
     }
   }
-  // Starting fresh after a finished session (results were viewed) wipes the old
-  // history so the new round starts clean. A mid-session next story keeps it.
+
   if (session.finished) session.history = [];
-  // No story name (just-vote mode) → auto-number the iteration so results read well.
+
   if (!title) title = `Iteration ${session.history.length + 1}`;
   session.story = title.slice(0, maxTitleLen);
   for (const p of Object.values(session.participants)) p.vote = null;
   session.status = 'voting';
-  session.finished = false; // starting a round un-finishes the session
-  session.currentEntryId = null; // next reveal creates a fresh history entry
+  session.finished = false; 
+  session.currentEntryId = null; 
 }
 
-// Reveal the current story and auto-save its result to history. Re-revealing
-// the same story (after "Vote again") updates the same entry instead of
-// duplicating it.
 function revealAndSave(session) {
   session.status = 'revealed';
   const stats = voteStats(session);
@@ -375,7 +318,7 @@ function revealAndSave(session) {
     ? session.history.findIndex((h) => h.id === session.currentEntryId)
     : -1;
   if (idx >= 0) {
-    // Re-reveal (after "Vote again") — keep any estimate already pushed to Linear.
+    
     const prev = session.history[idx];
     session.history[idx] = { id: session.currentEntryId, ...data, pushedEstimate: prev.pushedEstimate ?? null };
   } else {
@@ -385,7 +328,6 @@ function revealAndSave(session) {
   }
 }
 
-// Record that a history entry's estimate was written back to Linear.
 function markPushed(session, entryId, estimate) {
   const entry = session.history.find((h) => h.id === entryId);
   if (!entry) return false;
@@ -394,16 +336,10 @@ function markPushed(session, entryId, estimate) {
   return true;
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-// Team chat (PRO+). Operates on a loaded session (sync); caller persists.
-// ───────────────────────────────────────────────────────────────────────────
 const MaxMessageLen = 2000;
 const MaxReplyExcerpt = 140;
-const MaxMessages = 200; // ring buffer — keep only the most recent
+const MaxMessages = 200; 
 
-// Append a message; returns it, or null if the sender isn't in the room / text
-// is empty. replyTo is a snapshot { id, name, excerpt } so the quote survives
-// after the original scrolls out of the retained window.
 function addMessage(session, participantId, text, replyTo) {
   const p = session.participants[participantId];
   if (!p) return null;
@@ -430,10 +366,6 @@ function getMessages(session) {
   return Array.isArray(session.messages) ? session.messages : [];
 }
 
-// Toggle a participant's like on a message. Returns the message, or null if the
-// message/participant isn't found. Each like is { id, name } so the liker's name
-// travels with it (shown on hover) and survives them leaving the room. The old
-// bare-id shape is coerced on the fly for any pre-existing messages.
 function toggleLike(session, messageId, participantId) {
   const msgs = Array.isArray(session.messages) ? session.messages : [];
   const message = msgs.find((m) => m.id === messageId);
@@ -450,7 +382,6 @@ function toggleLike(session, messageId, participantId) {
   return message;
 }
 
-// Numeric stats over the current votes (ignores non-numeric like ? / ☕).
 function voteStats(session) {
   const votes = Object.values(session.participants)
     .filter((p) => p.vote !== null)
@@ -476,8 +407,6 @@ function voteStats(session) {
   return { votes, average, median, min, max, consensus };
 }
 
-// Client-safe view. Votes stay hidden until 'revealed'; the requester always
-// sees their own selection so the UI can highlight it.
 function publicView(session, requesterId) {
   const revealed = session.status === 'revealed';
   const participants = Object.values(session.participants)
@@ -507,8 +436,8 @@ function publicView(session, requesterId) {
     history: session.history,
     average: stats.average,
     consensus: stats.consensus,
-    chatEnabled: !!session.chatEnabled, // messages load separately, not in this poll
-    retroCode: session.retroCode ?? null, // linked retrospective board, if one is open
+    chatEnabled: !!session.chatEnabled, 
+    retroCode: session.retroCode ?? null, 
   };
 }
 

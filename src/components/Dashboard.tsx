@@ -12,7 +12,6 @@ interface Props {
   onSecurity: () => void;
 }
 
-// The home for signed-in (or guest) users: pick a ceremony.
 export default function Dashboard({ onPlanning, onRetro, onTimesheet, onWhiteboard, onPrivacy, onTerms, onSecurity }: Props) {
   return (
     <div className="dash">

@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react';
 import { rememberAccount } from './rememberedAccounts';
 
-// Email + password auth client. The JWT from register/login is stored in
-// localStorage and attached as `Authorization: Bearer <token>` by lib/api.ts.
-// useAuth() exposes the current user and re-renders on sign in/out.
-
 const tokenKey = 'sprintdeck.token';
 
 export interface AuthUser {
@@ -23,20 +19,14 @@ export function getToken(): string | null {
 function setToken(token: string) {
   try {
     localStorage.setItem(tokenKey, token);
-  } catch {
-    /* ignore */
-  }
+  } catch { void 0; }
 }
 function clearToken() {
   try {
     localStorage.removeItem(tokenKey);
-  } catch {
-    /* ignore */
-  }
+  } catch { void 0; }
 }
 
-// In-memory cache of the signed-in user + change subscribers (so useAuth
-// consumers update on login/logout without a reload).
 let cachedUser: AuthUser | null = null;
 const listeners = new Set<() => void>();
 function notify() {
@@ -114,7 +104,6 @@ export async function updateProfile(name: string): Promise<AuthUser> {
   return user;
 }
 
-/** Display name for greetings — prefers profile name, then email local-part. */
 export function displayNameFor(user: AuthUser | null | undefined): string {
   if (!user) return '';
   const raw = (user.name || user.email.split('@')[0] || '').trim();
@@ -132,16 +121,13 @@ export async function forgotPassword(email: string): Promise<void> {
   if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
 }
 
-// Check whether a name (username) is free; if taken, get a few suggestions.
 export interface NameCheck {
   available: boolean;
   suggestions: string[];
 }
-// Per-session cache so re-checking a name (backspace/retype) is instant — the
-// big win on slow networks, where the cost is the round-trip, not the debounce.
+
 const nameCheckCache = new Map<string, NameCheck>();
-// Synchronous cache peek — lets the UI resolve a already-seen name instantly
-// (no debounce, no "checking" flash, no network).
+
 export function peekName(name: string): NameCheck | null {
   return nameCheckCache.get(name.trim().toLowerCase()) ?? null;
 }
@@ -163,11 +149,10 @@ export async function checkName(name: string): Promise<NameCheck> {
     nameCheckCache.set(key, result);
     return result;
   } catch {
-    return { available: true, suggestions: [] }; // don't block/cache on a transient error
+    return { available: true, suggestions: [] }; 
   }
 }
 
-// Resolve the current user from the stored token (validated server-side).
 export async function refreshUser(): Promise<AuthUser | null> {
   const token = getToken();
   if (!token) {
@@ -178,14 +163,12 @@ export async function refreshUser(): Promise<AuthUser | null> {
   try {
     const res = await fetch('/api/auth/me', {
       cache: 'no-store',
-      headers: { 'x-auth-token': token }, // SWA strips Authorization — use a custom header
+      headers: { 'x-auth-token': token }, 
     });
     const data = await res.json().catch(() => ({}));
     cachedUser = res.ok && data?.user ? (data.user as AuthUser) : null;
-    if (!cachedUser) clearToken(); // token invalid/expired
-  } catch {
-    /* keep cache on transient error */
-  }
+    if (!cachedUser) clearToken(); 
+  } catch { void 0; }
   notify();
   return cachedUser;
 }

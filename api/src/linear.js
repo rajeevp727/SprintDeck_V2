@@ -1,29 +1,19 @@
 'use strict';
 
-// ───────────────────────────────────────────────────────────────────────────
-// Linear integration (server-side only).
-//
-// The Linear API key is a workspace-level secret. It lives ONLY here, read from
-// the LINEAR_API_KEY app setting, and is used exclusively when calling Linear's
-// GraphQL API. It is never returned to the client. Node 20 has global fetch, so
-// there's no HTTP dependency.
-// ───────────────────────────────────────────────────────────────────────────
 const ENDPOINT = 'https://api.linear.app/graphql';
 
-// A Linear identifier is TEAMKEY-NUMBER, e.g. ENG-876.
 const identifierRe = /^[A-Z0-9]+-\d+$/;
 
 function isEnabled() {
   return !!process.env.LINEAR_API_KEY;
 }
 
-// Run a GraphQL request. Throws on transport, HTTP or GraphQL errors.
 async function graphql(query, variables) {
   const res = await fetch(ENDPOINT, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: process.env.LINEAR_API_KEY, // personal key — no "Bearer" prefix
+      Authorization: process.env.LINEAR_API_KEY, 
     },
     body: JSON.stringify({ query, variables }),
   });
@@ -36,8 +26,6 @@ async function graphql(query, variables) {
   return body?.data ?? {};
 }
 
-// Normalize a raw list of pasted ids: trim, upper-case, keep only well-formed
-// identifiers, and dedupe (preserving first-seen order).
 function normalizeIdentifiers(identifiers) {
   const seen = new Set();
   const clean = [];
@@ -50,8 +38,6 @@ function normalizeIdentifiers(identifiers) {
   return clean;
 }
 
-// Resolve identifiers (ENG-876, …) to Linear issues in a single aliased query.
-// Returns { resolved: [{identifier, linearId, title, estimate}], missing: [id] }.
 async function resolveIssues(identifiers) {
   const ids = normalizeIdentifiers(identifiers);
   if (ids.length === 0) return { resolved: [], missing: [] };
@@ -80,12 +66,6 @@ async function resolveIssues(identifiers) {
   return { resolved, missing };
 }
 
-// ─── MOCK: Estimation view ──────────────────────────────────────────────────
-// Stand-in for the Linear "Estimation" custom view
-// (https://linear.app/trivinna/team/ENG/view/estimation-809d590ffc82) until the
-// OAuth "Connect Linear" flow is wired. Once it is, replace getEstimationTickets()
-// with a real customView(id).issues query — the returned shape already matches
-// what store.addLinearToQueue() expects, so nothing downstream changes.
 const WORKSPACE = 'trivinna';
 const mockEstimationTickets = [
   { identifier: 'ENG-1023', title: '"View All Data" full-screen expansion grouped by section', project: 'Rent Roll Table UI/UX', status: 'Blocked' },
@@ -96,9 +76,6 @@ const mockEstimationTickets = [
   { identifier: 'ENG-1029', title: 'Multifamily KPI header from rent roll', project: 'Rent Roll Table UI/UX', status: 'Todo' },
 ];
 
-// Tickets awaiting estimation. Shaped like resolveIssues() output so the same
-// store.addLinearToQueue() path handles both. `linearId` is a mock id; the push
-// endpoint recognises the "mock-" prefix and skips the real Linear API call.
 function getEstimationTickets() {
   return mockEstimationTickets.map((t) => ({
     identifier: t.identifier,
@@ -111,13 +88,10 @@ function getEstimationTickets() {
   }));
 }
 
-// True for a placeholder ticket that isn't backed by a real Linear issue yet.
 function isMockId(linearId) {
   return typeof linearId === 'string' && linearId.startsWith('mock-');
 }
 
-// Write a story-point estimate onto a Linear issue (by UUID). Returns the
-// updated { identifier, estimate }.
 async function setEstimate(linearId, estimate) {
   const query = `mutation ($id: String!, $estimate: Int!) {
     issueUpdate(id: $id, input: { estimate: $estimate }) {

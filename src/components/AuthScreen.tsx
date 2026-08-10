@@ -8,9 +8,6 @@ interface Props {
   onBack: () => void;
 }
 
-// Two leaves that meet at a diagonal "/" spine: Log in fills the left up to the
-// slash, Create account the right. Switching folds one leaf away at the spine
-// while the other opens — like turning a book page across the "/".
 export default function AuthScreen({ onAuthed, onBack }: Props) {
   const { login, register } = useAuth();
   const [active, setActive] = useState<'login' | 'signup'>('login');
@@ -41,7 +38,6 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
   const [forgotErr, setForgotErr] = useState('');
   const [forgotEmailErr, setForgotEmailErr] = useState('');
 
-  // Tap a saved account → prefill its email and jump to the password field.
   function pickAccount(a: RememberedAccount) {
     setActive('login');
     setLiEmail(a.email);
@@ -66,7 +62,6 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
     }
   }
 
-  // Live (debounced) name-availability check while signing up.
   useEffect(() => {
     const n = rgName.trim();
     if (n.length === 0) {
@@ -79,7 +74,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
       setRgNameSug([]);
       return;
     }
-    // instant path — already checked this name (no network / debounce)
+    
     const cached = peekName(n);
     if (cached) {
       setRgNameStatus(cached.available ? 'available' : 'taken');
@@ -100,7 +95,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
     };
   }, [rgName]);
 
-  // Close password info tooltip when clicking outside.
+  
   useEffect(() => {
     if (!showPwInfo) return;
     const onDown = (e: MouseEvent | TouchEvent) => {
@@ -145,7 +140,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
       <div className="auth-book">
         <div className="auth-slash-line" aria-hidden />
 
-        {/* ---- Log in (left leaf) ---- */}
+        {}
         <section
           className={`auth-leaf leaf-login ${active === 'login' ? 'open' : 'folded'}`}
           aria-hidden={active !== 'login'}
@@ -257,7 +252,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
           </form>
         </section>
 
-        {/* ---- Create account (right leaf) ---- */}
+        {}
         <section
           className={`auth-leaf leaf-create ${active === 'signup' ? 'open' : 'folded'}`}
           aria-hidden={active !== 'signup'}

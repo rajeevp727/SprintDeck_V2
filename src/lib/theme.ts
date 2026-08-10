@@ -1,6 +1,5 @@
-// Theme handling. Default is "system" (follows the OS via a CSS media query);
-// the user can force light or dark, which is persisted and applied via a
-// data-theme attribute on <html> that overrides the media query.
+
+
 export type Theme = 'system' | 'light' | 'dark';
 
 const KEY = 'sprintdeck-theme';
@@ -22,7 +21,6 @@ export function setTheme(t: Theme) {
   applyTheme(t);
 }
 
-// Apply the saved (or system) theme on startup, before first paint.
 export function initTheme() {
   applyTheme(getTheme());
 }

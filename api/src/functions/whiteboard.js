@@ -52,7 +52,7 @@ async function requireWriter(code, participantId) {
 }
 
 async function requirePro(subRef) {
-  // Local/dev (no Cosmos): allow free create so shared boards can be validated.
+  
   if (!conn) return null;
   const sub = await payments.activeSubscription(subRef);
   if (!sub) return bad('A Pro subscription is required to start a whiteboard', 403);
@@ -66,7 +66,6 @@ async function verifyRoomMate(roomCode, roomParticipantId) {
   return !!session.participants[roomParticipantId];
 }
 
-// POST /api/whiteboard
 app.http('createWhiteboard', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -109,15 +108,15 @@ app.http('createWhiteboard', {
     }
     if (result.error === 'taken') return bad('That whiteboard code is taken — pick another', 409);
 
-    // Prefer reusing the poker participant id as whiteboard id when linked from a room
-    // so room-mate identity maps cleanly. If seed already used that id, swap facilitator.
+    
+    
     const { board, participantId } = result;
     if (roomCode && roomParticipantId && board.participants[roomParticipantId]) {
-      // Caller was already seeded — promote them to facilitator
+      
       const oldFac = board.facilitatorId;
       board.facilitatorId = roomParticipantId;
       if (oldFac !== roomParticipantId && board.participants[oldFac]) {
-        // Keep both; demote the placeholder facilitator we just created if names collide
+        
         if (board.participants[oldFac].name === (facilitatorName || '').trim()) {
           delete board.participants[oldFac];
         }
@@ -131,7 +130,6 @@ app.http('createWhiteboard', {
   },
 });
 
-// POST /api/whiteboard/{code}/join
 app.http('joinWhiteboard', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -143,17 +141,17 @@ app.http('joinWhiteboard', {
     if (roomCode || roomParticipantId) {
       const okMate = await verifyRoomMate(roomCode || (await store.loadBoard(req.params.code))?.roomCode, roomParticipantId);
       if (!okMate && !(await store.loadBoard(req.params.code))?.participants?.[participantId]) {
-        // Fall through — joinBoard will still enforce access
+        
       }
     }
 
     const boardPeek = await store.loadBoard(req.params.code);
     if (!boardPeek) return bad('Whiteboard not found', 404);
 
-    // Prove room membership when required
+    
     if (boardPeek.access === 'room' || (boardPeek.access === 'link' && !shareToken)) {
       if (participantId && boardPeek.participants[participantId]) {
-        // resume ok
+        
       } else {
         const mateOk = await verifyRoomMate(boardPeek.roomCode, roomParticipantId);
         if (!mateOk && boardPeek.access === 'room') {
@@ -186,7 +184,6 @@ app.http('joinWhiteboard', {
   },
 });
 
-// GET /api/whiteboard/{code}?participantId=
 app.http('getWhiteboard', {
   methods: ['GET'],
   authLevel: 'anonymous',
@@ -199,7 +196,6 @@ app.http('getWhiteboard', {
   },
 });
 
-// POST /api/whiteboard/{code}/element
 app.http('addWhiteboardElement', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -216,7 +212,6 @@ app.http('addWhiteboardElement', {
   },
 });
 
-// POST /api/whiteboard/{code}/element/{elementId}
 app.http('updateWhiteboardElement', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -233,7 +228,6 @@ app.http('updateWhiteboardElement', {
   },
 });
 
-// DELETE /api/whiteboard/{code}/element/{elementId}?participantId=
 app.http('deleteWhiteboardElement', {
   methods: ['DELETE'],
   authLevel: 'anonymous',
@@ -250,7 +244,6 @@ app.http('deleteWhiteboardElement', {
   },
 });
 
-// POST /api/whiteboard/{code}/clear
 app.http('clearWhiteboard', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -265,7 +258,6 @@ app.http('clearWhiteboard', {
   },
 });
 
-// POST /api/whiteboard/{code}/end
 app.http('endWhiteboard', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -280,7 +272,6 @@ app.http('endWhiteboard', {
   },
 });
 
-// POST /api/whiteboard/{code}/writers  { participantId, targetId, allow }
 app.http('setWhiteboardWriter', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -297,7 +288,6 @@ app.http('setWhiteboardWriter', {
   },
 });
 
-// POST /api/whiteboard/{code}/share  { participantId, enable }
 app.http('shareWhiteboard', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -316,7 +306,6 @@ app.http('shareWhiteboard', {
   },
 });
 
-// POST /api/whiteboard/{code}/follow  { participantId, enabled }
 app.http('followWhiteboardPresenter', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -331,7 +320,6 @@ app.http('followWhiteboardPresenter', {
   },
 });
 
-// POST /api/whiteboard/{code}/viewport  { participantId, viewport }
 app.http('setWhiteboardViewport', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -346,7 +334,6 @@ app.http('setWhiteboardViewport', {
   },
 });
 
-// POST /api/whiteboard/{code}/presence  { participantId, x, y, tool, editingId }
 app.http('setWhiteboardPresence', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -357,13 +344,12 @@ app.http('setWhiteboardPresence', {
     const { board, error } = await requireParticipant(req.params.code, participantId);
     if (error) return error;
     store.setPresence(board, participantId, { x, y, tool, editingId });
-    // Presence is ephemeral — notify without heavy persist thrash when possible
+    
     await store.saveBoard(board);
     return ok({ whiteboard: store.publicView(board, participantId) });
   },
 });
 
-// POST /api/whiteboard/{code}/leave  { participantId }
 app.http('leaveWhiteboard', {
   methods: ['POST'],
   authLevel: 'anonymous',

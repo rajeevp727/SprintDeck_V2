@@ -20,8 +20,6 @@
   --bg-glow: #1a2747;
 }
 
-/* Light theme — used when the OS prefers light (and the user hasn't forced dark),
-   or when the user explicitly picks light via the theme toggle. */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme='dark']) {
     --bg: #eef1f7;
@@ -92,7 +90,6 @@ button:focus-visible {
   font-size: 0.9rem;
 }
 
-/* ---------- Home ---------- */
 .home {
   max-width: 460px;
   margin: 0 auto;
@@ -151,7 +148,7 @@ button:focus-visible {
   padding: 1.5rem;
   text-align: left;
 }
-/* Whiteboard start — create/join ceremony */
+
 .home.wb-start {
   max-width: 520px;
   padding-top: 5vh;
@@ -239,12 +236,6 @@ button:focus-visible {
 .wb-card {
   padding: 1.35rem 1.25rem 1.5rem;
 }
-.wb-room-note {
-  color: var(--muted);
-  margin: -1.2rem 0 1.5rem;
-  font-size: 0.88rem;
-  line-height: 1.45;
-}
 .wb-pro-notice {
   display: flex;
   flex-direction: column;
@@ -315,14 +306,7 @@ button:focus-visible {
   flex-direction: column;
   gap: 1rem;
 }
-/* Legacy alias — some screens used .stack before .form existed */
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-.form label,
-.stack label {
+.form label {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -332,10 +316,7 @@ button:focus-visible {
 }
 .form input,
 .form textarea,
-.form select,
-.stack input,
-.stack textarea,
-.stack select {
+.form select {
   width: 100%;
   box-sizing: border-box;
 }
@@ -383,7 +364,7 @@ input:focus {
   box-shadow: 0 4px 14px rgba(79, 124, 255, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.25);
   transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
 }
-/* light-sheen sweep on hover — shared "future tech" language with the profile pill */
+
 .primary::after {
   content: '';
   position: absolute;
@@ -435,7 +416,7 @@ input:focus {
   cursor: not-allowed;
   box-shadow: none;
 }
-/* Secondary buttons — frosted glass that lights up with a neon glow on hover */
+
 .ghost {
   background: color-mix(in srgb, var(--text) 5%, transparent);
   border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
@@ -471,9 +452,6 @@ input:focus {
     inset 0 0 0 1px color-mix(in srgb, var(--danger) 22%, transparent);
 }
 
-/* ── Low-end devices (data-perf="lite") ──────────────────────────────────────
-   Kill the continuous animations and the GPU-heavy backdrop blur; keep the
-   colours and cheap transitions so it still looks intentional, just calmer. */
 :root[data-perf='lite'] .primary,
 :root[data-perf='lite'] .profile-split::before,
 :root[data-perf='lite'] .dash-card::before {
@@ -489,7 +467,7 @@ input:focus {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
-/* the page-fold becomes an instant swap rather than a 3D turn */
+
 :root[data-perf='lite'] .auth-leaf {
   transition: none !important;
 }
@@ -497,25 +475,24 @@ input:focus {
   transform: none !important;
 }
 
-/* Ad slots */
 .ad-slot {
   max-width: 460px;
   margin: 1.5rem auto 0;
   text-align: center;
 }
-/* In-room section-level ad (between sections) */
+
 .ad-section {
   max-width: 728px;
   margin: 1.25rem auto;
   text-align: center;
 }
-/* In-room page-level ad (full width, bottom of the room) */
+
 .ad-page {
   width: 100%;
   margin: 2rem 0 0;
   text-align: center;
 }
-/* Dismissible sticky footer ad (highest viewability) */
+
 .ad-sticky {
   position: fixed;
   left: 0;
@@ -564,7 +541,6 @@ input:focus {
   color: var(--text);
 }
 
-/* Content pages (Privacy / About) */
 .content-page {
   max-width: 720px;
   margin: 0 auto;
@@ -582,7 +558,6 @@ input:focus {
   color: var(--accent);
 }
 
-/* ---------- Room ---------- */
 .room {
   max-width: 1100px;
   margin: 0 auto;
@@ -678,8 +653,7 @@ a.room-code:hover {
   border-color: transparent;
   color: #fff;
 }
-/* Subscribed: header button shows the current plan (still clickable → opens the
-   modal to change plan). */
+
 .upgrade-btn.current-plan {
   color: var(--accent);
   border-color: var(--accent);
@@ -704,7 +678,6 @@ a.room-code:hover {
   border-color: var(--green);
 }
 
-/* Participant seats */
 .participants {
   display: flex;
   flex-wrap: wrap;
@@ -792,41 +765,6 @@ a.room-code:hover {
   opacity: 0.7;
 }
 
-/* Result */
-.result {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  margin: 1rem 0 2rem;
-}
-.result-stats {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 0.5rem 1.1rem;
-  min-width: 84px;
-}
-.stat strong {
-  font-size: 1.6rem;
-  color: var(--accent);
-}
-.consensus {
-  color: var(--green);
-  font-weight: 600;
-}
-
-/* Results button badge */
 .badge {
   display: inline-block;
   margin-left: 0.4rem;
@@ -838,7 +776,6 @@ a.room-code:hover {
   font-weight: 700;
 }
 
-/* Story queue */
 .queue-panel {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -905,7 +842,6 @@ a.room-code:hover {
   font-size: 0.95rem;
 }
 
-/* Linear V1 flow — ticket import + write-back */
 .q-badge {
   font-size: 0.72rem;
   font-weight: 600;
@@ -937,7 +873,7 @@ a.room-code:hover {
   color: var(--accent-2);
   white-space: nowrap;
 }
-/* "Connect Linear" (OAuth) button */
+
 .linear-connect {
   display: inline-flex;
   align-items: center;
@@ -1006,7 +942,6 @@ a.room-code:hover {
   font-size: 0.9rem;
 }
 
-/* Estimation list — current (selected) / done (greyed) states */
 .est-list .est-current {
   background: rgba(79, 124, 255, 0.14);
   border: 1px solid var(--accent);
@@ -1041,7 +976,6 @@ a.room-code:hover {
   margin-left: auto;
 }
 
-/* Linear auth (mock OAuth + MFA) modal */
 .auth-modal {
   position: relative;
   width: min(400px, 92vw);
@@ -1083,9 +1017,9 @@ a.room-code:hover {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  border: 1px solid var(--text); /* ring: white in dark, black in light */
+  border: 1px solid var(--text); 
   background: transparent;
-  color: var(--danger); /* the ✕ is always red */
+  color: var(--danger); 
   font-size: 1rem;
   line-height: 1;
   cursor: pointer;
@@ -1169,7 +1103,7 @@ a.room-code:hover {
   color: var(--muted);
   font-size: 0.8rem;
 }
-/* Connect-a-tool picker modal */
+
 .tool-modal {
   position: relative;
   width: min(400px, 92vw);
@@ -1249,14 +1183,12 @@ a.room-code:hover {
   border: 1px solid var(--line);
 }
 
-/* Theme toggle */
 .theme-toggle {
   font-size: 1rem;
   line-height: 1;
   padding: 0.4rem 0.55rem;
 }
 
-/* Results modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1337,7 +1269,6 @@ a.room-code:hover {
   gap: 0.5rem;
 }
 
-/* Moderator panel */
 .panel {
   display: flex;
   gap: 0.75rem;
@@ -1359,7 +1290,6 @@ a.room-code:hover {
   margin: 1.5rem 0;
 }
 
-/* The deck */
 .deck {
   display: flex;
   flex-wrap: wrap;
@@ -1431,14 +1361,12 @@ a.room-code:hover {
   }
 }
 
-/* ── Accessibility ─────────────────────────────────────────────────────────── */
-/* Visible keyboard-focus ring on every interactive element (both themes). */
 :where(button, a, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 6px;
 }
-/* Respect users who prefer reduced motion — kill the pulse/shake/transitions. */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1454,7 +1382,6 @@ a.room-code:hover {
   color: var(--muted);
 }
 
-/* Session estimation summary (Results modal) */
 .session-summary {
   display: flex;
   flex-wrap: wrap;
@@ -1480,7 +1407,6 @@ a.room-code:hover {
   color: var(--muted);
 }
 
-/* Subscription modal + tiers */
 .sub-modal {
   position: relative;
   width: min(940px, 94vw);
@@ -1552,7 +1478,7 @@ a.room-code:hover {
   border-color: var(--accent);
   transform: translateY(-2px);
 }
-/* Current plan — disabled, can't be re-bought (upgrade to a higher tier instead). */
+
 .tier-card:disabled {
   cursor: default;
   opacity: 0.6;
@@ -1656,10 +1582,7 @@ a.room-code:hover {
   margin: 0.5rem 0;
   display: inline-block;
 }
-/* Static QR-sized placeholder while the real QR (order) is being created:
-   exactly the QR's 176x176 footprint (no layout shift on load), a calm light
-   background, and the three QR "finder" squares so it reads as a QR. No
-   animation / shimmer. */
+
 .qr-skeleton {
   width: 176px;
   height: 176px;
@@ -1669,9 +1592,7 @@ a.room-code:hover {
   align-items: center;
   justify-content: center;
 }
-/* Spinner rotating around the full circle while the QR is prepared. The
-   !important keeps it spinning even under the global prefers-reduced-motion
-   rule — it's a functional loading indicator, not decorative motion. */
+
 .qr-loader {
   width: 54px;
   height: 54px;
@@ -1694,7 +1615,7 @@ a.room-code:hover {
 .pay-amount {
   margin: 0.25rem 0 0.1rem;
 }
-/* Info icon next to a reduced (prorated) upgrade amount + its formula caption. */
+
 .pay-info {
   display: inline-flex;
   vertical-align: middle;
@@ -1708,7 +1629,6 @@ a.room-code:hover {
   margin: 0.1rem 0 0;
 }
 
-/* Payment countdown — colour shifts as the window runs down. */
 .pay-timer {
   font-size: 0.95rem;
   font-variant-numeric: tabular-nums;
@@ -1729,7 +1649,6 @@ a.room-code:hover {
   animation: pulse 1s ease-in-out infinite;
 }
 
-/* QR expired → retry */
 .pay-expired {
   display: flex;
   flex-direction: column;
@@ -1748,7 +1667,6 @@ a.room-code:hover {
   margin: 0;
 }
 
-/* Team chat (PRO+) — inline card below the deck, members only */
 .chat {
   position: relative;
   width: min(680px, calc(100vw - 2rem));
@@ -1884,13 +1802,13 @@ a.room-code:hover {
   overflow: hidden;
   word-break: break-word;
 }
-/* Row under the bubble: persistent like badge + hover-only action buttons */
+
 .chat-msg-under {
   display: flex;
   align-items: center;
   gap: 0.4rem;
 }
-/* Persistent like indicator — always shown when a message has likes */
+
 .chat-likes-badge {
   display: inline-flex;
   align-items: center;
@@ -1916,7 +1834,7 @@ a.room-code:hover {
 .chat-likes-badge.liked .chat-likes-count {
   color: #f5b301;
 }
-/* Like (👍) and reply (↩️) actions — revealed only on message hover */
+
 .chat-msg-actions {
   display: none;
   gap: 0.35rem;
@@ -1946,7 +1864,7 @@ a.room-code:hover {
   background: color-mix(in srgb, #f5b301 20%, transparent);
   border-color: color-mix(in srgb, #f5b301 45%, var(--line));
 }
-/* Hover list of who liked a message — positioned inside the chat panel */
+
 .chat-like-tip {
   position: absolute;
   z-index: 70;
@@ -2051,7 +1969,6 @@ a.room-code:hover {
   flex-shrink: 0;
 }
 
-/* ─── Retrospective board ─────────────────────────────────────────────── */
 .retro {
   max-width: 1280px;
   margin: 0 auto;
@@ -2328,7 +2245,6 @@ a.room-code:hover {
   color: var(--muted);
 }
 
-/* Logged-out landing / showcase */
 .landing {
   max-width: 1040px;
   margin: 0 auto;
@@ -2404,9 +2320,6 @@ a.room-code:hover {
 .shot-whiteboard {
   background: linear-gradient(135deg, color-mix(in srgb, #f59e0b 26%, var(--panel)), var(--panel));
 }
-.shot-chat {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-2) 26%, var(--panel)), var(--panel));
-}
 .landing-card figcaption {
   padding: 1rem 1.1rem 1.25rem;
 }
@@ -2420,7 +2333,6 @@ a.room-code:hover {
   line-height: 1.4;
 }
 
-/* Dashboard — pick a ceremony */
 .dash {
   max-width: 900px;
   margin: 0 auto;
@@ -2438,7 +2350,7 @@ a.room-code:hover {
   align-items: center;
   gap: 0.6rem;
 }
-/* floating theme toggle for logged-out screens (Landing / Home) */
+
 .page-theme-toggle {
   position: fixed;
   top: 1rem;
@@ -2454,7 +2366,7 @@ a.room-code:hover {
   height: 3.25rem;
   max-width: 180px;
 }
-/* Account chip + profile card (header) */
+
 .profile-trigger {
   display: inline-flex;
   align-items: center;
@@ -2589,7 +2501,7 @@ a.room-code:hover {
   font-weight: 600;
   color: var(--accent);
 }
-/* Holographic split pill — animated aurora border ring + neon halves */
+
 .profile-split {
   position: relative;
   display: flex;
@@ -2600,7 +2512,7 @@ a.room-code:hover {
   background: transparent;
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4);
 }
-/* rotating aurora ring */
+
 .profile-split::before {
   content: '';
   position: absolute;
@@ -2617,7 +2529,7 @@ a.room-code:hover {
   );
   animation: holo-spin 6s linear infinite;
 }
-/* dark inner fill — leaves only a glowing 1.5px ring */
+
 .profile-split::after {
   content: '';
   position: absolute;
@@ -2663,7 +2575,7 @@ a.room-code:hover {
 .profile-half.danger svg {
   color: #fb7185;
 }
-/* faint neon seam down the middle */
+
 .profile-half + .profile-half::before {
   content: '';
   position: absolute;
@@ -2673,7 +2585,7 @@ a.room-code:hover {
   width: 1px;
   background: linear-gradient(transparent, rgba(129, 140, 248, 0.5), transparent);
 }
-/* light-sheen sweep on hover */
+
 .profile-half::after {
   content: '';
   position: absolute;
@@ -2724,7 +2636,6 @@ a.room-code:hover {
   }
 }
 
-/* Change-password modal */
 .pw-modal {
   position: relative;
   width: min(420px, calc(100vw - 2rem));
@@ -2825,7 +2736,7 @@ a.room-code:hover {
   cursor: pointer;
   transition: transform var(--transition), box-shadow var(--transition);
 }
-/* holographic edge — static at rest, spins up on hover */
+
 .dash-card::before {
   content: '';
   position: absolute;
@@ -2897,15 +2808,12 @@ a.room-code:hover {
   align-self: flex-start;
 }
 
-/* Auth screen — Log in | Create account, split by a big "/" */
 .auth-screen {
   max-width: 860px;
   margin: 0 auto;
   padding: 3rem 1.5rem 5rem;
 }
-/* Back button — a circle with "←" at rest; on hover expands into a rounded
-   rectangle revealing "← Back". Width animates between two fixed sizes (never
-   to `auto`), so the label never clips. */
+
 .auth-back {
   display: inline-flex;
   align-items: center;
@@ -2938,10 +2846,7 @@ a.room-code:hover {
   max-width: 5rem;
   opacity: 1;
 }
-/* Two leaves that meet at a fixed diagonal "/" spine. Each is pinned to top:0
-   and to the slash (edges coincide at width 50%+14px), so both share the exact
-   same top and touch the slash with 0 gap. Switching folds one away at the spine
-   while the other opens. */
+
 .auth-book {
   position: relative;
   width: min(920px, 100%);
@@ -2967,15 +2872,14 @@ a.room-code:hover {
 .auth-leaf h2 {
   margin: 0;
 }
-/* Log in — left, right edge cut along the "/" (~20° slant); extra right padding
-   keeps the form clear of the diagonal */
+
 .leaf-login {
   left: 0;
   transform-origin: right center;
   padding: 2rem 4.5rem 2rem 1.9rem;
   clip-path: polygon(0 0, 100% 0, calc(100% - 59px) 100%, 0 100%);
 }
-/* Create account — right, left edge cut along the "/" (same line as Log in's) */
+
 .leaf-create {
   right: 0;
   transform-origin: left center;
@@ -2999,7 +2903,7 @@ a.room-code:hover {
   pointer-events: none;
   z-index: 1;
 }
-/* the "/" spine — fixed, on the shared diagonal edge (175px/480 ≈ 20°) */
+
 .auth-slash-line {
   position: absolute;
   top: 50%;
@@ -3013,8 +2917,6 @@ a.room-code:hover {
   pointer-events: none;
 }
 
-/* Mobile: stack login on top, create on bottom, and flip vertically.
-   Desktop keeps the original left/right split above this breakpoint. */
 @media (max-width: 760px) {
   .auth-book {
     height: 480px;
@@ -3066,7 +2968,7 @@ a.room-code:hover {
     background: linear-gradient(to right, transparent, var(--muted) 14%, var(--muted) 86%, transparent);
   }
 }
-/* Name + Email on one row (signup) */
+
 .auth-row {
   display: flex;
   gap: 0.85rem;
@@ -3075,7 +2977,7 @@ a.room-code:hover {
   flex: 1;
   min-width: 0;
 }
-/* Password label with inline info icon */
+
 .auth-label-row {
   display: inline-flex;
   align-items: center;
@@ -3099,7 +3001,7 @@ a.room-code:hover {
   margin-top: 0.25rem;
   line-height: 1.35;
 }
-/* inline name validation + suggestion chips (signup) */
+
 .input-error {
   border-color: var(--danger) !important;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 30%, transparent) !important;
@@ -3146,7 +3048,7 @@ a.room-code:hover {
   background: color-mix(in srgb, var(--accent) 22%, transparent);
   border-color: color-mix(in srgb, var(--accent) 65%, transparent);
 }
-/* submit + counterpart buttons stacked (2 lines), right after the inputs */
+
 .auth-cta {
   display: flex;
   flex-direction: column;
@@ -3177,7 +3079,7 @@ a.room-code:hover {
     transform: none;
   }
 }
-/* Miro-style whiteboard */
+
 .miro {
   position: relative;
   height: 100vh;
@@ -3416,8 +3318,7 @@ a.room-code:hover {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
-.miro-edit,
-.miro-edit-inline {
+.miro-edit {
   width: 100%;
   height: 100%;
   border: 0;
@@ -3426,13 +3327,6 @@ a.room-code:hover {
   font: inherit;
   color: inherit;
   outline: none;
-}
-.miro-edit-inline {
-  min-width: 120px;
-  background: #fff;
-  border: 1px solid #93c5fd;
-  border-radius: 6px;
-  padding: 0.2rem 0.35rem;
 }
 .miro-people {
   position: absolute;
@@ -3562,7 +3456,6 @@ a.room-code:hover {
   }
 }
 
-/* Saved-account suggestions (Instagram-style) */
 .auth-suggest {
   margin-bottom: 1.1rem;
 }
@@ -3696,7 +3589,6 @@ a.room-code:hover {
   font-size: 0.9rem;
 }
 
-/* Toasts (join/leave presence, top-right) */
 .toast-host {
   position: fixed;
   top: 1.25rem;

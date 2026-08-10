@@ -1,8 +1,5 @@
 'use strict';
 
-// Minimal, dependency-free HS256 JWT (sign + verify) using Node's crypto.
-// Only HS256 is accepted (no alg-confusion), signatures are compared in constant
-// time, and expiry is enforced. The signing secret is the JWT_SECRET app setting.
 const crypto = require('crypto');
 
 function b64url(buf) {
@@ -12,7 +9,7 @@ function encodeJson(obj) {
   return b64url(JSON.stringify(obj));
 }
 
-const defaultTtlSeconds = 7 * 24 * 60 * 60; // 7 days
+const defaultTtlSeconds = 7 * 24 * 60 * 60;
 
 function sign(payload, secret, ttlSeconds = defaultTtlSeconds) {
   const now = Math.floor(Date.now() / 1000);

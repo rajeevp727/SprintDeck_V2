@@ -1,5 +1,5 @@
-// Remember who you are in each room, so a page refresh rejoins seamlessly
-// instead of dropping you back to the home screen.
+
+
 const KEY = 'pp.identity';
 
 type IdentityMap = Record<string, { participantId: string; name: string }>;
@@ -28,8 +28,6 @@ export function clearIdentity(code: string) {
   localStorage.setItem(KEY, JSON.stringify(map));
 }
 
-// The room you're currently in — kept in storage (not the URL) so the page can
-// resume the room on refresh without exposing the code in the address bar.
 const currentRoomKey = 'pp.currentRoom';
 
 export function setCurrentRoom(code: string) {

@@ -152,13 +152,6 @@ async function deleteBoard(code) {
   realtime.notifyGroup('whiteboard:' + norm);
 }
 
-/**
- * Create a whiteboard.
- * @param {object} opts
- * @param {'room'|'link'|'open'} [opts.access]
- * @param {string} [opts.roomCode]
- * @param {string[]} [opts.seedParticipants] - optional [{id,name}] from poker room
- */
 async function createBoard(name, facilitatorName, desiredCode, roomCode, opts = {}) {
   let code;
   const wanted = normalize(desiredCode);
@@ -193,7 +186,7 @@ async function createBoard(name, facilitatorName, desiredCode, roomCode, opts = 
     lastActivity: now,
   });
 
-  // Seed room-mates as participants (read-only until granted write).
+  
   if (Array.isArray(opts.seedParticipants)) {
     for (const sp of opts.seedParticipants) {
       if (!sp || !sp.id || sp.id === pid) continue;
@@ -214,13 +207,13 @@ function canJoin(board, { shareToken, roomParticipantId } = {}) {
   if (access === 'open') return { ok: true };
   if (access === 'link') {
     if (shareToken && board.shareToken && shareToken === board.shareToken) return { ok: true };
-    // Room mates can still join linked boards if they prove room membership
+    
     if (roomParticipantId && board.roomCode) return { ok: true, needRoomProof: true };
     return { ok: false, error: 'forbidden' };
   }
   if (access === 'room') {
     if (roomParticipantId && board.roomCode) return { ok: true, needRoomProof: true };
-    // Already a participant (resume)
+    
     return { ok: false, error: 'room_only' };
   }
   return { ok: false, error: 'forbidden' };
@@ -230,7 +223,7 @@ async function joinBoard(code, name, opts = {}) {
   const board = await loadBoard(code);
   if (!board) return { error: 'not_found' };
 
-  // Resume existing participant by id
+  
   if (opts.participantId && board.participants[opts.participantId]) {
     const p = board.participants[opts.participantId];
     if (name && name.trim()) p.name = name.trim().slice(0, maxNameLen);
@@ -346,7 +339,7 @@ function updateElement(board, participantId, elementId, patch) {
   const idx = board.elements.findIndex((e) => e.id === elementId);
   if (idx === -1) return false;
   const el = board.elements[idx];
-  // Writers can edit any element; keep author stamp
+  
   const { id, createdAt, createdBy, createdByName, ...rest } = patch || {};
   board.elements[idx] = { ...el, ...rest };
   return true;
@@ -392,7 +385,7 @@ function publicView(board, viewerId) {
     roomCode: board.roomCode || null,
     access: board.access,
     hasShareLink: !!board.shareToken,
-    // Only facilitator sees the raw share token
+    
     shareToken: viewerId && isFacilitator(board, viewerId) ? board.shareToken : null,
     phase: board.phase || 'active',
     elements: board.elements,

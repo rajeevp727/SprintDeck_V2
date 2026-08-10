@@ -1,5 +1,5 @@
-// Linear's official logomark (monochrome), inlined so it needs no network/CDN
-// and inherits the current text color (white on the Connect button).
+
+
 export default function LinearLogo({ className = 'linear-logo' }: { className?: string }) {
   return (
     <svg
