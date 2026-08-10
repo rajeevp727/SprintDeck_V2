@@ -16,6 +16,7 @@ const RetroStart = lazy(() => import('./components/RetroStart'));
 const StandupTimesheet = lazy(() => import('./components/StandupTimesheet'));
 const Whiteboard = lazy(() => import('./components/Whiteboard'));
 const WhiteboardStart = lazy(() => import('./components/WhiteboardStart'));
+const ResetPasswordScreen = lazy(() => import('./components/ResetPasswordScreen'));
 import {
   getIdentity,
   saveIdentity,
@@ -42,6 +43,7 @@ type Route =
   | { kind: 'terms' }
   | { kind: 'security' }
   | { kind: 'auth' }
+  | { kind: 'resetPassword'; token: string }
   | { kind: 'plan' }
   | { kind: 'retroStart' }
   | { kind: 'timesheet' }
@@ -66,6 +68,10 @@ function computeRoute(): Route {
   if (path === '/terms' || path === '/terms/') return { kind: 'terms' };
   if (path === '/security' || path === '/security/') return { kind: 'security' };
   if (path === '/login' || path === '/login/') return { kind: 'auth' };
+  if (path === '/reset-password' || path === '/reset-password/') {
+    const token = new URLSearchParams(window.location.search).get('token') || '';
+    return { kind: 'resetPassword', token };
+  }
   if (path === '/plan' || path === '/plan/') return { kind: 'plan' };
   if (path === '/retro-new' || path === '/retro-new/') return { kind: 'retroStart' };
   if (path === '/timesheet' || path === '/timesheet/') return { kind: 'timesheet' };
@@ -242,6 +248,8 @@ export default function App() {
     );
   } else if (route.kind === 'retroJoin') {
     page = <RetroHome joinCode={route.code} onEnter={goRetro} onExit={goHome} />;
+  } else if (route.kind === 'resetPassword') {
+    page = <ResetPasswordScreen token={route.token} onDone={goAuth} />;
   } else if (route.kind === 'auth') {
     page = <AuthScreen onAuthed={goHome} onBack={goHome} />;
   } else if (route.kind === 'plan') {
