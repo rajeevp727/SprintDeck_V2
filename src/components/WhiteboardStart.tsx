@@ -4,6 +4,8 @@ import { saveIdentity, getIdentity, getCurrentRoom } from '../lib/storage';
 import { useAuth } from '../lib/auth';
 import { getSubscriptionRef, useSubscription } from '../lib/subscription';
 import BrandLogo from './BrandLogo';
+import ProfileMenu from './ProfileMenu';
+import ThemeToggle from './ThemeToggle';
 
 const SubscriptionModal = lazy(() => import('./SubscriptionModal'));
 
@@ -16,6 +18,8 @@ interface Props {
   joinCode?: string;
 }
 
+const FEATURES = ['Live sync', 'Presenter controls', 'SVG & PDF export'] as const;
+
 export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode }: Props) {
   const { user } = useAuth();
   const { subscribed, loaded: subLoaded } = useSubscription();
@@ -24,12 +28,15 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
   const [boardName, setBoardName] = useState('');
   const [code, setCode] = useState(joinCode || '');
   const [token, setToken] = useState(shareToken || '');
+  const [showToken, setShowToken] = useState(!!shareToken);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [showSubscribe, setShowSubscribe] = useState(false);
   const roomCode = getCurrentRoom();
 
   const needsPro = subLoaded && !subscribed;
+  const isMemberFlow = mode === 'join';
+  const showSubscriptionUpsell = !isMemberFlow && needsPro;
   const createDisabled = busy || needsPro || !name.trim();
 
   useEffect(() => {
@@ -97,23 +104,49 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
   }
 
   return (
-    <div className="home">
-      <button className="ghost auth-back home-back" onClick={onBack} title="Back" aria-label="Back">
-        <span aria-hidden>←</span>
-        <span className="auth-back-label">Back</span>
-      </button>
+    <div className="home wb-start">
+      <div className="wb-start-bar">
+        <button className="ghost auth-back wb-start-back" onClick={onBack} title="Back" aria-label="Back">
+          <span aria-hidden>←</span>
+          <span className="auth-back-label">Back</span>
+        </button>
+        <div className="wb-start-actions">
+          <ThemeToggle />
+          {user ? <ProfileMenu /> : null}
+        </div>
+      </div>
 
       <header className="brand brand-with-logo">
         <BrandLogo />
       </header>
-      <p className="tagline">Shared Miro-style whiteboard for your team.</p>
+      <p className="tagline wb-tagline">Shared Miro-style whiteboard for your team.</p>
+
+      <ul className="wb-features" aria-label="Whiteboard features">
+        {FEATURES.map((f) => (
+          <li key={f}>{f}</li>
+        ))}
+      </ul>
+
       {roomCode ? (
-        <p className="wb-room-note">
-          Linked to planning room <strong>{roomCode}</strong> — roommates only unless you share a link.
-        </p>
+        <div className="wb-room-banner" role="status">
+          <span aria-hidden>🔗</span>
+          <span>
+            Linked to room <strong>{roomCode}</strong> — teammates only unless you share a link.
+          </span>
+        </div>
       ) : null}
 
-      <div className="card home-card">
+      {showSubscriptionUpsell ? (
+        <button
+          type="button"
+          className="wb-plan-pill"
+          onClick={() => setShowSubscribe(true)}
+        >
+          ✨ Free · Upgrade to host
+        </button>
+      ) : null}
+
+      <div className="card home-card wb-card">
         <div className="tabs">
           <button
             type="button"
@@ -159,17 +192,17 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
                 maxLength={60}
               />
             </label>
-            {needsPro ? (
+            {showSubscriptionUpsell ? (
               <div className="wb-pro-notice" role="status">
                 <p>A Pro subscription is required to start a whiteboard.</p>
                 <button type="button" className="ghost wb-upgrade" onClick={() => setShowSubscribe(true)}>
                   View plans →
                 </button>
               </div>
-            ) : (
-              <p className="auth-hint">Hosting a whiteboard needs a Pro subscription.</p>
-            )}
-            <button className="primary" disabled={createDisabled} type="submit">
+            ) : !isMemberFlow ? (
+              <p className="auth-hint">You can grant write access to teammates after creating the board.</p>
+            ) : null}
+            <button className="primary wb-submit" disabled={createDisabled} type="submit">
               {busy ? 'Creating…' : roomCode ? 'Create room whiteboard' : 'Create shared whiteboard'}
             </button>
           </form>
@@ -197,17 +230,23 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
                 required
               />
             </label>
-            <label>
-              Share token <span className="muted">(if invited via link)</span>
-              <input value={token} onChange={(e) => setToken(e.target.value)} placeholder="optional" />
-            </label>
-            <button className="primary" disabled={busy || !name.trim() || !code.trim()} type="submit">
+            {showToken ? (
+              <label>
+                Share token <span className="muted">(from invite link)</span>
+                <input value={token} onChange={(e) => setToken(e.target.value)} placeholder="Paste token" />
+              </label>
+            ) : (
+              <button type="button" className="ghost wb-advanced" onClick={() => setShowToken(true)}>
+                Have an invite link?
+              </button>
+            )}
+            <button className="primary wb-submit" disabled={busy || !name.trim() || !code.trim()} type="submit">
               {busy ? 'Joining…' : 'Join whiteboard'}
             </button>
           </form>
         )}
 
-        {error ? <p className="error">{error}</p> : null}
+        {error ? <p className="error wb-error">{error}</p> : null}
       </div>
 
       {showSubscribe ? (
