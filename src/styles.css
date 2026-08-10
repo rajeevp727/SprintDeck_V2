@@ -2251,6 +2251,9 @@ a.room-code:hover {
 .shot-retro {
   background: linear-gradient(135deg, color-mix(in srgb, var(--green) 26%, var(--panel)), var(--panel));
 }
+.shot-whiteboard {
+  background: linear-gradient(135deg, color-mix(in srgb, #f59e0b 26%, var(--panel)), var(--panel));
+}
 .shot-chat {
   background: linear-gradient(135deg, color-mix(in srgb, var(--accent-2) 26%, var(--panel)), var(--panel));
 }
@@ -2944,216 +2947,296 @@ a.room-code:hover {
     transform: none;
   }
 }
-/* Whiteboard */
-.whiteboard {
-  display: flex;
-  flex-direction: column;
+/* Miro-style whiteboard */
+.miro {
+  position: relative;
   height: 100vh;
-  background: var(--bg);
+  width: 100%;
+  overflow: hidden;
+  background: #f7f8fa;
+  color: #111827;
 }
-.wb-header {
+.miro-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--line);
-  background: var(--panel);
-  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid #e5e7eb;
+  backdrop-filter: blur(10px);
 }
-.wb-header-left {
+.miro-top-left,
+.miro-top-actions {
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
-}
-.wb-title {
-  font-weight: 700;
-  font-size: 1.1rem;
-}
-.wb-header-actions {
-  display: inline-flex;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
-.wb-toolbar {
+.miro-back {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.miro-brand {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.miro-brand strong {
+  font-size: 0.95rem;
+}
+.miro-brand span {
+  font-size: 0.72rem;
+  color: #6b7280;
+}
+.miro-chip {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: #111827;
+}
+.miro-chip:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+.miro-chip.danger {
+  color: #b91c1c;
+}
+.miro-zoom {
+  font-size: 0.78rem;
+  color: #6b7280;
+  min-width: 3rem;
+  text-align: right;
+}
+.miro-rail {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  z-index: 20;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.4rem;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+.miro-tool {
+  width: 46px;
+  min-height: 46px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  color: #374151;
+  font-size: 0.58rem;
+  line-height: 1;
+}
+.miro-tool span:last-child {
+  opacity: 0.8;
+}
+.miro-tool:hover {
+  background: #f3f4f6;
+}
+.miro-tool.active {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.miro-palette {
+  position: absolute;
+  left: 50%;
+  bottom: 1rem;
+  z-index: 20;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.6rem 1rem;
-  border-bottom: 1px solid var(--line);
-  background: var(--panel-2);
-  flex-wrap: wrap;
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
 }
-.wb-tool-group {
+.miro-swatches,
+.miro-sizes {
   display: inline-flex;
+  align-items: center;
   gap: 0.35rem;
-  align-items: center;
 }
-.wb-tool {
-  width: 36px;
-  height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--text);
-  font-size: 1.05rem;
-  cursor: pointer;
-  transition: border-color var(--transition), background var(--transition);
-}
-.wb-tool:hover {
-  border-color: var(--accent);
-}
-.wb-tool.active {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 18%, var(--panel));
-  box-shadow: var(--ring);
-}
-.wb-color {
-  width: 26px;
-  height: 26px;
+.miro-swatch {
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   border: 2px solid transparent;
+  outline: 1px solid transparent;
   cursor: pointer;
-  transition: transform var(--transition), box-shadow var(--transition);
 }
-.wb-color:hover {
-  transform: scale(1.1);
+.miro-swatch.active {
+  box-shadow: 0 0 0 3px #60a5fa;
 }
-.wb-color.active {
-  box-shadow: 0 0 0 3px var(--accent);
-  transform: scale(1.1);
-}
-.wb-size {
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.miro-size {
+  width: 28px;
+  height: 28px;
   border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--text);
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  display: grid;
+  place-items: center;
   cursor: pointer;
-  transition: border-color var(--transition), background var(--transition);
 }
-.wb-size:hover {
-  border-color: var(--accent);
+.miro-size.active {
+  border-color: #60a5fa;
+  background: #eff6ff;
 }
-.wb-size.active {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 18%, var(--panel));
-  box-shadow: var(--ring);
-}
-.wb-size-dot {
+.miro-size i {
   display: block;
   border-radius: 50%;
-  background: var(--text);
+  background: #111827;
 }
-.wb-canvas-wrap {
-  flex: 1;
-  position: relative;
+.miro-stage {
+  position: absolute;
+  inset: 0;
   overflow: hidden;
-  background: #ffffff;
-  cursor: crosshair;
+  touch-action: none;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(96, 165, 250, 0.08), transparent 35%),
+    radial-gradient(circle at 80% 80%, rgba(167, 139, 250, 0.08), transparent 30%),
+    #f7f8fa;
 }
-.wb-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-.wb-sticky-input {
+.miro-world {
   position: absolute;
-  min-width: 160px;
-  padding: 0.5rem 0.6rem;
-  border: 2px dashed var(--accent);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #1a1a1a;
-  font-family: inherit;
-  font-size: 0.95rem;
-  outline: none;
-  z-index: 10;
-  box-shadow: var(--shadow-sm);
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  width: 0;
+  height: 0;
 }
-.wb-sticky {
+.miro-grid {
   position: absolute;
-  width: 180px;
-  min-height: 100px;
-  padding: 0.6rem 0.7rem;
-  border-radius: 4px;
-  box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.25);
-  cursor: grab;
-  user-select: none;
-  transition: box-shadow var(--transition), transform var(--transition);
-  z-index: 5;
-}
-.wb-sticky:hover {
-  box-shadow: 4px 6px 14px rgba(0, 0, 0, 0.35);
-  transform: translateY(-1px);
-}
-.wb-sticky.editing {
-  cursor: default;
-  box-shadow: var(--shadow);
-  z-index: 8;
-}
-.wb-sticky-text {
-  font-size: 0.9rem;
-  line-height: 1.35;
-  color: #1a1a1a;
-  white-space: pre-wrap;
-  word-break: break-word;
+  left: -4000px;
+  top: -4000px;
+  width: 8000px;
+  height: 8000px;
+  background-image: radial-gradient(#c7cdd8 1.2px, transparent 1.2px);
+  background-size: 28px 28px;
   pointer-events: none;
 }
-.wb-sticky-del {
+.miro-svg {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.15);
-  color: #1a1a1a;
-  font-size: 0.75rem;
-  line-height: 1;
-  padding: 0;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--transition), background var(--transition);
+  left: -4000px;
+  top: -4000px;
+  overflow: visible;
+  pointer-events: none;
 }
-.wb-sticky:hover .wb-sticky-del {
-  opacity: 1;
+.miro-selected {
+  filter: drop-shadow(0 0 0.5px #3b82f6) drop-shadow(0 0 0.5px #3b82f6);
 }
-.wb-sticky-del:hover {
-  background: rgba(239, 94, 110, 0.6);
-  color: #fff;
+.miro-sticky {
+  position: absolute;
+  padding: 0.85rem;
+  border-radius: 2px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+  color: #1f2937;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  cursor: grab;
+  user-select: none;
+  overflow: hidden;
+}
+.miro-sticky.selected {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+.miro-sticky p {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 100%;
+}
+.miro-text {
+  position: absolute;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: pre;
+  cursor: grab;
+  user-select: none;
+  padding: 0.1rem 0.15rem;
+}
+.miro-text.selected {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+.miro-edit,
+.miro-edit-inline {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  resize: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  outline: none;
+}
+.miro-edit-inline {
+  min-width: 120px;
+  background: #fff;
+  border: 1px solid #93c5fd;
+  border-radius: 6px;
+  padding: 0.2rem 0.35rem;
+}
+.miro-hint {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 15;
+  font-size: 0.72rem;
+  color: #6b7280;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  pointer-events: none;
 }
 @media (max-width: 760px) {
-  .wb-header {
-    padding: 0.6rem 0.75rem;
+  .miro-rail {
+    top: auto;
+    bottom: 4.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    flex-direction: row;
+    max-width: calc(100vw - 1.5rem);
+    overflow-x: auto;
   }
-  .wb-toolbar {
-    padding: 0.5rem 0.6rem;
-    gap: 0.5rem;
+  .miro-tool span:last-child {
+    display: none;
   }
-  .wb-tool {
-    width: 32px;
-    height: 32px;
-    font-size: 0.95rem;
+  .miro-hint {
+    display: none;
   }
-  .wb-color {
-    width: 22px;
-    height: 22px;
-  }
-  .wb-size {
-    width: 28px;
-    height: 28px;
+  .miro-palette {
+    bottom: 0.65rem;
+    width: calc(100vw - 1.5rem);
+    justify-content: center;
   }
 }
 
