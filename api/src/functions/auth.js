@@ -143,7 +143,29 @@ app.http('authMe', {
     const token = req.headers.get('x-auth-token') || '';
     const payload = token && jwt.verify(token, secret());
     if (!payload) return ok({ user: null });
-    return ok({ user: { id: payload.sub, email: payload.email } });
+    const user = await users.getByEmail(payload.email);
+    return ok({ user: user ? users.publicUser(user) : null });
+  },
+});
+
+// POST /api/auth/profile  { name }   (header x-auth-token)
+app.http('updateProfile', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'auth/profile',
+  handler: async (req) => {
+    if (!secret()) return bad('Auth is not configured', 503);
+    if (rateLimited(req, 'profile', 15, 60_000)) return bad('Too many attempts — slow down', 429);
+    const token = req.headers.get('x-auth-token') || '';
+    const payload = token && jwt.verify(token, secret());
+    if (!payload) return bad('Please sign in again', 401);
+    const { name } = await readBody(req);
+    if (String(name || '').trim().length < 2) return bad('Enter your name (at least 2 characters)');
+    const result = await users.updateUserName(payload.email, name);
+    if (!result) return bad('Account not found', 404);
+    if (result.error === 'name-exists') return bad('That name is already taken — pick another', 409);
+    if (result.error === 'name-too-short') return bad('Enter your name (at least 2 characters)');
+    return ok({ user: users.publicUser(result.user) });
   },
 });
 
