@@ -1,16 +1,12 @@
 'use strict';
 
-// User accounts for email+password auth. Stored in a Cosmos container "users"
-// (same DB as sessions/payments), keyed by lowercased email as id. Passwords are
-// hashed with scrypt + a per-user random salt (never stored in plaintext), and
-// verified in constant time. In-memory fallback when Cosmos isn't configured.
 const crypto = require('crypto');
 
 const conn = process.env.COSMOS_CONNECTION_STRING || '';
 const dbName = 'sprintdeck';
 const containerName = 'users';
 
-const memory = new Map(); // email -> user
+const memory = new Map(); 
 let containerPromise = null;
 
 function getContainer() {
@@ -66,7 +62,6 @@ async function getByEmail(email) {
   return memory.get(id) || null;
 }
 
-// Find a user by (case-insensitive) name, or null.
 async function getByName(name) {
   const n = normalizeName(name);
   if (!n) return null;
@@ -86,16 +81,11 @@ async function getByName(name) {
   return null;
 }
 
-// Create a user. Returns { user } or { error: 'email-exists' | 'name-exists' }.
-// Uniqueness is enforced at the DB level: the user doc's id IS the (lowercased)
-// email, and a separate "name:<nameLower>" reservation doc guards the name —
-// both inserted with items.create (not upsert), which throws 409 on a duplicate.
 async function createUser(email, password, name) {
   const id = normalizeEmail(email);
   const cleanName = String(name || '').trim().slice(0, 80);
   const nameLower = normalizeName(cleanName);
 
-  // Friendly pre-checks (nice error without relying on the 409).
   if (await getByEmail(id)) return { error: 'email-exists' };
   if (nameLower && (await getByName(cleanName))) return { error: 'name-exists' };
 
@@ -112,7 +102,7 @@ async function createUser(email, password, name) {
 
   const c = getContainer();
   if (!c) {
-    // In-memory fallback (single process — the pre-checks above are race-free).
+    
     if (memory.has(id)) return { error: 'email-exists' };
     for (const u of memory.values()) {
       if (nameLower && (u.nameLower || normalizeName(u.name)) === nameLower) return { error: 'name-exists' };
@@ -123,14 +113,14 @@ async function createUser(email, password, name) {
   }
 
   const container = await c;
-  // Email uniqueness — create throws 409 if the id (=email) already exists.
+  
   try {
     await container.items.create(user);
   } catch (err) {
     if (err && err.code === 409) return { error: 'email-exists' };
     throw err;
   }
-  // Name uniqueness — reservation doc; roll back the user doc if the name is taken.
+  
   if (nameLower) {
     try {
       await container.items.create({ id: `name:${nameLower}`, type: 'name-reservation', owner: id, createdAt: Date.now() });
@@ -138,9 +128,7 @@ async function createUser(email, password, name) {
       if (err && err.code === 409) {
         try {
           await container.item(id, id).delete();
-        } catch {
-          /* best-effort rollback */
-        }
+        } catch { void 0; }
         return { error: 'name-exists' };
       }
       throw err;
@@ -149,14 +137,12 @@ async function createUser(email, password, name) {
   return { user };
 }
 
-// Is a name free? (true when no user currently uses it.)
 async function isNameAvailable(name) {
   const n = normalizeName(name);
   if (!n) return false;
   return !(await getByName(name));
 }
 
-// Set a new password (fresh salt + hash). Returns the user, or null if missing.
 async function updatePassword(email, newPassword) {
   const user = await getByEmail(email);
   if (!user) return null;
@@ -168,7 +154,6 @@ async function updatePassword(email, newPassword) {
   return user;
 }
 
-// Update display name. Returns { user } or { error: 'name-exists' | 'name-too-short' }.
 async function updateUserName(email, name) {
   const user = await getByEmail(email);
   if (!user) return null;
@@ -221,7 +206,6 @@ function verifyPassword(user, password) {
   return got.length === exp.length && crypto.timingSafeEqual(got, exp);
 }
 
-// The client-safe view of a user — never the salt/hash.
 function publicUser(user) {
   return { id: user.id, email: user.email, name: user.name || '' };
 }

@@ -6,11 +6,6 @@ interface Person {
   name: string;
 }
 
-/**
- * Toast the host (moderator/facilitator) when someone joins or leaves.
- * `prev` is a ref holding the last-seen roster — pass the same ref each poll.
- * No-ops for non-hosts and on the first call (which just sets the baseline).
- */
 export function notifyPresence(
   current: Person[],
   isHost: boolean,

@@ -4,8 +4,6 @@ const { app } = require('@azure/functions');
 const store = require('../store');
 const linear = require('../linear');
 
-// no-store so polling reads are never cached by the browser/CDN — otherwise
-// other devices render stale state until a manual refresh.
 const noCache = { 'Cache-Control': 'no-store' };
 
 function ok(body) {
@@ -23,9 +21,6 @@ async function readBody(req) {
   }
 }
 
-// Best-effort in-memory per-IP rate limit (per Function instance) to curb abuse
-// like room-creation spam. Applied ONLY to low-frequency write actions — never to
-// the 1.5s poll or voting, which would false-positive for teams behind one NAT IP.
 const _rlHits = new Map();
 function rateLimited(req, bucket, max, windowMs) {
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
@@ -37,8 +32,6 @@ function rateLimited(req, bucket, max, windowMs) {
   return recent.length > max;
 }
 
-// Load a session and verify the caller is its moderator. Returns the session
-// or a ready-to-return error response.
 async function requireModerator(code, participantId) {
   const session = await store.loadSession(code);
   if (!session) return { error: bad('Session not found', 404) };
@@ -48,7 +41,6 @@ async function requireModerator(code, participantId) {
   return { session };
 }
 
-// GET /api/health — lightweight warm-keep target for an uptime pinger.
 app.http('health', {
   methods: ['GET'],
   authLevel: 'anonymous',
@@ -56,8 +48,6 @@ app.http('health', {
   handler: async () => ok({ status: 'ok', service: 'sprintdeck' }),
 });
 
-// POST /api/log — client error sink. Logs to Application Insights (via context)
-// for observability. Rate-limited and size-capped to prevent log spam/abuse.
 app.http('clientLog', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -73,7 +63,6 @@ app.http('clientLog', {
   },
 });
 
-// POST /api/session  { name, moderatorName }
 app.http('createSession', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -93,7 +82,6 @@ app.http('createSession', {
   },
 });
 
-// POST /api/session/{code}/join  { name }
 app.http('joinSession', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -110,7 +98,6 @@ app.http('joinSession', {
   },
 });
 
-// GET /api/session/{code}?participantId=...   (polled)
 app.http('getSession', {
   methods: ['GET'],
   authLevel: 'anonymous',
@@ -119,8 +106,8 @@ app.http('getSession', {
     const session = await store.loadSession(req.params.code);
     if (!session) return bad('Session not found', 404);
     const participantId = req.query.get('participantId');
-    // A member polling keeps the room alive, so an open room never expires
-    // out from under active viewers (throttled inside touchSession).
+    
+    
     if (participantId && session.participants[participantId]) {
       await store.touchSession(session);
     }
@@ -128,7 +115,6 @@ app.http('getSession', {
   },
 });
 
-// POST /api/session/{code}/vote  { participantId, vote }
 app.http('castVote', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -146,13 +132,12 @@ app.http('castVote', {
     }
     if (vote !== null && !session.deck.includes(vote)) return bad('Invalid card');
 
-    p.vote = vote; // null clears the vote (toggle off)
+    p.vote = vote; 
     await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
 });
 
-// POST /api/session/{code}/start  { participantId, story }   (moderator)
 app.http('startVoting', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -162,13 +147,12 @@ app.http('startVoting', {
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
-    store.startStory(session, story); // story is optional
+    store.startStory(session, story); 
     await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
 });
 
-// POST /api/session/{code}/reveal  { participantId }   (moderator)
 app.http('reveal', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -178,13 +162,12 @@ app.http('reveal', {
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
-    store.revealAndSave(session); // sets 'revealed' + auto-saves the result
+    store.revealAndSave(session); 
     await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
 });
 
-// POST /api/session/{code}/reset  { participantId }   (moderator) — clear votes, vote again
 app.http('reset', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -201,7 +184,6 @@ app.http('reset', {
   },
 });
 
-// POST /api/session/{code}/queue  { participantId, stories }   (moderator)
 app.http('addToQueue', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -218,7 +200,6 @@ app.http('addToQueue', {
   },
 });
 
-// DELETE /api/session/{code}/queue/{storyId}?participantId=...   (moderator)
 app.http('removeFromQueue', {
   methods: ['DELETE'],
   authLevel: 'anonymous',
@@ -234,7 +215,6 @@ app.http('removeFromQueue', {
   },
 });
 
-// POST /api/session/{code}/queue/reorder  { participantId, order: [storyId] }   (moderator)
 app.http('reorderQueue', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -250,7 +230,6 @@ app.http('reorderQueue', {
   },
 });
 
-// POST /api/session/{code}/kick  { participantId, targetId }   (moderator)
 app.http('kickParticipant', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -266,7 +245,6 @@ app.http('kickParticipant', {
   },
 });
 
-// POST /api/session/{code}/end  { participantId }   (moderator) — ends the room
 app.http('endSession', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -281,8 +259,6 @@ app.http('endSession', {
   },
 });
 
-// POST /api/session/{code}/next  { participantId }   (moderator) — advance to the
-// next queued story (the current result was already saved on reveal).
 app.http('nextStory', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -292,18 +268,15 @@ app.http('nextStory', {
     const { session, error } = await requireModerator(req.params.code, participantId);
     if (error) return error;
 
-    // Save the current result (done on reveal) was kept; start the next round —
-    // the next queued story if any, otherwise a fresh auto-numbered round.
-    // History is preserved so every round accumulates in the results.
+    
+    
+    
     store.startStory(session);
     await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });
   },
 });
 
-// POST /api/session/{code}/retro  { participantId, retroCode }   (moderator) —
-// record the retro board opened for this room so every member's client sees it
-// (via polling) and can show a "Join Retrospective" button.
 app.http('setRetro', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -319,12 +292,6 @@ app.http('setRetro', {
   },
 });
 
-// ───────────────────────────────────────────────────────────────────────────
-// Linear integration — V1 flow: paste ticket IDs, write agreed estimates back.
-// The Linear API key lives only in the LINEAR_API_KEY app setting (server-side).
-// ───────────────────────────────────────────────────────────────────────────
-
-// GET /api/linear/status — lets the UI show/hide the Linear flow.
 app.http('linearStatus', {
   methods: ['GET'],
   authLevel: 'anonymous',
@@ -332,8 +299,6 @@ app.http('linearStatus', {
   handler: async () => ok({ enabled: linear.isEnabled() }),
 });
 
-// POST /api/session/{code}/linear/import  { participantId, identifiers }  (moderator)
-// Resolves pasted ticket IDs (ENG-876, …) to Linear issues and queues them.
 app.http('linearImport', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -356,9 +321,6 @@ app.http('linearImport', {
   },
 });
 
-// POST /api/session/{code}/linear/import-estimation  { participantId }  (moderator)
-// Loads the Linear "Estimation" view's tickets into the queue. MOCK data for now
-// (see linear.getEstimationTickets); no API key needed until the real fetch lands.
 app.http('linearImportEstimation', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -374,8 +336,6 @@ app.http('linearImportEstimation', {
   },
 });
 
-// POST /api/session/{code}/linear/push  { participantId, entryId, estimate }  (moderator)
-// Writes the moderator-confirmed estimate back onto the entry's Linear issue.
 app.http('linearPush', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -392,8 +352,8 @@ app.http('linearPush', {
       return bad('Estimate must be a value from the deck');
     }
 
-    // Mock tickets aren't backed by a real issue — record the estimate locally,
-    // skip the API call. Real tickets require a configured key + write to Linear.
+    
+    
     const isMock = linear.isMockId(entry.linearId);
     if (!isMock) {
       if (!linear.isEnabled()) return bad('Linear is not configured', 400);

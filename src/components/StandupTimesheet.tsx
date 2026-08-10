@@ -1,20 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import BrandLogo from './BrandLogo';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// StandupTimesheet — a fully self-contained weekly daily-scrum / timesheet capture
-// component. No backend, no auth, no dependencies on the rest of the app: it
-// persists to localStorage and renders its own styles. The team enters a daily
-// standup + task hours here once, then hands the data off to Keka / a timesheets
-// app via "Copy for Keka" (clipboard) or a timesheet-shaped CSV download.
-//
-// Auto-push into Keka / a timesheets app is intentionally a disabled "coming soon"
-// action: it needs a real write API for those systems plus org sign-off before
-// corporate HR data can leave automatically.
-//
-// Drop in anywhere:  <StandupTimesheet onBack={() => ...} />
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface Task {
   project: string;
   task: string;
@@ -24,7 +10,7 @@ interface DayEntry {
   summary: string;
   tasks: Task[];
 }
-type Store = Record<string, DayEntry>; // keyed by YYYY-MM-DD
+type Store = Record<string, DayEntry>; 
 
 const STORAGE_KEY = 'sprintdeck.standups';
 const emptyDay = (): DayEntry => ({ summary: '', tasks: [] });
@@ -39,12 +25,9 @@ function loadStore(): Store {
 function saveStore(store: Store) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-  } catch {
-    /* ignore quota / private-mode errors */
-  }
+  } catch { void 0; }
 }
 
-// ── date helpers (local time) ────────────────────────────────────────────────
 function toISO(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -53,7 +36,7 @@ function toISO(d: Date): string {
 }
 function mondayOf(d: Date): Date {
   const c = new Date(d);
-  const dow = (c.getDay() + 6) % 7; // 0 = Monday
+  const dow = (c.getDay() + 6) % 7; 
   c.setDate(c.getDate() - dow);
   c.setHours(0, 0, 0, 0);
   return c;
@@ -63,7 +46,7 @@ function addDays(d: Date, n: number): Date {
   c.setDate(c.getDate() + n);
   return c;
 }
-const WEEKDAYS = 5; // Mon–Fri
+const WEEKDAYS = 5; 
 
 interface Props {
   onBack?: () => void;
@@ -89,7 +72,7 @@ export default function StandupTimesheet({ onBack }: Props) {
     setStore((prev) => {
       const next = { ...prev, [iso]: mut(prev[iso] ?? emptyDay()) };
       const e = next[iso];
-      if (!e.summary && e.tasks.length === 0) delete next[iso]; // don't store empty days
+      if (!e.summary && e.tasks.length === 0) delete next[iso]; 
       return next;
     });
   }
@@ -101,7 +84,6 @@ export default function StandupTimesheet({ onBack }: Props) {
   const removeTask = (iso: string, i: number) =>
     update(iso, (e) => ({ ...e, tasks: e.tasks.filter((_, j) => j !== i) }));
 
-  // ── export / hand-off ──────────────────────────────────────────────────────
   function weeklyText(): string {
     const lines: string[] = [`Weekly report — week of ${toISO(weekMonday)}`, '='.repeat(40), ''];
     for (const d of days) {
@@ -158,8 +140,8 @@ export default function StandupTimesheet({ onBack }: Props) {
     URL.revokeObjectURL(url);
   }
 
-  // Export the week as JSON in the exact shape the local Playwright filler reads
-  // (integrations/timesheet-filler → week.json), for keyless SSO push to Techraq/Keka.
+  
+  
   function downloadJson() {
     const out: Store = {};
     for (const d of days) {

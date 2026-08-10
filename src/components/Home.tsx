@@ -19,7 +19,7 @@ interface Props {
 
 export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, onSecurity, onBack, onSignIn }: Props) {
   const { user, logout } = useAuth();
-  // Only "New session" is offered; the join form is used solely for invite links.
+
   const mode: 'create' | 'join' = initialCode ? 'join' : 'create';
   const [name, setName] = useProfileNamePrefill();
   const [sessionName, setSessionName] = useState('');

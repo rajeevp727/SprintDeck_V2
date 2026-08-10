@@ -13,8 +13,6 @@ function formatSubDate(iso: string) {
   }
 }
 
-// Account chip in the header: greeting + avatar that opens a card with the
-// user's name, email, subscription and account actions.
 export default function ProfileMenu() {
   const { user, logout } = useAuth();
   const { subscription, subscribed, loaded } = useSubscription();

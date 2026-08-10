@@ -1,9 +1,5 @@
 'use strict';
 
-// Email + password authentication. Register/login issue a signed JWT (HS256,
-// JWT_SECRET); the client sends it as `Authorization: Bearer <token>` and the
-// API validates it via api/src/auth.js. Passwords are scrypt-hashed in
-// users-store. Degrades cleanly (503) when JWT_SECRET isn't configured.
 const { app } = require('@azure/functions');
 const users = require('../users-store');
 const jwt = require('../jwt');
@@ -29,17 +25,14 @@ const secret = () => process.env.JWT_SECRET || '';
 const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const minPassword = 8;
 
-// "Remember me" keeps you signed in for 2 sprints (a sprint is 14 days → 28
-// days); otherwise the token is a short 1-day session.
 const SPRINT_DAYS = 14;
-const REMEMBER_TTL = 2 * SPRINT_DAYS * 24 * 60 * 60; // 28 days
-const SESSION_TTL = 24 * 60 * 60; // 1 day
+const REMEMBER_TTL = 2 * SPRINT_DAYS * 24 * 60 * 60;
+const SESSION_TTL = 24 * 60 * 60;
 
 function tokenFor(user, remember) {
   return jwt.sign({ sub: user.id, email: user.email }, secret(), remember ? REMEMBER_TTL : SESSION_TTL);
 }
 
-// Build a few available alternatives when a name is taken.
 async function nameSuggestions(name, max = 3) {
   const base = String(name || '').trim().replace(/\s+/g, '').slice(0, 50) || 'user';
   const pool = [];
@@ -54,7 +47,6 @@ async function nameSuggestions(name, max = 3) {
   return out;
 }
 
-// POST /api/auth/register  { email, password, name? }
 app.http('register', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -75,7 +67,6 @@ app.http('register', {
   },
 });
 
-// GET /api/auth/check-name?name=Foo  → { available, suggestions[] }
 app.http('checkName', {
   methods: ['GET'],
   authLevel: 'anonymous',
@@ -90,7 +81,6 @@ app.http('checkName', {
   },
 });
 
-// POST /api/auth/login  { email, password }
 app.http('login', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -100,7 +90,7 @@ app.http('login', {
     if (rateLimited(req, 'login', 10, 60_000)) return bad('Too many attempts — slow down', 429);
     const { email, password, remember } = await readBody(req);
     const user = await users.getByEmail(email);
-    // Same message + always run the hash to blunt user-enumeration / timing.
+    
     if (!user || !users.verifyPassword(user, password)) {
       return bad('Invalid email or password', 401);
     }
@@ -108,7 +98,6 @@ app.http('login', {
   },
 });
 
-// POST /api/auth/password  { currentPassword, newPassword }   (header x-auth-token)
 app.http('changePassword', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -132,14 +121,13 @@ app.http('changePassword', {
   },
 });
 
-// GET /api/auth/me   (header x-auth-token)
 app.http('authMe', {
   methods: ['GET'],
   authLevel: 'anonymous',
   route: 'auth/me',
   handler: async (req) => {
     if (!secret()) return ok({ user: null });
-    // SWA strips Authorization, so the client sends the JWT in x-auth-token.
+    
     const token = req.headers.get('x-auth-token') || '';
     const payload = token && jwt.verify(token, secret());
     if (!payload) return ok({ user: null });
@@ -148,7 +136,6 @@ app.http('authMe', {
   },
 });
 
-// POST /api/auth/profile  { name }   (header x-auth-token)
 app.http('updateProfile', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -169,10 +156,8 @@ app.http('updateProfile', {
   },
 });
 
-// In-memory reset-token store (dev/local). In production, persist these in
-// Cosmos/Redis with a TTL so they survive restarts.
 const resetTokens = new Map();
-const RESET_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const RESET_TTL_MS = 30 * 60 * 1000; 
 
 function pruneResetTokens() {
   const now = Date.now();
@@ -181,7 +166,6 @@ function pruneResetTokens() {
   }
 }
 
-// POST /api/auth/forgot-password  { email }
 app.http('forgotPassword', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -203,14 +187,10 @@ app.http('forgotPassword', {
       userId: user.id,
       createdAt: Date.now(),
     });
-    const resetUrl = `${req.url.replace(/\/api\/auth\/forgot-password.*/, '')}/reset-password?token=${token}`;
-    console.log(`[forgot-password] reset link for ${user.email}: ${resetUrl}`);
-    // TODO: send the resetUrl via email (SMTP / SendGrid / Postmark etc.)
     return ok({ ok: true });
   },
 });
 
-// POST /api/auth/reset-password  { token, newPassword }
 app.http('resetPassword', {
   methods: ['POST'],
   authLevel: 'anonymous',

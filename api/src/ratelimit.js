@@ -1,9 +1,5 @@
 'use strict';
 
-// Best-effort in-memory per-IP rate limit (per Function instance). Shared by the
-// chat / retro / negotiate write endpoints. Applied to low-frequency writes only
-// — never to the 1.5s poll or voting, which would false-positive for a whole
-// team behind one NAT IP. Limits are deliberately generous.
 const hits = new Map();
 
 function rateLimited(req, bucket, max, windowMs) {

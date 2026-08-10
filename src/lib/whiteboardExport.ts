@@ -4,7 +4,7 @@ function esc(s: string) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-/** Build a standalone SVG document from whiteboard elements. */
+
 export function elementsToSvg(elements: WhiteboardElement[], viewport?: WhiteboardViewport): string {
   const parts: string[] = [];
   for (const el of elements) {
@@ -161,7 +161,6 @@ function byteLength(chunks: Uint8Array[]) {
   return chunks.reduce((n, c) => n + c.length, 0);
 }
 
-/** Parse a simple SVG exported by this app (or basic shapes) into elements. */
 export function importSvgToElements(svgText: string): Partial<WhiteboardElement>[] {
   const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
   const out: Partial<WhiteboardElement>[] = [];

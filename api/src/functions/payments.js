@@ -1,17 +1,10 @@
 'use strict';
 
-// PSP-free UPI verification endpoints, served same-origin from the SprintDeck
-// SWA api. Flow: POST /api/order → show that order's QR → the bank credit alert
-// is POSTed to /api/upi/ingest (by an SMS forwarder / email reader) → the
-// client polls /api/upi/status until it flips to 'confirmed'.
-
 const { app } = require('@azure/functions');
 const crypto = require('crypto');
 const store = require('../payments-store');
 const { parse } = require('../parse');
 
-// Constant-time secret comparison (hash to a fixed length so neither the value
-// nor its length leaks via timing). Guards the ingest endpoint.
 function secretMatches(provided, expected) {
   const h = (x) => crypto.createHash('sha256').update(String(x)).digest();
   return crypto.timingSafeEqual(h(provided), h(expected));
@@ -33,7 +26,6 @@ async function readBody(req) {
   }
 }
 
-// Best-effort in-memory per-IP rate limit (per Function instance).
 const _rlHits = new Map();
 function rateLimited(req, bucket, max, windowMs) {
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
@@ -45,16 +37,9 @@ function rateLimited(req, bucket, max, windowMs) {
   return recent.length > max;
 }
 
-// Amounts the client may request — full plan prices and upgrade balances, each
-// PLUS the ₹2 platform fee: full 201/501/1001, upgrades 302/502/802. Guards a
-// tampered request. Keep in sync with platformFee in src/subscription.ts.
 const allowedAmounts = new Set([201, 501, 1001, 302, 502, 802]);
 const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-// POST /api/order  { tier, email?, baseAmount }
-// Creates a pending order to match a payment against. The UPI QR/link (and the
-// payee VPA) is built client-side from the VITE_UPI_ID build secret — the
-// backend only needs the amount to match the incoming credit.
 app.http('createOrder', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -72,7 +57,6 @@ app.http('createOrder', {
   },
 });
 
-// POST /api/upi/ingest   header: x-ingest-secret   body: { text, source? }
 app.http('upiIngest', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -104,10 +88,6 @@ app.http('upiIngest', {
   },
 });
 
-// GET /api/subscription?orderId=...
-// Authoritative subscription check. The tier is NEVER trusted from the client —
-// it's derived here from the confirmed payment order in Cosmos. A subscription
-// is active for 30 days from confirmation. Returns { active, tier?, at? }.
 app.http('subscriptionStatus', {
   methods: ['GET'],
   authLevel: 'anonymous',
@@ -118,7 +98,6 @@ app.http('subscriptionStatus', {
   },
 });
 
-// GET /api/upi/status?orderId=...   ← client polls this.
 app.http('upiStatus', {
   methods: ['GET'],
   authLevel: 'anonymous',
@@ -130,7 +109,7 @@ app.http('upiStatus', {
     if (!order) return bad('Order not found', 404);
     return ok({
       orderId: order.id,
-      status: order.status, // 'pending' | 'confirmed' | 'expired'
+      status: order.status, 
       tier: order.tier,
       payAmount: order.payAmount,
       confirmedAt: order.confirmedAt,

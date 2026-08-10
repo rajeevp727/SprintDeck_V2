@@ -4,7 +4,6 @@ import Room from './components/Room';
 import StickyAd from './components/StickyAd';
 import { ToastHost } from './components/Toast';
 
-// Rarely-visited legal pages — code-split out of the initial bundle.
 const Privacy = lazy(() => import('./components/Privacy'));
 const Terms = lazy(() => import('./components/Terms'));
 const Security = lazy(() => import('./components/Security'));
@@ -50,15 +49,9 @@ type Route =
   | { kind: 'whiteboardStart'; joinCode?: string; shareToken?: string }
   | { kind: 'whiteboard'; code: string };
 
-// The retrospective board has its own real URL path: /retro/CODE (unlike poker,
-// whose code stays out of the URL) so the facilitator can share a plain link.
 const RETRO_PATH_RE = /^\/retro\/([A-Za-z0-9-]+)\/?$/;
 const WB_PATH_RE = /^\/whiteboard\/([A-Za-z0-9-]+)\/?$/;
 
-// The room code is NOT kept in the URL — it lives in storage (see storage.ts).
-// Invite links carry the code as a ?room=CODE query param, which is read on
-// open and then stripped from the address bar. A legacy /room-CODE path is also
-// honored. Otherwise the room resumes from storage; the visible URL stays "/".
 function codeFromUrl(): string {
   const params = new URLSearchParams(window.location.search);
   const fromQuery = (params.get('room') || '').toUpperCase();
@@ -113,16 +106,16 @@ function computeRoute(): Route {
 export default function App() {
   const [route, setRoute] = useState<Route>(computeRoute);
   const { user, loading: authLoading } = useAuth();
-  const [guest, setGuest] = useState(false); // "continue as guest" from the landing
+  const [guest, setGuest] = useState(false); 
 
-  // Background payment watcher: a bank email → ingest confirm can land minutes
-  // after the modal closed. While a pending order exists (persisted in storage),
-  // poll its status and activate the plan the moment it confirms — surviving the
-  // QR window elapsing and page reloads.
+  
+  
+  
+  
   useEffect(() => {
     let active = true;
     async function check() {
-      await refreshSubscription(); // sync the cache with the server first
+      await refreshSubscription(); 
       if (isSubscribed()) {
         clearPendingOrder();
         return;
@@ -132,20 +125,18 @@ export default function App() {
       try {
         const { status } = await getStatus(pending.orderId);
         if (status === 'confirmed') {
-          setSubscriptionRef(pending.orderId); // store the order ref; tier comes from the server
+          setSubscriptionRef(pending.orderId); 
           await refreshSubscription();
           clearPendingOrder();
-          if (active) setRoute(computeRoute()); // re-render so the Upgrade button / popup update
+          if (active) setRoute(computeRoute()); 
         } else if (status === 'expired') {
           clearPendingOrder();
         }
-      } catch {
-        /* transient — try again next tick */
-      }
+      } catch { void 0; }
     }
     check();
     const id = setInterval(() => {
-      if (!document.hidden) check(); // pause while the tab is backgrounded
+      if (!document.hidden) check(); 
     }, 15000);
     return () => {
       active = false;
@@ -154,7 +145,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Strip the code (query param or legacy path) out of the address bar.
+    
     if (window.location.search || /^\/room-/.test(window.location.pathname)) {
       window.history.replaceState({}, '', '/');
     }
@@ -170,7 +161,7 @@ export default function App() {
   }
   function goRoom(code: string) {
     setCurrentRoom(code);
-    go('/', { kind: 'room', code: code.toUpperCase() }, true); // clean URL, no code
+    go('/', { kind: 'room', code: code.toUpperCase() }, true); 
   }
   function goHome() {
     clearCurrentRoom();
@@ -179,9 +170,9 @@ export default function App() {
   function goRetro(code: string) {
     const c = code.toUpperCase();
     const next: Route = getIdentity(c) ? { kind: 'retro', code: c } : { kind: 'retroJoin', code: c };
-    go(`/retro/${c}`, next); // keep the code in the URL
+    go(`/retro/${c}`, next); 
   }
-  // Leave a retro back to the poker room you're in (if any), else home.
+  
   function exitRetro() {
     const current = getCurrentRoom();
     const next: Route = current && getIdentity(current) ? { kind: 'room', code: current } : { kind: 'home' };
@@ -202,7 +193,7 @@ export default function App() {
   function goPlan() {
     go('/plan', { kind: 'plan' });
   }
-  // Signed-in host: create a session with their account name and go straight in.
+  
   async function startPlanning() {
     const hostName = user?.name || user?.email?.split('@')[0] || 'Host';
     try {
@@ -210,7 +201,7 @@ export default function App() {
       saveIdentity(res.session.code, res.participantId, hostName);
       goRoom(res.session.code);
     } catch {
-      goPlan(); // fall back to the create form on failure
+      goPlan();
     }
   }
   function goRetroStart() {
@@ -254,7 +245,7 @@ export default function App() {
   } else if (route.kind === 'auth') {
     page = <AuthScreen onAuthed={goHome} onBack={goHome} />;
   } else if (route.kind === 'plan') {
-    // Planning create/join, reached from the dashboard.
+    
     page = (
       <Home onEnter={goRoom} onPrivacy={goPrivacy} onTerms={goTerms} onSecurity={goSecurity} onBack={goHome} />
     );
@@ -280,9 +271,9 @@ export default function App() {
       />
     );
   } else if (authLoading) {
-    page = null; // resolving the session — avoid flashing the landing then the app
+    page = null; 
   } else if (route.joinCode) {
-    // Arriving via an invite link — join the room (guests welcome).
+    
     page = (
       <Home
         initialCode={route.joinCode}
@@ -294,7 +285,7 @@ export default function App() {
       />
     );
   } else if (user) {
-    // Signed in → dashboard of ceremonies.
+    
     page = (
       <Dashboard
         onPlanning={startPlanning}
@@ -307,7 +298,7 @@ export default function App() {
       />
     );
   } else if (guest) {
-    // Continuing as guest → New session, with a login/register nudge above it.
+    
     page = (
       <Home
         onEnter={goRoom}

@@ -2,8 +2,8 @@ import { request } from './api';
 import type { RetroBoard, RetroJoinResult } from './retroTypes';
 
 export const retroApi = {
-  // subRef is the confirmed subscription order id — the server verifies PRO+
-  // against Cosmos before creating the board.
+  
+  
   createBoard: (name: string, facilitatorName: string, code: string, roomCode: string, subRef: string) =>
     request<RetroJoinResult>('/api/retro', 'POST', { name, facilitatorName, code, roomCode, subRef }),
 
@@ -49,7 +49,7 @@ export const retroApi = {
   leave: (code: string, participantId: string) =>
     request<{ left: boolean }>(`/api/retro/${code}/leave`, 'POST', { participantId }),
 
-  // Finalize the retro → returns the board in its 'ended' (read-only) phase.
+  
   end: (code: string, participantId: string) =>
     request<{ board: RetroBoard }>(`/api/retro/${code}/end`, 'POST', { participantId }),
 };

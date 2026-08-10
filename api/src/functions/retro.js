@@ -2,8 +2,8 @@
 
 const { app } = require('@azure/functions');
 const store = require('../retroStore');
-const pokerStore = require('../store'); // to unlink the retro from its poker room on end
-const payments = require('../payments-store'); // PRO+ gate — subscription verified from Cosmos
+const pokerStore = require('../store'); 
+const payments = require('../payments-store'); 
 const { rateLimited } = require('../ratelimit');
 
 const noCache = { 'Cache-Control': 'no-store' };
@@ -23,7 +23,6 @@ async function readBody(req) {
   }
 }
 
-// Load a board and verify the caller is its facilitator.
 async function requireFacilitator(code, participantId) {
   const board = await store.loadBoard(code);
   if (!board) return { error: bad('Board not found', 404) };
@@ -33,7 +32,6 @@ async function requireFacilitator(code, participantId) {
   return { board };
 }
 
-// Load a board and verify the caller is a participant.
 async function requireParticipant(code, participantId) {
   const board = await store.loadBoard(code);
   if (!board) return { error: bad('Board not found', 404) };
@@ -43,9 +41,6 @@ async function requireParticipant(code, participantId) {
   return { board };
 }
 
-// POST /api/retro  { name, facilitatorName, code?, roomCode?, subRef }
-// PRO+ only: creating a retro requires an active subscription, verified server-
-// side from the confirmed payment order in Cosmos (subRef = that order's id).
 app.http('createRetro', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -66,7 +61,6 @@ app.http('createRetro', {
   },
 });
 
-// POST /api/retro/{code}/join  { name }
 app.http('joinRetro', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -84,7 +78,6 @@ app.http('joinRetro', {
   },
 });
 
-// GET /api/retro/{code}?participantId=...   (polled)
 app.http('getRetro', {
   methods: ['GET'],
   authLevel: 'anonymous',
@@ -96,7 +89,6 @@ app.http('getRetro', {
   },
 });
 
-// POST /api/retro/{code}/note  { participantId, columnId, text }
 app.http('addRetroNote', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -109,7 +101,7 @@ app.http('addRetroNote', {
     if (board.phase === 'ended') {
       return bad('This retrospective has ended — it is read-only', 403);
     }
-    // The facilitator's board is read-only — only members add/edit/delete notes.
+    
     if (store.isFacilitator(board, participantId)) {
       return bad('The facilitator can only view the board — notes are added by members', 403);
     }
@@ -122,7 +114,6 @@ app.http('addRetroNote', {
   },
 });
 
-// POST /api/retro/{code}/note/{noteId}  { participantId, text?, columnId? }  (author)
 app.http('updateRetroNote', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -134,7 +125,7 @@ app.http('updateRetroNote', {
     if (board.phase === 'ended') {
       return bad('This retrospective has ended — it is read-only', 403);
     }
-    // The facilitator's board is read-only — only members add/edit/delete notes.
+    
     if (store.isFacilitator(board, participantId)) {
       return bad('The facilitator can only view the board — notes are added by members', 403);
     }
@@ -147,7 +138,6 @@ app.http('updateRetroNote', {
   },
 });
 
-// DELETE /api/retro/{code}/note/{noteId}?participantId=...   (author or facilitator)
 app.http('deleteRetroNote', {
   methods: ['DELETE'],
   authLevel: 'anonymous',
@@ -159,7 +149,7 @@ app.http('deleteRetroNote', {
     if (board.phase === 'ended') {
       return bad('This retrospective has ended — it is read-only', 403);
     }
-    // The facilitator's board is read-only — only members add/edit/delete notes.
+    
     if (store.isFacilitator(board, participantId)) {
       return bad('The facilitator can only view the board — notes are added by members', 403);
     }
@@ -172,7 +162,6 @@ app.http('deleteRetroNote', {
   },
 });
 
-// POST /api/retro/{code}/review/{itemId}  { participantId }  (facilitator)
 app.http('toggleRetroReviewItem', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -190,7 +179,6 @@ app.http('toggleRetroReviewItem', {
   },
 });
 
-// POST /api/retro/{code}/open  { participantId }  (facilitator) — finish review
 app.http('openRetro', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -206,7 +194,6 @@ app.http('openRetro', {
   },
 });
 
-// POST /api/retro/{code}/leave  { participantId }  — a member removes themselves
 app.http('leaveRetro', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -221,10 +208,6 @@ app.http('leaveRetro', {
   },
 });
 
-// POST /api/retro/{code}/end  { participantId }   (facilitator) — FINALIZE the
-// retro: mark it ended (read-only + export unlocked), capture its action items
-// for the room's next retro, and unlink from the poker room. The board is kept
-// so results can be exported; it expires later via TTL.
 app.http('endRetro', {
   methods: ['POST'],
   authLevel: 'anonymous',

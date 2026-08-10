@@ -4,7 +4,6 @@ import { CloseIcon } from './icons';
 
 export type ToolId = 'linear' | 'jira' | 'ado';
 
-// Shared metadata for each tool — reused by the picker and the key-entry modal.
 export const toolMeta: Record<
   ToolId,
   { name: string; logo: ReactNode; status: 'ready' | 'preview'; keyPlaceholder: string; keyHelp: string }

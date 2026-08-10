@@ -1,13 +1,8 @@
 'use strict';
 
-// Team chat (PRO+) backed by Azure Web PubSub. Clients negotiate a room-scoped
-// access URL, connect, and join the room group. Sending POSTs to /chat/message,
-// which persists the message and broadcasts it to the group for live delivery.
-// Degrades gracefully when WEBPUBSUB_CONNECTION_STRING is unset.
-
 const { app } = require('@azure/functions');
 const store = require('../store');
-const payments = require('../payments-store'); // PRO+ gate — subscription verified from Cosmos
+const payments = require('../payments-store'); 
 const { rateLimited } = require('../ratelimit');
 
 const noCache = { 'Cache-Control': 'no-store' };
@@ -42,9 +37,6 @@ function chatAvailable() {
   return !!Conn;
 }
 
-// Load the session and confirm the caller may use chat: it must be unlocked,
-// and the caller must be a participant who is NOT the moderator. Chat is a
-// team-members-only back-channel — the moderator can neither read nor post.
 async function requireChatMember(code, participantId) {
   if (!chatAvailable()) return { error: bad('Chat is not available', 503) };
   const session = await store.loadSession(code);
@@ -66,8 +58,6 @@ app.http('chatStatus', {
   handler: async () => ok({ available: chatAvailable() }),
 });
 
-// Moderator unlocks chat — PRO+ only, verified server-side from the confirmed
-// payment order in Cosmos (subRef = that order's id), mirroring createRetro.
 app.http('enableChat', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -87,7 +77,6 @@ app.http('enableChat', {
   },
 });
 
-// Returns a Web PubSub client access URL scoped to the room group.
 app.http('chatNegotiate', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -108,7 +97,6 @@ app.http('chatNegotiate', {
   },
 });
 
-// History on join.
 app.http('chatHistory', {
   methods: ['GET'],
   authLevel: 'anonymous',
@@ -121,7 +109,6 @@ app.http('chatHistory', {
   },
 });
 
-// Persist a message, then broadcast it to the room group.
 app.http('chatMessage', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -138,14 +125,11 @@ app.http('chatMessage', {
 
     try {
       await getServiceClient().group(session.code).sendToAll({ type: 'message', message });
-    } catch {
-      /* delivery failure is non-fatal — message is persisted */
-    }
+    } catch { void 0; }
     return ok({ message });
   },
 });
 
-// Toggle the caller's like on a message, then broadcast the new like list.
 app.http('chatLike', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -164,9 +148,7 @@ app.http('chatLike', {
       await getServiceClient()
         .group(session.code)
         .sendToAll({ type: 'like', messageId: message.id, likes: message.likes });
-    } catch {
-      /* non-fatal */
-    }
+    } catch { void 0; }
     return ok({ messageId: message.id, likes: message.likes });
   },
 });

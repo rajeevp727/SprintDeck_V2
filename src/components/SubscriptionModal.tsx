@@ -22,19 +22,12 @@ interface Props {
   onClose: () => void;
 }
 
-// 'loading'      — creating the order
-// 'pending'      — QR shown, polling for payment
-// 'confirmed'    — verifier matched the payment → plan activated
-// 'regenerating' — window elapsed → show "regenerating" for 5s, then auto-new QR
-// 'error'        — couldn't reach the verifier / payments not configured
 type PayState = 'loading' | 'pending' | 'confirmed' | 'regenerating' | 'error';
 
-const payWindow = 90; // seconds the QR stays visible (1:30); the background watcher still confirms late payments
+const payWindow = 90; 
 const pollMs = 3000;
-const regenMs = 5000; // how long the "regenerating" state shows before a fresh QR
+const regenMs = 5000; 
 
-// QR-sized placeholder with a centered spinner (reserves the QR's exact space
-// while loading/regenerating — no layout shift on load).
 function QrSkeleton() {
   return (
     <div className="qr-skeleton" aria-label="Loading QR code" role="img">
@@ -51,8 +44,6 @@ export default function SubscriptionModal({ onClose }: Props) {
   const [errMsg, setErrMsg] = useState('');
   const tier = tiers.find((t) => t.id === selected) ?? null;
 
-  // Breakdown behind the payable amount (drives the info-icon tooltip): full
-  // price or the upgrade balance (new − current), plus the platform fee.
   const activeSub = getActiveSubscription();
   const feeInfo = tier
     ? (() => {
@@ -67,7 +58,6 @@ export default function SubscriptionModal({ onClose }: Props) {
       })()
     : null;
 
-  // "Pay ₹X" line — with an info icon whose tooltip shows the full breakdown.
   const renderPayAmount = (amount: number) => (
     <p className="pay-amount">
       Pay <strong>₹{amount.toFixed(2)}</strong>
@@ -79,7 +69,6 @@ export default function SubscriptionModal({ onClose }: Props) {
     </p>
   );
 
-  // Esc: on the pay step go BACK to the plans list; on the plans list, close.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
@@ -94,7 +83,7 @@ export default function SubscriptionModal({ onClose }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [selected, onClose]);
 
-  // Countdown while a QR is showing. When it hits 0, go to 'regenerating'.
+  
   useEffect(() => {
     if (payState !== 'pending') return;
     if (seconds <= 0) {
@@ -105,36 +94,34 @@ export default function SubscriptionModal({ onClose }: Props) {
     return () => clearTimeout(id);
   }, [payState, seconds]);
 
-  // After the window elapses, show "regenerating" briefly, then auto-create a fresh QR.
+  
   useEffect(() => {
     if (payState !== 'regenerating' || !tier) return;
     const id = setTimeout(() => startPayment(tier.id, amountForTier(tier.id)), regenMs);
     return () => clearTimeout(id);
   }, [payState, tier]);
 
-  // Poll the verifier for payment while the QR is live. On a match, activate the
-  // plan locally and show the success screen.
+  
+  
   useEffect(() => {
     if (payState !== 'pending' || !order || !selected) return;
     const poll = async () => {
-      if (document.hidden) return; // pause while backgrounded (e.g. in your UPI app)
+      if (document.hidden) return; 
       try {
         const { status } = await getStatus(order.orderId);
         if (status === 'confirmed') {
-          setSubscriptionRef(order.orderId); // tier is validated server-side, not stored here
+          setSubscriptionRef(order.orderId); 
           await refreshSubscription();
           clearPendingOrder();
           setPayState('confirmed');
         } else if (status === 'expired') {
           setPayState('regenerating');
         }
-      } catch {
-        /* transient — keep polling until the window elapses */
-      }
+      } catch { void 0; }
     };
     const id = setInterval(poll, pollMs);
     const onVisible = () => {
-      if (!document.hidden) poll(); // check immediately on returning from the UPI app
+      if (!document.hidden) poll(); 
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
@@ -143,28 +130,28 @@ export default function SubscriptionModal({ onClose }: Props) {
     };
   }, [payState, order, selected]);
 
-  // After the success screen, close.
+  
   useEffect(() => {
     if (payState !== 'confirmed') return;
     const id = setTimeout(onClose, 1800);
     return () => clearTimeout(id);
   }, [payState, onClose]);
 
-  // Pick a tier → create an order for `amount` (full price, or upgrade balance).
+  
   async function startPayment(id: TierId, amount: number) {
     setSelected(id);
     setSeconds(payWindow);
     setErrMsg('');
     setPayState('loading');
     try {
-      // Wait for the order AND let the loader ring fill fully (~1.5s) before
-      // revealing the QR.
+      
+      
       const [o] = await Promise.all([
         createOrder(id, amount),
         new Promise((resolve) => setTimeout(resolve, 1500)),
       ]);
       setOrder(o);
-      setPendingOrder(o.orderId, id); // persist so it activates even after the modal closes
+      setPendingOrder(o.orderId, id); 
       setPayState('pending');
     } catch (e) {
       setErrMsg((e as Error).message);

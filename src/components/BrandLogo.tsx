@@ -1,10 +1,9 @@
 interface Props {
-  /** `full` = icon + wordmark; `mark` = icon only */
+  
   variant?: 'full' | 'mark';
   className?: string;
 }
 
-/** SprintDeck brand mark — full logo or compact icon (SVG). */
 export default function BrandLogo({ variant = 'full', className }: Props) {
   if (variant === 'mark') {
     return (

@@ -6,9 +6,6 @@ interface Props {
   onGuest: () => void;
 }
 
-// Feature showcase shown to logged-out visitors. The `.landing-shot` tiles are
-// placeholders — drop real screenshots into public/showcase/<key>.png and swap
-// the tile for <img src={`/showcase/${f.key}.png`} /> to use them.
 const features = [
   {
     key: 'poker',

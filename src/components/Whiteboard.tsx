@@ -62,7 +62,7 @@ export default function Whiteboard({ code, onLeave, onMissingIdentity }: Props) 
   const applyBoard = useCallback((next: WhiteboardState) => {
     setBoard(next);
     boardRef.current = next;
-    // Follow presenter viewport when enabled
+    
     if (next.followPresenter && following && !next.isFacilitator && next.viewport) {
       viewportLocal.current = { ...next.viewport };
       bump((n) => n + 1);
@@ -97,7 +97,7 @@ export default function Whiteboard({ code, onLeave, onMissingIdentity }: Props) 
   const onRealtime = useCallback(
     (data: unknown) => {
       const msg = data as { t?: string };
-      if (msg?.t === 'presence') return; // presence comes via refresh payload
+      if (msg?.t === 'presence') return; 
       refresh();
     },
     [refresh],
@@ -255,7 +255,7 @@ export default function Whiteboard({ code, onLeave, onMissingIdentity }: Props) 
         text: '',
         size: 14,
       }).then(() => {
-        /* editing starts after refresh via double-click */
+        
       });
       setTool('select');
       return;

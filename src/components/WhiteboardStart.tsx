@@ -13,9 +13,9 @@ const SubscriptionModal = lazy(() => import('./SubscriptionModal'));
 interface Props {
   onEnter: (code: string) => void;
   onBack: () => void;
-  /** Optional share token from URL */
+  
   shareToken?: string;
-  /** Pre-filled join code from URL */
+  
   joinCode?: string;
 }
 
@@ -40,7 +40,7 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
   const showSubscriptionUpsell = !isMemberFlow && needsPro;
   const createDisabled = busy || needsPro || !name.trim();
 
-  // Auto-resume if we already have identity for this code
+  
   useEffect(() => {
     const c = (joinCode || code).trim().toUpperCase();
     if (!c) return;

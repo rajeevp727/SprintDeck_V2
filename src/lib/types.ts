@@ -5,17 +5,17 @@ export interface Participant {
   name: string;
   isModerator: boolean;
   hasVoted: boolean;
-  vote: string | null; // null unless revealed (or it's your own vote)
+  vote: string | null; 
 }
 
 export interface QueueItem {
   id: string;
   title: string;
-  identifier?: string; // Linear key, e.g. ENG-876 (V1 Linear flow)
-  linearId?: string; // Linear issue UUID (or "mock-…" placeholder)
-  url?: string; // Linear issue URL
-  estimate?: number | null; // current estimate on the issue, if any
-  status?: string | null; // Linear workflow state (Todo, Blocked, …)
+  identifier?: string; 
+  linearId?: string; 
+  url?: string; 
+  estimate?: number | null; 
+  status?: string | null; 
 }
 
 export interface HistoryVote {
@@ -33,10 +33,10 @@ export interface HistoryEntry {
   consensus: boolean;
   votes: HistoryVote[];
   at: number;
-  identifier?: string | null; // Linear key when this round is a Linear issue
-  linearId?: string | null; // Linear issue UUID
-  url?: string | null; // Linear issue URL
-  pushedEstimate?: number | null; // estimate written back to Linear, if any
+  identifier?: string | null; 
+  linearId?: string | null; 
+  url?: string | null; 
+  pushedEstimate?: number | null; 
 }
 
 export interface CurrentLinear {
@@ -46,20 +46,16 @@ export interface CurrentLinear {
   url: string | null;
 }
 
-// A snapshot of the message being replied to, carried on the reply so the quote
-// renders even after the original scrolls out of the retained window.
 export interface ChatReply {
   id: string;
   name: string;
   excerpt: string;
 }
 
-// One like on a message — the liker's id, name (shown on hover) and the time
-// they liked it (for the sorted hover list).
 export interface ChatLike {
   id: string;
   name: string;
-  at: number; // epoch ms
+  at: number; 
 }
 
 export interface ChatMessage {
@@ -67,12 +63,11 @@ export interface ChatMessage {
   participantId: string;
   name: string;
   text: string;
-  at: number; // epoch ms
+  at: number; 
   replyTo: ChatReply | null;
-  likes: ChatLike[]; // who liked it (length = like count)
+  likes: ChatLike[]; 
 }
 
-// Realtime events streamed over the room's Web PubSub group.
 export type ChatEvent =
   | { type: 'message'; message: ChatMessage }
   | { type: 'like'; messageId: string; likes: ChatLike[] };
@@ -83,8 +78,8 @@ export interface Session {
   story: string;
   status: SessionStatus;
   finished: boolean;
-  currentEntryId: string | null; // history entry of the just-revealed round
-  currentLinear: CurrentLinear | null; // the Linear issue being estimated now
+  currentEntryId: string | null; 
+  currentLinear: CurrentLinear | null; 
   deck: string[];
   moderatorId: string;
   participants: Participant[];
@@ -92,8 +87,8 @@ export interface Session {
   history: HistoryEntry[];
   average: number | null;
   consensus: boolean;
-  chatEnabled: boolean; // shared team chat unlocked (moderator PRO+)
-  retroCode: string | null; // linked retrospective board, if one is open
+  chatEnabled: boolean; 
+  retroCode: string | null; 
 }
 
 export interface JoinResult {

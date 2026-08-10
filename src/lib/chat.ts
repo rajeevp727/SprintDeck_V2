@@ -6,9 +6,6 @@ export interface ChatConnection {
   stop: () => void;
 }
 
-// Connect to the room's Web PubSub group and stream chat events (new messages
-// and like updates). The access URL is fetched (and re-fetched on reconnect)
-// via the negotiate endpoint.
 export async function connectChat(
   code: string,
   participantId: string,
@@ -26,9 +23,7 @@ export async function connectChat(
   await client.start();
   try {
     await client.joinGroup(code);
-  } catch {
-    /* the access token already joins us to the group; a rejoin race is harmless */
-  }
+  } catch { void 0; }
 
   return { stop: () => client.stop() };
 }

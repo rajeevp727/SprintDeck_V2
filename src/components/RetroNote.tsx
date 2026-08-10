@@ -3,14 +3,12 @@ import type { RetroNote as RetroNoteType } from '../lib/retroTypes';
 
 interface Props {
   note: RetroNoteType;
-  canEdit: boolean; // the author
-  canDelete: boolean; // author or facilitator
+  canEdit: boolean; 
+  canDelete: boolean; 
   onEdit: (text: string) => void;
   onDelete: () => void;
 }
 
-// A sticky note. Its colour is the author's auto-assigned participant colour
-// (set server-side) — there's no manual colour picker.
 export default function RetroNote({ note, canEdit, canDelete, onEdit, onDelete }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(note.text);

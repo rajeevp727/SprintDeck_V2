@@ -8,10 +8,8 @@ import { useRealtime } from '../lib/realtime';
 import { notifyPresence } from '../lib/presence';
 import { exportDoc, retroExportDoc, exportFormats } from '../lib/retroExport';
 
-const pollMs = 1500; // polling fallback, used only while real-time isn't connected
-// Only leave after this many CONSECUTIVE "not found" polls — tolerates transient
-// misses (tab throttled, cold start, instance split) so you stay put until you
-// leave or the facilitator actually ends the board.
+const pollMs = 1500; 
+
 const maxMisses = 6;
 
 interface Props {
@@ -34,7 +32,6 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
   const prevParticipants = useRef<{ id: string; name: string }[] | null>(null);
   const typingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  // No identity for this board (e.g. opened an invite link directly) → bounce to join.
   useEffect(() => {
     if (!participantId) onMissingIdentity();
   }, [participantId, onMissingIdentity]);
@@ -49,7 +46,7 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
         onMissingIdentity();
         return;
       }
-      // Toast the facilitator when someone joins/leaves the retro.
+
       notifyPresence(b.participants, b.facilitatorId === participantId, participantId, prevParticipants, 'retrospective');
       setBoard(b);
       setError('');
@@ -67,10 +64,10 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
     }
   }, [code, participantId, onMissingIdentity]);
 
-  // Show a transient "X is typing…" that clears itself if no new signal arrives.
+  
   const showTyping = useCallback(
     (id: string, name: string) => {
-      if (!id || id === participantId) return; // never show our own typing
+      if (!id || id === participantId) return; 
       setTypingNames((prev) => (prev[id] === name ? prev : { ...prev, [id]: name }));
       clearTimeout(typingTimers.current[id]);
       typingTimers.current[id] = setTimeout(() => {
@@ -96,19 +93,19 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
 
   const { connected: rtConnected, send } = useRealtime(`retro:${code}`, participantId, onRealtime);
 
-  // Broadcast that we're typing (throttled by the caller).
+  
   const notifyTyping = useCallback(() => {
     send({ t: 'typing', id: participantId, name: getIdentity(code)?.name ?? 'Someone' });
   }, [send, participantId, code]);
 
   useEffect(() => {
     refresh();
-    if (rtConnected) return; // real-time is live — pure push, no polling
+    if (rtConnected) return; 
     const id = setInterval(refresh, pollMs);
     return () => clearInterval(id);
   }, [refresh, rtConnected]);
 
-  // Clear any pending typing timers on unmount.
+  
   useEffect(() => {
     const timers = typingTimers.current;
     return () => Object.values(timers).forEach(clearTimeout);
@@ -124,18 +121,18 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
   }
 
   function leave() {
-    retroApi.leave(code, participantId).catch(() => {}); // best-effort; leave locally regardless
+    retroApi.leave(code, participantId).catch(() => {}); 
     clearIdentity(code);
     onLeave();
   }
 
-  // Finalize the retro: it becomes read-only for everyone and export unlocks.
+  
   async function endRetro() {
     if (!window.confirm('End this retrospective? Notes become read-only and you can then export the results.')) return;
     await run(() => retroApi.end(code, participantId));
   }
 
-  // Leave the (ended) board locally — it expires on its own via TTL.
+  
   function exit() {
     clearIdentity(code);
     onLeave();
@@ -205,7 +202,7 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
               {copied ? 'Copied!' : 'Invite'}
             </button>
           )}
-          {/* Export unlocks only after the facilitator has ended the retro. */}
+          {}
           {isFacilitator && board.phase === 'ended' && (
             <div className="profile">
               <button className="ghost" title="Export the retrospective" onClick={() => setShowExport((s) => !s)}>
@@ -310,8 +307,6 @@ interface ReviewProps {
   onOpen: () => void;
 }
 
-// The review gate every retro opens on: the facilitator reviews last sprint's
-// action items (ticking off completed ones), then opens the board.
 function ReviewPanel({ board, isFacilitator, onToggle, onOpen }: ReviewProps) {
   const items = board.carryOverItems;
   return (
@@ -383,7 +378,6 @@ function RetroColumnView({
     onAdd(text);
   }
 
-  // Emit a typing signal at most every 1.5s while the composer changes.
   function handleChange(value: string) {
     setDraft(value);
     const now = Date.now();
@@ -400,8 +394,6 @@ function RetroColumnView({
         <span className="retro-col-count">{notes.length}</span>
       </div>
 
-      {/* No composer for the facilitator (read-only for her) or once the retro
-          has ended (read-only for everyone). */}
       {!isFacilitator && board.phase !== 'ended' && (
         <div className="retro-col-add">
           <textarea
