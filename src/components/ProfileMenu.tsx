@@ -1,14 +1,26 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../lib/auth';
+import { tiers, useSubscription } from '../lib/subscription';
 
 const ChangePasswordModal = lazy(() => import('./ChangePasswordModal'));
+const SubscriptionModal = lazy(() => import('./SubscriptionModal'));
+
+function formatSubDate(iso: string) {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch {
+    return '';
+  }
+}
 
 // Account chip in the header: greeting + avatar that opens a card with the
-// user's name, email and a Sign out button. Closes on outside click / Escape.
+// user's name, email, subscription and account actions.
 export default function ProfileMenu() {
   const { user, logout } = useAuth();
+  const { subscription, subscribed, loaded } = useSubscription();
   const [open, setOpen] = useState(false);
   const [showPw, setShowPw] = useState(false);
+  const [showSubscribe, setShowSubscribe] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -30,6 +42,7 @@ export default function ProfileMenu() {
   const raw = (user.name || user.email.split('@')[0] || '').trim();
   const displayName = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : user.email;
   const initial = displayName.charAt(0).toUpperCase();
+  const plan = subscription ? tiers.find((t) => t.id === subscription.tier) : null;
 
   return (
     <div className="profile" ref={ref}>
@@ -61,6 +74,51 @@ export default function ProfileMenu() {
               </div>
             </div>
           </div>
+
+          <div className="profile-plan" role="status">
+            {!loaded ? (
+              <span className="profile-plan-loading">Checking plan…</span>
+            ) : subscribed && plan ? (
+              <button
+                type="button"
+                className="profile-plan-active"
+                onClick={() => {
+                  setOpen(false);
+                  setShowSubscribe(true);
+                }}
+              >
+                <span className="profile-plan-icon" aria-hidden>
+                  {plan.icon}
+                </span>
+                <span className="profile-plan-copy">
+                  <span className="profile-plan-name">{plan.name}</span>
+                  <span className="profile-plan-meta">
+                    Active{subscription?.at ? ` · since ${formatSubDate(subscription.at)}` : ''}
+                  </span>
+                </span>
+                <span className="profile-plan-action">Manage</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="profile-plan-free"
+                onClick={() => {
+                  setOpen(false);
+                  setShowSubscribe(true);
+                }}
+              >
+                <span className="profile-plan-icon" aria-hidden>
+                  ✨
+                </span>
+                <span className="profile-plan-copy">
+                  <span className="profile-plan-name">Free</span>
+                  <span className="profile-plan-meta">Upgrade for retros, whiteboards &amp; more</span>
+                </span>
+                <span className="profile-plan-action">Upgrade</span>
+              </button>
+            )}
+          </div>
+
           <div className="profile-split" role="group">
             <button
               className="profile-half"
@@ -90,6 +148,12 @@ export default function ProfileMenu() {
       {showPw && (
         <Suspense fallback={null}>
           <ChangePasswordModal onClose={() => setShowPw(false)} />
+        </Suspense>
+      )}
+
+      {showSubscribe && (
+        <Suspense fallback={null}>
+          <SubscriptionModal onClose={() => setShowSubscribe(false)} />
         </Suspense>
       )}
     </div>
