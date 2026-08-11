@@ -25,6 +25,12 @@ const features = [
     title: 'Whiteboard',
     desc: 'Infinite Miro-style canvas — sticky notes, shapes, pen sketches & diagrams.',
   },
+  {
+    key: 'chat',
+    emoji: '💬',
+    title: 'Team Chat',
+    desc: 'A members-only back-channel with replies & reactions — no separate call needed.',
+  },
 ];
 
 export default function Landing({ onSignIn, onGuest }: Props) {
@@ -39,7 +45,7 @@ export default function Landing({ onSignIn, onGuest }: Props) {
         </div>
         <p className="landing-tagline">Run your scrum ceremonies in one real-time room.</p>
         <p className="landing-sub">
-          Planning poker, retrospectives and team chat — built for agile teams.
+          Planning poker, retrospectives, whiteboard, and team chat — built for agile teams.
         </p>
         <div className="landing-cta">
           <button className="primary" onClick={onSignIn}>
