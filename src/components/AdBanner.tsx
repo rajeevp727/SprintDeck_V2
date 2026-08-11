@@ -1,25 +1,27 @@
 import { useEffect } from 'react';
-import { ADSENSE_CLIENT, ADSENSE_SLOT } from '../lib/adsConfig';
+import { ADSENSE_CLIENT, ADSENSE_SLOT, adsEnabled, loadAdSenseScript } from '../lib/adsConfig';
+import { onConsentChange } from '../lib/consent';
 
 interface Props {
-  
-  
   slot?: string;
   format?: string;
   className?: string;
 }
 
 export default function AdBanner({ slot = ADSENSE_SLOT, format = 'auto', className = 'ad-slot' }: Props) {
-  const active = ADSENSE_CLIENT.length > 0 && slot.length > 0;
+  const active = adsEnabled() && slot.length > 0;
 
   useEffect(() => {
     if (!active) return;
+    loadAdSenseScript();
     try {
       const w = window as unknown as { adsbygoogle?: Record<string, unknown>[] };
       w.adsbygoogle = w.adsbygoogle || [];
       w.adsbygoogle.push({});
     } catch { void 0; }
   }, [active]);
+
+  useEffect(() => onConsentChange(() => {}), []);
 
   if (!active) return null;
 

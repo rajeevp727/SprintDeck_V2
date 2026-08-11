@@ -94,6 +94,8 @@ app.http('subscriptionStatus', {
   authLevel: 'anonymous',
   route: 'subscription',
   handler: async (req) => {
+    if (rateLimited(req, 'subscription', 60, 60_000)) return bad('Too many requests — slow down', 429);
+
     const orderId = req.query.get('orderId');
     if (orderId) {
       const sub = await store.activeSubscription(orderId);

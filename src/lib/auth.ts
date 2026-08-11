@@ -132,6 +132,36 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
   if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
 }
 
+export async function deleteAccount(password: string): Promise<void> {
+  const token = getToken();
+  const res = await fetch('/api/auth/account', {
+    method: 'DELETE',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json', ...(token ? { 'x-auth-token': token } : {}) },
+    body: JSON.stringify({ password }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+  logout();
+}
+
+export interface AccountExport {
+  exportedAt: string;
+  account: { id: string; email: string; name: string; createdAt: string | null; updatedAt: string | null };
+  subscriptions: { orderId: string; tier: string; status: string; createdAt: string | null; confirmedAt: string | null }[];
+}
+
+export async function exportAccountData(): Promise<AccountExport> {
+  const token = getToken();
+  const res = await fetch('/api/auth/export', {
+    cache: 'no-store',
+    headers: token ? { 'x-auth-token': token } : {},
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+  return data as AccountExport;
+}
+
 export interface NameCheck {
   available: boolean;
   suggestions: string[];

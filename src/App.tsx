@@ -3,6 +3,7 @@ import Home from './components/Home';
 import Room from './components/Room';
 import StickyAd from './components/StickyAd';
 import { ToastHost } from './components/Toast';
+import CookieConsent from './components/CookieConsent';
 
 const Privacy = lazy(() => import('./components/Privacy'));
 const Terms = lazy(() => import('./components/Terms'));
@@ -326,6 +327,7 @@ export default function App() {
       <Suspense fallback={null}>{page}</Suspense>
       <StickyAd />
       <ToastHost />
+      <CookieConsent onPrivacy={goPrivacy} />
     </>
   );
 }

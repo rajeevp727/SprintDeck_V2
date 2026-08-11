@@ -4,7 +4,7 @@ import { adsEnabled } from '../lib/adsConfig';
 
 export default function StickyAd() {
   const [closed, setClosed] = useState(false);
-  if (!adsEnabled || closed) return null;
+  if (!adsEnabled() || closed) return null;
 
   return (
     <div className="ad-sticky">
