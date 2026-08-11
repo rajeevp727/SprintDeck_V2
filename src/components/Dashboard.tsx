@@ -1,4 +1,5 @@
 import BrandLogo from './BrandLogo';
+import DeveloperCredit from './DeveloperCredit';
 import ProfileMenu from './ProfileMenu';
 import ThemeToggle from './ThemeToggle';
 
@@ -79,6 +80,8 @@ export default function Dashboard({ onPlanning, onRetro, onTimesheet, onWhiteboa
         <a href="/security" onClick={(e) => { e.preventDefault(); onSecurity(); }}>
           Security
         </a>
+        <span className="footer-sep">·</span>
+        <DeveloperCredit />
       </footer>
     </div>
   );

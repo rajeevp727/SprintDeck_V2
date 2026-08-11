@@ -6,7 +6,8 @@ const jwt = require('../jwt');
 const { rateLimited } = require('../ratelimit');
 const { audit } = require('../audit');
 const payments = require('../payments-store');
-const crypto = require('crypto');
+const resetTokenStore = require('../reset-token-store');
+const { sendPasswordResetEmail, isEmailConfigured } = require('../email');
 
 const noCache = { 'Cache-Control': 'no-store' };
 function ok(body) {
@@ -33,6 +34,22 @@ const SESSION_TTL = 24 * 60 * 60;
 
 function tokenFor(user, remember) {
   return jwt.sign({ sub: user.id, email: user.email }, secret(), remember ? REMEMBER_TTL : SESSION_TTL);
+}
+
+function appBaseUrl(req) {
+  if (process.env.APP_URL) return String(process.env.APP_URL).replace(/\/$/, '');
+  const host = process.env.WEBSITE_HOSTNAME;
+  if (host) return `https://${host}`;
+  const origin = req.headers.get('origin');
+  if (origin) return origin.replace(/\/$/, '');
+  const referer = req.headers.get('referer');
+  if (referer) {
+    try {
+      const u = new URL(referer);
+      return `${u.protocol}//${u.host}`;
+    } catch { void 0; }
+  }
+  return 'https://green-desert-0f2350910.7.azurestaticapps.net';
 }
 
 async function nameSuggestions(name, max = 3) {
@@ -93,7 +110,6 @@ app.http('login', {
     if (rateLimited(req, 'login', 10, 60_000)) return bad('Too many attempts — slow down', 429);
     const { email, password, remember } = await readBody(req);
     const user = await users.getByEmail(email);
-
     if (!user || !users.verifyPassword(user, password)) {
       audit(context, 'auth.login.failed', { email });
       return bad('Invalid email or password', 401);
@@ -163,36 +179,32 @@ app.http('updateProfile', {
   },
 });
 
-const resetTokens = new Map();
-const RESET_TTL_MS = 30 * 60 * 1000; 
-
-function pruneResetTokens() {
-  const now = Date.now();
-  for (const [k, v] of resetTokens) {
-    if (now - v.createdAt > RESET_TTL_MS) resetTokens.delete(k);
-  }
-}
-
 app.http('forgotPassword', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'auth/forgot-password',
   handler: async (req, context) => {
     if (!secret()) return ok({ ok: true });
+    if (!isEmailConfigured()) {
+      context.error('[forgot-password] Email not configured — set RESEND_API_KEY or SENDGRID_API_KEY in Azure');
+      return bad('Password reset email is not configured yet. Contact support or change your password while signed in.', 503);
+    }
     if (rateLimited(req, 'forgotpw', 5, 60_000)) return bad('Too many attempts — slow down', 429);
     const { email } = await readBody(req);
     const normalized = String(email || '').trim().toLowerCase();
     if (!emailRe.test(normalized)) return bad('Enter a valid email', 400);
     const user = await users.getByEmail(normalized);
     if (user) {
-      pruneResetTokens();
-      const token = crypto.randomBytes(32).toString('hex');
-      resetTokens.set(token, {
-        email: user.email,
-        userId: user.id,
-        createdAt: Date.now(),
-      });
-      audit(context, 'auth.forgot-password', { email: user.email });
+      const token = await resetTokenStore.saveResetToken(user.email, user.id);
+      const resetUrl = `${appBaseUrl(req)}/reset-password?token=${encodeURIComponent(token)}`;
+      try {
+        await sendPasswordResetEmail(user.email, resetUrl);
+        context.log(`[forgot-password] reset email sent to ${normalized.slice(0, 2)}***`);
+        audit(context, 'auth.forgot-password', { email: user.email });
+      } catch (err) {
+        context.error(`[forgot-password] email failed: ${(err && err.message) || err}`);
+        return bad('Could not send reset email — try again in a few minutes', 502);
+      }
     }
     return ok({ ok: true });
   },
@@ -202,11 +214,11 @@ app.http('resetPassword', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'auth/reset-password',
-  handler: async (req) => {
+  handler: async (req, context) => {
     if (!secret()) return bad('Auth is not configured', 503);
     if (rateLimited(req, 'resetpw', 10, 60_000)) return bad('Too many attempts — slow down', 429);
     const { token, newPassword } = await readBody(req);
-    const record = resetTokens.get(String(token || ''));
+    const record = await resetTokenStore.consumeResetToken(String(token || ''));
     if (!record) return bad('Invalid or expired reset link', 400);
     if (String(newPassword || '').length < minPassword) {
       return bad(`New password must be at least ${minPassword} characters`);
@@ -214,7 +226,7 @@ app.http('resetPassword', {
     const user = await users.getByEmail(record.email);
     if (!user || user.id !== record.userId) return bad('Invalid reset link', 400);
     await users.updatePassword(user.email, newPassword);
-    resetTokens.delete(String(token || ''));
+    audit(context, 'auth.password.reset', { email: user.email });
     return ok({ ok: true });
   },
 });

@@ -151,7 +151,6 @@ async function ordersForEmail(email) {
 async function anonymizeOrdersForEmail(email) {
   const normalized = String(email || '').trim().toLowerCase();
   if (!normalized) return;
-  const c = getContainer();
   const orders = await ordersForEmail(normalized);
   for (const order of orders) {
     order.email = null;
