@@ -4,6 +4,7 @@ const { app } = require('@azure/functions');
 const crypto = require('crypto');
 const store = require('../payments-store');
 const { parse } = require('../parse');
+const jwt = require('../jwt');
 
 function secretMatches(provided, expected) {
   const h = (x) => crypto.createHash('sha256').update(String(x)).digest();
@@ -94,8 +95,24 @@ app.http('subscriptionStatus', {
   route: 'subscription',
   handler: async (req) => {
     if (rateLimited(req, 'subscription', 60, 60_000)) return bad('Too many requests — slow down', 429);
-    const sub = await store.activeSubscription(req.query.get('orderId'));
-    return sub ? ok({ active: true, tier: sub.tier, at: sub.at }) : ok({ active: false });
+
+    const orderId = req.query.get('orderId');
+    if (orderId) {
+      const sub = await store.activeSubscription(orderId);
+      return sub
+        ? ok({ active: true, tier: sub.tier, at: sub.at, orderId: sub.orderId || orderId })
+        : ok({ active: false });
+    }
+
+    const secret = process.env.JWT_SECRET || '';
+    const token = req.headers.get('x-auth-token') || '';
+    const payload = token && secret ? jwt.verify(token, secret) : null;
+    if (!payload?.email) return ok({ active: false });
+
+    const sub = await store.activeSubscriptionByEmail(payload.email);
+    return sub
+      ? ok({ active: true, tier: sub.tier, at: sub.at, orderId: sub.orderId })
+      : ok({ active: false });
   },
 });
 

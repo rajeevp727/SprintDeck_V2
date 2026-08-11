@@ -39,10 +39,19 @@ export interface ServerSubscription {
   active: boolean;
   tier?: string;
   at?: string;
+  orderId?: string;
 }
 
-export function getServerSubscription(orderId: string): Promise<ServerSubscription> {
-  return fetch(`${apiBase}/subscription?orderId=${encodeURIComponent(orderId)}`, {
+export function getServerSubscription(orderId?: string | null): Promise<ServerSubscription> {
+  const headers: Record<string, string> = {};
+  try {
+    const token = localStorage.getItem('sprintdeck.token');
+    if (token) headers['x-auth-token'] = token;
+  } catch { void 0; }
+
+  const qs = orderId ? `?orderId=${encodeURIComponent(orderId)}` : '';
+  return fetch(`${apiBase}/subscription${qs}`, {
     cache: 'no-store',
+    headers,
   }).then((r) => json<ServerSubscription>(r));
 }
