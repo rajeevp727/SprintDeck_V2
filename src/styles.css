@@ -2906,6 +2906,14 @@ a.room-code:hover {
 .dash-footer a:hover {
   color: var(--accent);
 }
+.developer-credit a {
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.developer-credit a:hover {
+  color: var(--accent);
+}
 .home-back {
   align-self: flex-start;
 }
