@@ -67,7 +67,7 @@ export default function Dashboard({ onPlanning, onRetro, onTimesheet, onWhiteboa
       </div>
 
       <footer className="dash-footer">
-        <span>© SprintDeck</span>
+        <DeveloperCredit />
         <span className="footer-sep">·</span>
         <a href="/privacy" onClick={(e) => { e.preventDefault(); onPrivacy(); }}>
           Privacy
@@ -80,8 +80,6 @@ export default function Dashboard({ onPlanning, onRetro, onTimesheet, onWhiteboa
         <a href="/security" onClick={(e) => { e.preventDefault(); onSecurity(); }}>
           Security
         </a>
-        <span className="footer-sep">·</span>
-        <DeveloperCredit />
       </footer>
     </div>
   );
