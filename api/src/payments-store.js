@@ -168,12 +168,55 @@ async function ingestCredit({ amount, utr, rawText, source }) {
 }
 
 const subscriptionDays = 30;
+const subscriptionWindowMs = subscriptionDays * 24 * 60 * 60 * 1000;
+
+function isActiveConfirmedOrder(order, now = Date.now()) {
+  return (
+    !!order &&
+    order.type === 'order' &&
+    order.status === 'confirmed' &&
+    !!order.confirmedAt &&
+    now - order.confirmedAt <= subscriptionWindowMs
+  );
+}
+
 async function activeSubscription(orderId) {
   if (!orderId) return null;
   const order = await getOrder(orderId);
-  if (!order || order.status !== 'confirmed' || !order.confirmedAt) return null;
-  if (Date.now() - order.confirmedAt > subscriptionDays * 24 * 60 * 60 * 1000) return null;
-  return { tier: order.tier, at: new Date(order.confirmedAt).toISOString() };
+  if (!isActiveConfirmedOrder(order)) return null;
+  return { tier: order.tier, at: new Date(order.confirmedAt).toISOString(), orderId: order.id };
+}
+
+async function activeSubscriptionByEmail(email) {
+  const normalized = String(email || '')
+    .trim()
+    .toLowerCase();
+  if (!normalized) return null;
+  const now = Date.now();
+  const c = getContainer();
+  let candidates = [];
+  if (c) {
+    const query = {
+      query:
+        "SELECT * FROM c WHERE c.type = 'order' AND c.status = 'confirmed' AND c.email = @email",
+      parameters: [{ name: '@email', value: normalized }],
+    };
+    const { resources } = await (await c).items.query(query).fetchAll();
+    candidates = resources;
+  } else {
+    candidates = [...memory.values()].filter(
+      (rec) => rec.type === 'order' && rec.status === 'confirmed' && rec.email === normalized,
+    );
+  }
+  const active = candidates
+    .filter((order) => isActiveConfirmedOrder(order, now))
+    .sort(
+      (a, b) =>
+        (b.confirmedAt || 0) - (a.confirmedAt || 0) || (b.seq || 0) - (a.seq || 0),
+    );
+  const order = active[0];
+  if (!order) return null;
+  return { tier: order.tier, at: new Date(order.confirmedAt).toISOString(), orderId: order.id };
 }
 
 async function grantSubscription(email, tier) {
@@ -207,5 +250,6 @@ module.exports = {
   getOrder,
   ingestCredit,
   activeSubscription,
+  activeSubscriptionByEmail,
   grantSubscription,
 };

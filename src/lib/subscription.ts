@@ -94,16 +94,19 @@ function notify() {
 
 export async function refreshSubscription(): Promise<Subscription | null> {
   const orderId = getOrderRef();
-  if (!orderId) {
-    cachedSub = null;
-    fetched = true;
-    notify();
-    return null;
-  }
   try {
     const res = await getServerSubscription(orderId);
-    cachedSub = res.active && res.tier ? { tier: res.tier as TierId, at: res.at ?? new Date().toISOString() } : null;
-  } catch { void 0; }
+    if (res.active && res.tier) {
+      if (res.orderId && res.orderId !== orderId) {
+        setSubscriptionRef(res.orderId);
+      }
+      cachedSub = { tier: res.tier as TierId, at: res.at ?? new Date().toISOString() };
+    } else {
+      cachedSub = null;
+    }
+  } catch {
+    cachedSub = null;
+  }
   fetched = true;
   notify();
   return cachedSub;
