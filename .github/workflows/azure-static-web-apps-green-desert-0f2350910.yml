@@ -68,16 +68,18 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Push RESEND_API_KEY and EMAIL_FROM to SWA production
+      - name: Push email and APP_URL to SWA production
         if: steps.gate.outputs.enabled == 'true'
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          APP_URL: ${{ vars.APP_URL }}
           SWA_NAME: ${{ vars.AZURE_SWA_NAME }}
           SWA_RG: ${{ vars.AZURE_RESOURCE_GROUP }}
         run: |
           set -euo pipefail
           NAME="${SWA_NAME:-SprintDeck-Enterprise}"
+          PUBLIC_URL="${APP_URL:-https://sprintdeck.in}"
           if [ -z "${EMAIL_FROM:-}" ]; then
             echo "Set GitHub secret EMAIL_FROM."
             exit 1
@@ -92,7 +94,8 @@ jobs:
             --resource-group "$SWA_RG" \
             --setting-names \
               "RESEND_API_KEY=${RESEND_API_KEY}" \
-              "EMAIL_FROM=${EMAIL_FROM}"
+              "EMAIL_FROM=${EMAIL_FROM}" \
+              "APP_URL=${PUBLIC_URL}"
           echo "Verify: https://sprintdeck.in/api/auth/email-status"
 
   # PR validation without creating Azure staging environments.

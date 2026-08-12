@@ -38,18 +38,39 @@ function tokenFor(user, remember) {
 
 function appBaseUrl(req) {
   if (process.env.APP_URL) return String(process.env.APP_URL).replace(/\/$/, '');
-  const host = process.env.WEBSITE_HOSTNAME;
-  if (host) return `https://${host}`;
+
+  const forwarded = req.headers.get('x-forwarded-host');
+  if (forwarded) {
+    const host = forwarded.split(',')[0].trim();
+    const proto = (req.headers.get('x-forwarded-proto') || 'https').split(',')[0].trim();
+    return `${proto}://${host}`.replace(/\/$/, '');
+  }
+
+  const original = req.headers.get('x-ms-original-url');
+  if (original) {
+    try {
+      return new URL(original).origin;
+    } catch {
+      void 0;
+    }
+  }
+
   const origin = req.headers.get('origin');
   if (origin) return origin.replace(/\/$/, '');
+
   const referer = req.headers.get('referer');
   if (referer) {
     try {
       const u = new URL(referer);
       return `${u.protocol}//${u.host}`;
-    } catch { void 0; }
+    } catch {
+      void 0;
+    }
   }
-  return 'https://green-desert-0f2350910.7.azurestaticapps.net';
+
+  // SWA managed Functions: WEBSITE_HOSTNAME is the API backend (*.azurewebsites.net),
+  // not the public static site — never use it for user-facing email links.
+  return 'https://sprintdeck.in';
 }
 
 async function nameSuggestions(name, max = 3) {
@@ -197,8 +218,9 @@ app.http('emailStatus', {
         emailFrom: !!(process.env.EMAIL_FROM && String(process.env.EMAIL_FROM).trim()),
       },
       host: process.env.WEBSITE_HOSTNAME || null,
+      appUrl: process.env.APP_URL || 'https://sprintdeck.in',
       hint:
-        'When envPresent.jwt is true but resend/emailFrom are false, RESEND_API_KEY and EMAIL_FROM are missing or empty in Azure SWA Environment variables (Production).',
+        'When envPresent.jwt is true but resend/emailFrom are false, RESEND_API_KEY and EMAIL_FROM are missing or empty in Azure SWA Environment variables (Production). Password-reset links use APP_URL (not WEBSITE_HOSTNAME).',
     }),
 });
 
