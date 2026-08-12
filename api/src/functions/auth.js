@@ -269,7 +269,16 @@ app.http('exportAccount', {
     const orders = await payments.ordersForEmail(user.email);
     audit(context, 'auth.account.export', { email: user.email });
     return ok({
+      exportVersion: 1,
       exportedAt: new Date().toISOString(),
+      format: 'application/json',
+      includes: ['account profile', 'subscription / order history'],
+      excludes: [
+        'password hashes',
+        'authentication tokens',
+        'ephemeral ceremony session data',
+        'payment card / UPI secrets',
+      ],
       account: {
         id: user.id,
         email: user.email,

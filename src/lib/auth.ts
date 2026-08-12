@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { rememberAccount } from './rememberedAccounts';
+import { forgetAccount, rememberAccount } from './rememberedAccounts';
 
 const tokenKey = 'sprintdeck.token';
 
@@ -133,6 +133,7 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
 }
 
 export async function deleteAccount(password: string): Promise<void> {
+  const email = cachedUser?.email || '';
   const token = getToken();
   const res = await fetch('/api/auth/account', {
     method: 'DELETE',
@@ -142,11 +143,21 @@ export async function deleteAccount(password: string): Promise<void> {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+  if (email) forgetAccount(email);
+  try {
+    localStorage.removeItem('sprintdeck.orderId');
+  } catch {
+    void 0;
+  }
   logout();
 }
 
 export interface AccountExport {
+  exportVersion: number;
   exportedAt: string;
+  format: string;
+  includes: string[];
+  excludes: string[];
   account: { id: string; email: string; name: string; createdAt: string | null; updatedAt: string | null };
   subscriptions: { orderId: string; tier: string; status: string; createdAt: string | null; confirmedAt: string | null }[];
 }

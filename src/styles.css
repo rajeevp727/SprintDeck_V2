@@ -2768,7 +2768,7 @@ a.room-code:hover {
   background: linear-gradient(135deg, var(--green), #14b866);
 }
 .profile-settings-modal {
-  width: min(420px, 94vw);
+  width: min(480px, 94vw);
   max-height: 90vh;
   overflow-y: auto;
 }
@@ -2786,11 +2786,69 @@ a.room-code:hover {
   margin: 1.25rem 0 0;
   text-align: center;
 }
-.profile-settings-gdpr .profile-gdpr-actions {
-  margin-bottom: 0.75rem;
+.profile-settings-gdpr .profile-gdpr-actions,
+.profile-danger-zone .profile-gdpr-actions {
+  margin: 0.75rem 0 0.25rem;
+}
+.gdpr-list {
+  margin: 0.5rem 0 0.65rem;
+  padding-left: 1.15rem;
+  color: var(--muted, #9aa3b5);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+.gdpr-list li + li {
+  margin-top: 0.25rem;
+}
+.gdpr-note {
+  margin: 0 0 0.35rem;
+}
+.profile-danger-zone {
+  border-top-color: color-mix(in srgb, var(--danger) 35%, var(--line));
+}
+.profile-danger-zone h4 {
+  color: var(--danger);
+}
+.gdpr-warn {
+  margin: 0.35rem 0 0.85rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--line));
+  background: color-mix(in srgb, var(--danger) 8%, var(--bg-2));
+}
+.gdpr-warn-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--danger);
+}
+.gdpr-warn .gdpr-list {
+  color: color-mix(in srgb, var(--text) 82%, var(--danger));
+}
+.gdpr-ack {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.gdpr-ack input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
 }
 .profile-delete-form {
-  margin-top: 0.5rem;
+  margin-top: 0.35rem;
+}
+.profile-delete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.35rem;
+}
+.profile-delete-actions .danger {
+  flex: 1 1 auto;
 }
 button.danger {
   background: color-mix(in srgb, var(--danger) 85%, #000);
@@ -2799,6 +2857,10 @@ button.danger {
 }
 button.danger:hover:not(:disabled) {
   background: var(--danger);
+}
+button.danger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 button.linkish {
   background: none;
