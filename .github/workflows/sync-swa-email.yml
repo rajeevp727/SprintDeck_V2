@@ -13,15 +13,29 @@ permissions:
 
 jobs:
   sync:
-    if: secrets.AZURE_CREDENTIALS != '' && secrets.RESEND_API_KEY != ''
     runs-on: ubuntu-latest
     steps:
+      - name: Check prerequisites
+        id: gate
+        env:
+          AZURE_CREDS: ${{ secrets.AZURE_CREDENTIALS }}
+          RESEND_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          if [ -z "$AZURE_CREDS" ] || [ -z "$RESEND_KEY" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping — add GitHub secrets AZURE_CREDENTIALS and RESEND_API_KEY."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Azure login
+        if: steps.gate.outputs.enabled == 'true'
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Push RESEND_API_KEY and EMAIL_FROM to production API settings
+        if: steps.gate.outputs.enabled == 'true'
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
@@ -31,11 +45,11 @@ jobs:
           set -euo pipefail
           NAME="${SWA_NAME:-SprintDeck-Enterprise}"
           if [ -z "${EMAIL_FROM:-}" ]; then
-            echo "Set GitHub secret EMAIL_FROM (e.g. SprintDeck <noreply@your-domain>)."
+            echo "Set GitHub secret EMAIL_FROM."
             exit 1
           fi
           if [ -z "${SWA_RG:-}" ]; then
-            echo "Set repository variable AZURE_RESOURCE_GROUP (Static Web App resource group)."
+            echo "Set repository variable AZURE_RESOURCE_GROUP."
             exit 1
           fi
           echo "Syncing email settings to SWA: $NAME (resource group: $SWA_RG)"
