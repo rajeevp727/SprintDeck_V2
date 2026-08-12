@@ -58,15 +58,16 @@ export default function Privacy({ onBack }: Props) {
       <h2>Your rights</h2>
       <ul>
         <li>
-          <strong>Access &amp; portability:</strong> signed-in users can download their data from Account
-          settings → &ldquo;Download my data&rdquo;.
+          <strong>Access &amp; portability:</strong> signed-in users can download a JSON copy of their account
+          and subscription records from Account settings → &ldquo;Download my data&rdquo;.
         </li>
         <li>
-          <strong>Erasure:</strong> delete your account from Account settings; we remove your profile and
-          anonymise linked subscription records.
+          <strong>Erasure:</strong> delete your account from Account settings → Danger zone. We remove your
+          profile, sign you out, and anonymise linked subscription records. Deletion is permanent.
         </li>
         <li>
-          <strong>Rectification:</strong> update your display name and password in Account settings.
+          <strong>Rectification:</strong> update your display name in Account settings. Change your password
+          via the secure email link from Account settings (or Forgot password when signed out).
         </li>
         <li>
           <strong>Withdraw consent:</strong> reject non-essential cookies in the banner; clear site data in

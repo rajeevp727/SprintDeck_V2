@@ -125,22 +125,27 @@ app.http('changePassword', {
   route: 'auth/password',
   handler: async (req, context) => {
     if (!secret()) return bad('Auth is not configured', 503);
-    if (rateLimited(req, 'pwchange', 10, 60_000)) return bad('Too many attempts — slow down', 429);
+    if (!isEmailConfigured()) {
+      context.error('[password-change] Email not configured — set RESEND_API_KEY or SENDGRID_API_KEY in Azure');
+      return bad('Password-change email is not configured yet. Contact support.', 503);
+    }
+    if (rateLimited(req, 'pwchange', 5, 60_000)) return bad('Too many attempts — slow down', 429);
     const token = req.headers.get('x-auth-token') || '';
     const payload = token && jwt.verify(token, secret());
     if (!payload) return bad('Please sign in again', 401);
-    const { currentPassword, newPassword } = await readBody(req);
-    if (String(newPassword || '').length < minPassword) {
-      return bad(`New password must be at least ${minPassword} characters`);
-    }
     const user = await users.getByEmail(payload.email);
-    if (!user || !users.verifyPassword(user, currentPassword)) {
-      audit(context, 'auth.password.failed', { email: payload.email });
-      return bad('Current password is incorrect', 401);
+    if (!user) return bad('Account not found', 404);
+    try {
+      const resetToken = await resetTokenStore.saveResetToken(user.email, user.id);
+      const resetUrl = `${appBaseUrl(req)}/reset-password?token=${encodeURIComponent(resetToken)}`;
+      await sendPasswordResetEmail(user.email, resetUrl, { reason: 'settings' });
+      audit(context, 'auth.password.change-requested', { email: user.email });
+      context.log(`[password-change] link emailed to ${user.email.slice(0, 2)}***`);
+    } catch (err) {
+      context.error(`[password-change] email failed: ${(err && err.message) || err}`);
+      return bad('Could not send password-change email — try again in a few minutes', 502);
     }
-    await users.updatePassword(payload.email, newPassword);
-    audit(context, 'auth.password.changed', { email: payload.email });
-    return ok({ ok: true });
+    return ok({ ok: true, emailedTo: user.email });
   },
 });
 
@@ -187,7 +192,7 @@ app.http('forgotPassword', {
     if (!secret()) return ok({ ok: true });
     if (!isEmailConfigured()) {
       context.error('[forgot-password] Email not configured — set RESEND_API_KEY or SENDGRID_API_KEY in Azure');
-      return bad('Password reset email is not configured yet. Contact support or change your password while signed in.', 503);
+      return bad('Password reset email is not configured yet. Contact support.', 503);
     }
     if (rateLimited(req, 'forgotpw', 5, 60_000)) return bad('Too many attempts — slow down', 429);
     const { email } = await readBody(req);
@@ -269,7 +274,16 @@ app.http('exportAccount', {
     const orders = await payments.ordersForEmail(user.email);
     audit(context, 'auth.account.export', { email: user.email });
     return ok({
+      exportVersion: 1,
       exportedAt: new Date().toISOString(),
+      format: 'application/json',
+      includes: ['account profile', 'subscription / order history'],
+      excludes: [
+        'password hashes',
+        'authentication tokens',
+        'ephemeral ceremony session data',
+        'payment card / UPI secrets',
+      ],
       account: {
         id: user.id,
         email: user.email,
