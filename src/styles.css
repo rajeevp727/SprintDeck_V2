@@ -1444,17 +1444,8 @@ a.room-code:hover {
   gap: 0.8rem;
   margin: 1rem 0 0.75rem;
 }
-.tier-grid-4 {
-  grid-template-columns: repeat(4, 1fr);
-}
-@media (max-width: 880px) {
-  .tier-grid-4 {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
 @media (max-width: 640px) {
-  .tier-grid,
-  .tier-grid-4 {
+  .tier-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -1555,14 +1546,6 @@ a.room-code:hover {
   font-size: 0.85rem;
   padding: 0.45rem;
   border-radius: 8px;
-}
-.tier-free {
-  text-decoration: none;
-}
-.tier-free .tier-cta {
-  background: none;
-  border: 1px solid var(--accent);
-  color: var(--accent);
 }
 .sub-later {
   margin-top: 0.6rem;

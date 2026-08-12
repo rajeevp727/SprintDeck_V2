@@ -16,7 +16,6 @@ import {
 } from '../lib/subscription';
 import { createOrder, getStatus, type PaymentOrder } from '../lib/verifier';
 import { CloseIcon, InfoIcon } from './icons';
-import BrandLogo from './BrandLogo';
 
 interface Props {
   onClose: () => void;
@@ -181,30 +180,8 @@ export default function SubscriptionModal({ onClose }: Props) {
         {!tier ? (
           <>
             <h3>Choose a plan</h3>
-            <p className="auth-sub">SprintDeck Enterprise — pick a plan to unlock the workspace.</p>
-            <div className="tier-grid tier-grid-4">
-              <a
-                className="tier-card tier-free"
-                href="https://sprintdeck.rajeevstech.in"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <span className="tier-icon" aria-hidden>
-                  <BrandLogo variant="mark" className="tier-logo-mark" />
-                </span>
-                <span className="tier-name">Free</span>
-                <span className="tier-price">
-                  ₹0<small>/mo</small>
-                </span>
-                <span className="tier-tagline">Plain planning poker</span>
-                <ul className="tier-feats">
-                  <li>Unlimited rooms &amp; voters</li>
-                  <li>Vote, reveal &amp; consensus</li>
-                  <li>Light / dark theme</li>
-                  <li>No tool integrations</li>
-                </ul>
-                <span className="tier-cta">Use SprintDeck Free →</span>
-              </a>
+            <p className="auth-sub">SprintDeck Enterprise — pick Pro, Expert, or Master.</p>
+            <div className="tier-grid">
               {tiers.map((t) => {
                 const active = getActiveSubscription();
                 const isCurrent = active?.tier === t.id;
