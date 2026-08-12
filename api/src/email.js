@@ -110,3 +110,4 @@ async function sendPasswordResetEmail(to, resetUrl, { reason } = {}) {
 }
 
 module.exports = { sendEmail, sendPasswordResetEmail, isEmailConfigured };
+
