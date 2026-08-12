@@ -4,11 +4,20 @@ _Last updated: 2026-08-12_
 _Auto-refreshed every Friday when the product changed that week._  
 _Live app: https://sprintdeck.in · Developed by [OmegaTechnologies](https://omega-technologies.in)_
 
-Use this document to walk a client through **every major feature** in a live demo.
+This guide has **two sections**:
+
+| Section | Purpose |
+|---------|---------|
+| **Features** | Stable product capabilities + older weekly updates promoted here |
+| **Updated this week** | Only the current week’s changes |
+
+Every Friday the bot **moves** last week’s “Updated this week” into **Features → Feature history**, then fills “Updated this week” with new commits.
 
 ---
 
-## 0. Demo setup (2 minutes)
+# Features
+
+## Demo setup (2 minutes)
 
 | Item | Value |
 |------|--------|
@@ -21,7 +30,7 @@ Use this document to walk a client through **every major feature** in a live dem
 
 ---
 
-## 1. Landing & access
+## Landing & access
 
 ### What to show
 - Brand hero: **SprintDeck**
@@ -40,9 +49,8 @@ Use this document to walk a client through **every major feature** in a live dem
 
 ---
 
-## 2. Auth & profile
+## Auth & profile
 
-### Features
 - Register / login (email + password)
 - Remembered accounts
 - Forgot password → email reset link (`/reset-password`)
@@ -54,15 +62,13 @@ Use this document to walk a client through **every major feature** in a live dem
 
 ### Demo steps
 1. Sign in  
-2. Open profile → show plan (**Master · Lifetime** on owner account)  
+2. Open profile → show plan  
 3. Open **Edit profile** briefly  
 4. Toggle theme
 
 ---
 
-## 3. Dashboard (signed-in home)
-
-Four ceremony cards:
+## Dashboard (signed-in home)
 
 | Card | Opens |
 |------|--------|
@@ -75,9 +81,8 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 
 ---
 
-## 4. Planning Poker
+## Planning Poker
 
-### Features
 - Create room (moderator) or join by code / link  
 - Fibonacci-style vote deck; hidden votes until reveal  
 - Consensus / average / stats  
@@ -92,13 +97,11 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 2. Open join link in a second browser/incognito as a voter  
 3. Cast votes → **Reveal** → show consensus  
 4. Open results / export  
-5. (Optional) open Chat if plan allows  
 
 ---
 
-## 5. Sprint Retrospective
+## Sprint Retrospective
 
-### Features
 - Create / join retro by code  
 - Columns: what went well / to improve / actions  
 - Review prior action items  
@@ -111,12 +114,10 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 
 ---
 
-## 6. Daily Scrum & Timesheet
+## Daily Scrum & Timesheet
 
-### Features
 - Log daily standup notes and task hours  
 - Copy / CSV handoff for Keka or other timesheets  
-- Local persistence for the signed-in session workflow  
 
 ### Demo steps
 1. Dashboard → **Daily Scrum & Timesheet**  
@@ -125,80 +126,65 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 
 ---
 
-## 7. Whiteboard
+## Whiteboard
 
-### Features
 - Infinite Miro-style canvas  
 - Sticky notes, shapes, pen sketches  
 - Live multiplayer presence  
 - Presenter write control  
 - Room-locked or shareable link  
-- Export helpers  
 
 ### Demo steps
 1. Dashboard → **Whiteboard** → create  
 2. Draw / add stickies  
 3. Open share link as a second participant  
-4. Show presenter control if available  
 
 ---
 
-## 8. Team Chat
+## Team Chat
 
-### Features
 - Members-only back-channel in paid rooms  
 - Replies & reactions  
 - Realtime via Azure Web PubSub where configured  
 
-### Demo steps
-1. From an active poker/retro room with an eligible plan  
-2. Open chat → send a message → react  
-
 ---
 
-## 9. Plans & UPI payments
+## Plans & UPI payments
 
-### Plans (Enterprise)
 | Plan | Price / mo | Checkout (incl. ₹2 fee) |
 |------|------------|-------------------------|
 | Pro | ₹199 | ₹201 |
 | Expert | ₹499 | ₹501 |
 | Master | ₹999 | ₹1001 |
 
-- No Free card in the Enterprise upgrade UI  
+- Enterprise upgrade UI shows **Pro / Expert / Master only** (no Free card)  
 - Prorated upgrades (difference + ₹2)  
-- Standard UPI QR (`upi://pay?...`)  
-- Auto-confirm via bank credit email → Gmail Apps Script → `/api/upi/ingest`  
+- Standard UPI QR + auto-confirm via bank credit email ingest  
 - App polls status ~every 1s; **I've paid — check now** available  
-- Subscriptions normally **30 days**; owner lifetime grant is allowlisted  
+- Normal plans last **30 days**; owner lifetime grant is allowlisted to `mrrajeev18@gmail.com` only  
 
 ### Demo steps
 1. Profile → **Manage** / **Upgrade**  
 2. Show Pro / Expert / Master only  
-3. Select Expert → show QR + amount  
-4. Explain auto-confirm (or show already-active Master)  
+3. Select a plan → show QR + amount  
 
 ---
 
-## 10. Compliance & trust
+## Compliance & trust
 
 - Cookie consent gates AdSense  
 - Privacy / Terms / Security pages  
 - Account export & delete  
 - Security headers / CSP on Azure Static Web Apps  
 
-### Demo steps
-1. Footer → Privacy / Terms / Security  
-2. (Optional) Profile → data export  
-
 ---
 
-## 11. Suggested 12-minute client script
+## Suggested 12-minute client script
 
 | Min | Segment |
 |-----|---------|
 | 0–1 | Landing + brand |
-| 1–2 | Login + Master profile |
+| 1–2 | Login + plan profile |
 | 2–5 | Planning poker (2 browsers) |
 | 5–7 | Retro board |
 | 7–8 | Timesheet |
@@ -207,19 +193,41 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 
 ---
 
-## 12. Weekly change log
+## Feature history (promoted from prior weeks)
 
-> Updated automatically every **Friday** if `main` received non-docs product changes that week.
+> Every Friday, the previous **Updated this week** block is moved here, then that section is refreshed.
 
-### 2026-08-12 — Initial demo pack
-- Feature demo guide created covering all ceremonies, auth, billing, and compliance
-- Weekly Friday automation added (see `.github/workflows/weekly-demo-docs.yml`)
-- Recent product highlights reflected here: lifetime owner membership, Free tier removed from upgrade UI, faster UPI confirmation polling, OmegaTechnologies footer credit
+<!-- FEATURES_HISTORY_START -->
 
-### 2026-08-12 — Weekly update
-**Areas touched:** Whiteboard, Plans & UPI payments, Auth / compliance, Landing / branding
+### Seed — demo guide created (2026-08-12)
+- Full feature demo walkthrough added
+- Friday automation: promote last week → Features, refresh Updated this week
 
-**Commits this week:**
+<!-- FEATURES_HISTORY_END -->
+
+---
+
+# Updated this week
+
+> Current week only. Next Friday this block is **promoted into Features → Feature history**, then replaced.
+
+<!-- UPDATED_THIS_WEEK_START -->
+
+### Week of 2026-08-12
+**Areas touched:** Plans & billing, Auth / compliance, Landing / branding, Whiteboard
+
+**Highlights**
+- Remove Free tier — Pro, Expert, Master only
+- Restrict lifetime membership to owner email only
+- Add lifetime membership for admin grants
+- Enterprise compliance: GDPR, cookie consent, firewall hardening
+- Bind Master subscription by email on login
+- OmegaTechnologies developer credit in footer
+- Restore 4 feature cards on landing page
+- Password reset email + reset page
+- Faster UPI payment confirmation polling
+
+**Commits**
 - `59288e2` Remove Free tier — Pro, Expert, Master only (#41)
 - `7f2e386` Restrict lifetime membership to owner email only (#40)
 - `1e32cf1` Add lifetime membership for admin grants (#39)
@@ -228,23 +236,5 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 - `9d1a12f` Add omegatechnologies developer credit in dashboard footer (#34)
 - `ecd5ebd` Restore 4 feature cards on landing page (#33)
 - `269862c` Fix password reset: send email and add reset page (#32)
-- `12e6dfc` Remove dead code, unused CSS, and strip comments (#30)
-- `05c8a01` Add code quality gates, tests, and admin subscription grant script (#29)
-- `2180f1a` CI: Aikido scans, auto-merge, and code optimizations (#28)
-- `90b46f4` Add profile username fetch and edit from user menu (#27)
-- `94af7c2` Enhance whiteboard start screen UI/UX (#26)
-- `e4ea996` Show current subscription in profile menu (#25)
-- `220aac6` Fix whiteboard start form layout and Pro subscription UX (#24)
-- `6a07e25` Add shareable live whiteboard with presenter write control (#23)
-- `ebf49c8` Upgrade whiteboard to Miro-style infinite canvas (#22)
-- `deb9c7d` feat: validate email and show user-not-found in forgot-password
-- `030cdd7` feat: add forgot-password flow with email link
-- `44527b2` feat: auth page-turn top/bottom only on mobile
-- `d2d70b1` fix: show password hint tooltip on click/tap for mobile
-- `92c5721` fix: set workerRuntime node in host.json for local func start
-- `aa5e9aa` style: use default cursor on password info icon
-- `373eb5b` style: move password toggle hint to info icon
-- `c5751a9` feat: add whiteboard and auth page-turn animations
-- …and 3 more commits
 
-<!-- WEEKLY_UPDATES_INSERT_POINT -->
+<!-- UPDATED_THIS_WEEK_END -->

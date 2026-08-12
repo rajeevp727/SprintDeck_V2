@@ -66,6 +66,10 @@ jobs:
           body: |
             Automated Friday refresh of `docs/demo/SprintDeck-Feature-Demo.md`.
 
+            Behavior:
+            1. Promotes last week’s **Updated this week** block into **Features → Feature history**
+            2. Writes this week’s product commits into **Updated this week**
+
             Generated because product commits landed on `main` in the last 7 days
             (or a forced manual run).
           branch: chore/weekly-demo-docs
