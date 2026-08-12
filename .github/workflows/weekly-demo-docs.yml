@@ -1,0 +1,74 @@
+name: Weekly demo docs
+
+# Every Friday: refresh the client feature demo guide if main changed that week.
+on:
+  schedule:
+    # Friday 09:00 UTC ≈ 14:30 IST
+    - cron: '0 9 * * 5'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Update even if no product commits this week'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-demo-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Refresh demo documentation
+        id: refresh
+        run: |
+          set +e
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
+            node scripts/update-weekly-demo-docs.cjs --force
+          else
+            node scripts/update-weekly-demo-docs.cjs
+          fi
+          code=$?
+          set -e
+          if [ "$code" = "2" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No product changes this week — nothing to commit."
+            exit 0
+          fi
+          if [ "$code" != "0" ]; then
+            exit "$code"
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Create pull request
+        if: steps.refresh.outputs.skip != 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'docs: weekly SprintDeck feature demo update'
+          title: 'docs: weekly SprintDeck feature demo update'
+          body: |
+            Automated Friday refresh of `docs/demo/SprintDeck-Feature-Demo.md`.
+
+            Generated because product commits landed on `main` in the last 7 days
+            (or a forced manual run).
+          branch: chore/weekly-demo-docs
+          base: main
+          delete-branch: true
+          labels: documentation

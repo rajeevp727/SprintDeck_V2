@@ -5,8 +5,9 @@ that connects to your **project management tool** (Linear, Jira, Azure DevOps),
 pulls the tickets you need to estimate, and **writes the agreed story points back**
 after the team votes. No login — you connect a tool with your own key.
 
-- **Live:** `https://<your-swa-domain>.azurestaticapps.net`
+- **Live:** `https://<your-swa-domain>.azurestaticapps.net` (also https://sprintdeck.in)
 - **Free sibling (plain poker, no integrations):** https://sprintdeck.rajeevstech.in (repo `SprintDeck`)
+- **Client demo guide:** [`docs/demo/SprintDeck-Feature-Demo.md`](docs/demo/SprintDeck-Feature-Demo.md) (auto-updated Fridays)
 
 > **Status:** the integration layer is currently **mock/preview** — connecting a
 > tool loads sample estimation tickets and the push-back is simulated. The real
