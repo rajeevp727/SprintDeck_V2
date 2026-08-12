@@ -73,6 +73,8 @@ Pick a plan → POST /api/order (amount validated) → order stored (Cosmos)
 ```
 - Matching is by **exact amount** (most-recent pending order of that amount wins).
 - Only **credit** alerts confirm (debits ignored); duplicate UTRs are de-duped.
+- Confirmation target: **a few seconds** after the bank email arrives
+  (Gmail ingest re-checks ~every 3s; app polls status every 1s while waiting).
 - No sub-second confirmation is possible PSP-free (bank email delay); a real gateway
   (Razorpay/PhonePe PG) would add an instant signed webhook + show the merchant name.
 

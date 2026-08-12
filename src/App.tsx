@@ -122,7 +122,7 @@ export default function App() {
   useEffect(() => {
     let active = true;
     async function check() {
-      await refreshSubscription(); 
+      await refreshSubscription();
       if (isSubscribed()) {
         clearPendingOrder();
         return;
@@ -132,10 +132,10 @@ export default function App() {
       try {
         const { status } = await getStatus(pending.orderId);
         if (status === 'confirmed') {
-          setSubscriptionRef(pending.orderId); 
+          setSubscriptionRef(pending.orderId);
           await refreshSubscription();
           clearPendingOrder();
-          if (active) setRoute(computeRoute()); 
+          if (active) setRoute(computeRoute());
         } else if (status === 'expired') {
           clearPendingOrder();
         }
@@ -143,11 +143,16 @@ export default function App() {
     }
     check();
     const id = setInterval(() => {
-      if (!document.hidden) check(); 
-    }, 15000);
+      if (!document.hidden && getPendingOrder()) check();
+    }, 2000);
+    const onVisible = () => {
+      if (!document.hidden && getPendingOrder()) check();
+    };
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       active = false;
       clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
 
