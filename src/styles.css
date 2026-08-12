@@ -2856,6 +2856,16 @@ a.room-code:hover {
 .pw-email-sent .auth-hint {
   margin: 0.25rem 0;
 }
+.pw-email-setup {
+  margin: 0.5rem 0 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent, #5b8def) 30%, var(--line));
+  background: color-mix(in srgb, var(--accent, #5b8def) 8%, var(--bg-2));
+}
+.pw-email-setup .auth-hint {
+  margin: 0;
+}
 button.danger {
   background: color-mix(in srgb, var(--danger) 85%, #000);
   border: 1px solid var(--danger);

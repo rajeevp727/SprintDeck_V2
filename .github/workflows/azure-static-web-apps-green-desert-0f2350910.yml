@@ -10,8 +10,11 @@ on:
       - main
 
 jobs:
+  # Production deploy only. PR staging environments are limited on the Free
+  # SWA tier and fill up quickly with open Cursor/Dependabot PRs, which
+  # otherwise fails every PR with "maximum number of staging environments".
   build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     steps:
@@ -36,6 +39,29 @@ jobs:
           api_location: "api" # Api source code path - optional
           output_location: "dist" # Built app content directory - optional
           ###### End of Repository/Build Configurations ######
+
+  # PR validation without creating Azure staging environments.
+  pr_build_job:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    name: PR Build
+    steps:
+      - uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install and build app
+        run: |
+          npm ci
+          npm run build
+        env:
+          VITE_UPI_ID: ${{ secrets.UPI_ID }}
+      - name: Install API dependencies
+        working-directory: api
+        run: npm ci
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'

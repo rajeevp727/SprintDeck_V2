@@ -12,7 +12,7 @@ function fromParts() {
 }
 
 async function sendViaResend({ to, subject, html, text, headers, attachments }) {
-  const key = process.env.RESEND_API_KEY || '';
+  const key = String(process.env.RESEND_API_KEY || '').trim();
   if (!key) return false;
   const payload = {
     from: fromAddress(),
@@ -75,18 +75,22 @@ async function sendViaSendGrid({ to, subject, html, text, headers, attachments }
   return true;
 }
 
+function hasEnv(name) {
+  return !!(process.env[name] && String(process.env[name]).trim());
+}
+
 async function sendEmail({ to, subject, html, text, headers, attachments }) {
-  if (process.env.RESEND_API_KEY) {
+  if (hasEnv('RESEND_API_KEY')) {
     return sendViaResend({ to, subject, html, text, headers, attachments });
   }
-  if (process.env.SENDGRID_API_KEY) {
+  if (hasEnv('SENDGRID_API_KEY')) {
     return sendViaSendGrid({ to, subject, html, text, headers, attachments });
   }
   return false;
 }
 
 function isEmailConfigured() {
-  return !!(process.env.RESEND_API_KEY || process.env.SENDGRID_API_KEY);
+  return hasEnv('RESEND_API_KEY') || hasEnv('SENDGRID_API_KEY');
 }
 
 async function sendPasswordResetEmail(to, resetUrl, { reason } = {}) {
