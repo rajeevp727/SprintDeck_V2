@@ -32,6 +32,9 @@ async function main() {
   const result = await store.grantSubscription(email, tier, { lifetime });
   if (result.error) {
     console.error('Failed:', result.error);
+    if (result.error === 'lifetime-not-allowed') {
+      console.error('Lifetime is restricted to the allowlisted owner email only.');
+    }
     process.exit(1);
   }
 

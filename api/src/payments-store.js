@@ -203,8 +203,29 @@ async function ingestCredit({ amount, utr, rawText, source }) {
 const subscriptionDays = 30;
 const subscriptionWindowMs = subscriptionDays * 24 * 60 * 60 * 1000;
 
+/** Only these emails may hold lifetime membership. Default: owner only. */
+function lifetimeAllowlist() {
+  const raw = process.env.LIFETIME_ALLOWLIST || 'mrrajeev18@gmail.com';
+  return raw
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function isLifetimeAllowedEmail(email) {
+  const normalized = String(email || '')
+    .trim()
+    .toLowerCase();
+  if (!normalized) return false;
+  return lifetimeAllowlist().includes(normalized);
+}
+
 function isLifetimeOrder(order) {
-  return !!(order && (order.lifetime === true || order.grantedBy === 'admin-lifetime'));
+  if (!order) return false;
+  const flagged = order.lifetime === true || order.grantedBy === 'admin-lifetime';
+  if (!flagged) return false;
+  // Lifetime flag is ignored unless the order email is on the allowlist.
+  return isLifetimeAllowedEmail(order.email);
 }
 
 function isActiveConfirmedOrder(order, now = Date.now()) {
@@ -266,9 +287,13 @@ async function activeSubscriptionByEmail(email) {
 }
 
 async function grantSubscription(email, tier, { lifetime = false } = {}) {
+  const normalizedEmail = email ? String(email).trim().toLowerCase() : null;
   const normalizedTier = String(tier || 'pro').toLowerCase();
   if (!['pro', 'expert', 'master'].includes(normalizedTier)) {
     return { error: 'invalid-tier' };
+  }
+  if (lifetime && !isLifetimeAllowedEmail(normalizedEmail)) {
+    return { error: 'lifetime-not-allowed' };
   }
   const prices = { pro: 199, expert: 499, master: 999 };
   const now = Date.now();
@@ -276,7 +301,7 @@ async function grantSubscription(email, tier, { lifetime = false } = {}) {
     id: genId(),
     type: 'order',
     tier: normalizedTier,
-    email: email ? String(email).trim().toLowerCase() : null,
+    email: normalizedEmail,
     baseAmount: prices[normalizedTier],
     payAmount: prices[normalizedTier],
     status: 'confirmed',
