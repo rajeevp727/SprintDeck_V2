@@ -23,9 +23,11 @@ interface Props {
 
 type PayState = 'loading' | 'pending' | 'confirmed' | 'regenerating' | 'error';
 
-const payWindow = 90; 
-const pollMs = 3000;
-const regenMs = 5000; 
+const payWindow = 120;
+const pollFastMs = 1000;
+const pollSlowMs = 2000;
+const pollFastForSec = 60;
+const regenMs = 2500;
 
 function QrSkeleton() {
   return (
@@ -41,6 +43,7 @@ export default function SubscriptionModal({ onClose }: Props) {
   const [order, setOrder] = useState<PaymentOrder | null>(null);
   const [seconds, setSeconds] = useState(payWindow);
   const [errMsg, setErrMsg] = useState('');
+  const [checking, setChecking] = useState(false);
   const tier = tiers.find((t) => t.id === selected) ?? null;
 
   const activeSub = getActiveSubscription();
@@ -104,27 +107,50 @@ export default function SubscriptionModal({ onClose }: Props) {
   
   useEffect(() => {
     if (payState !== 'pending' || !order || !selected) return;
-    const poll = async () => {
-      if (document.hidden) return; 
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const startedAt = Date.now();
+
+    const poll = async (): Promise<'confirmed' | 'expired' | 'pending'> => {
+      if (cancelled || document.hidden) return 'pending';
       try {
         const { status } = await getStatus(order.orderId);
+        if (cancelled) return 'pending';
         if (status === 'confirmed') {
-          setSubscriptionRef(order.orderId); 
+          setSubscriptionRef(order.orderId);
           await refreshSubscription();
           clearPendingOrder();
           setPayState('confirmed');
-        } else if (status === 'expired') {
+          return 'confirmed';
+        }
+        if (status === 'expired') {
           setPayState('regenerating');
+          return 'expired';
         }
       } catch { void 0; }
+      return 'pending';
     };
-    const id = setInterval(poll, pollMs);
+
+    const schedule = () => {
+      const elapsedSec = (Date.now() - startedAt) / 1000;
+      const delay = elapsedSec < pollFastForSec ? pollFastMs : pollSlowMs;
+      timer = setTimeout(async () => {
+        const result = await poll();
+        if (!cancelled && result === 'pending') schedule();
+      }, delay);
+    };
+
+    void poll().then((result) => {
+      if (!cancelled && result === 'pending') schedule();
+    });
+
     const onVisible = () => {
-      if (!document.hidden) poll(); 
+      if (!document.hidden) void poll();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
-      clearInterval(id);
+      cancelled = true;
+      if (timer) clearTimeout(timer);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [payState, order, selected]);
@@ -147,7 +173,7 @@ export default function SubscriptionModal({ onClose }: Props) {
       
       const [o] = await Promise.all([
         createOrder(id, amount),
-        new Promise((resolve) => setTimeout(resolve, 1500)),
+        new Promise((resolve) => setTimeout(resolve, 400)),
       ]);
       setOrder(o);
       setPendingOrder(o.orderId, id); 
@@ -160,6 +186,25 @@ export default function SubscriptionModal({ onClose }: Props) {
 
   function retry() {
     if (tier) startPayment(tier.id, amountForTier(tier.id));
+  }
+
+  async function checkNow() {
+    if (!order || checking || payState !== 'pending') return;
+    setChecking(true);
+    try {
+      const { status } = await getStatus(order.orderId);
+      if (status === 'confirmed') {
+        setSubscriptionRef(order.orderId);
+        await refreshSubscription();
+        clearPendingOrder();
+        setPayState('confirmed');
+      } else if (status === 'expired') {
+        setPayState('regenerating');
+      }
+    } catch { void 0; }
+    finally {
+      setChecking(false);
+    }
   }
 
   function backToPlans() {
@@ -275,7 +320,17 @@ export default function SubscriptionModal({ onClose }: Props) {
                   Waiting for payment · <strong>{mmss}</strong>
                 </p>
                 {renderPayAmount(order.payAmount)}
-                <p className="auth-hint pay-hint">Once your payment lands, this confirms automatically.</p>
+                <button
+                  type="button"
+                  className="ghost auth-wide"
+                  onClick={checkNow}
+                  disabled={checking}
+                >
+                  {checking ? 'Checking…' : "I've paid — check now"}
+                </button>
+                <p className="auth-hint pay-hint">
+                  Confirmation usually takes a few seconds after payment lands.
+                </p>
               </>
             ) : payState === 'pending' ? (
               <p className="linear-notice">Payments aren&rsquo;t configured yet (set VITE_UPI_ID / the upiId secret).</p>

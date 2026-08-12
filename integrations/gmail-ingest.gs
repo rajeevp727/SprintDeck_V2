@@ -8,34 +8,32 @@
  *
  * Setup (once):
  *   1. Open https://script.google.com  → New project.
- *   2. Paste this whole file in.  (Signed in as mrrajeevp727@gmail.com)
+ *   2. Paste this whole file in.  (Signed in as the merchant Gmail)
  *   3. Confirm INGEST_SECRET below matches the Azure app setting.
- *   4. Run `createTrigger` once → approve the permission prompts
+ *   4. Set INGEST_URL to your production SWA domain.
+ *   5. Run `createTrigger` once → approve the permission prompts
  *      (read Gmail + connect to external service).
- *   5. Done. It now polls every minute and confirms paid orders on its own.
+ *   6. Done. It polls every minute; inside each minute it re-checks Gmail
+ *      every ~3s so email→ingest latency is a few seconds, not a full minute.
  *
  * The backend ignores debit alerts, so it's harmless that both the "sent"
  * (debit) and "received" (credit) mails land here — only credits confirm.
  */
 
 // ── Config ───────────────────────────────────────────────────────────────────
-const INGEST_URL = 'https://<your-swa-domain>.azurestaticapps.net/api/upi/ingest';
+const INGEST_URL = 'https://green-desert-0f2350910.7.azurestaticapps.net/api/upi/ingest';
 const INGEST_SECRET = 'PASTE_YOUR_INGEST_SECRET_HERE'; // must equal the Azure INGEST_SECRET app setting
 
-// Gmail search for candidate alert emails. Broad by default; TIGHTEN it once
-// you know the exact sender, e.g. append:
-//   from:(alerts@axisbank.com OR noreply@phonepe.com OR *@canarabank.com)
-const GMAIL_QUERY = 'newer_than:2d (credited OR "received" OR "deposited")';
+// Prefer recent unread credits. Tighten `from:` once you know your bank sender.
+const GMAIL_QUERY = 'newer_than:1d (credited OR "received" OR "deposited")';
 
 // ── Poller (runs on the timer) ────────────────────────────────────────────────
-// Dedups per MESSAGE (not per thread) via Script Properties, so a second alert
-// in an existing thread is still forwarded. The backend also dedups by UTR, so
-// a rare double-send never double-confirms.
-// Time-triggers fire at most once/minute, so this run re-checks Gmail every
-// ~10s for the whole minute → email→ingest latency drops from up to 60s to ~10s.
+// Google time-triggers fire at most once/minute. Inside that minute we re-check
+// Gmail every ~3s so confirmation lands in a few seconds after the email arrives.
+// Dedups per MESSAGE via Script Properties. Backend also dedups by UTR.
 function pollBankAlerts() {
-  const ROUNDS = 5; // 5 checks × ~10s ≈ covers the minute
-  const GAP_MS = 10000;
+  const ROUNDS = 18; // 18 × 3s ≈ 54s (fits inside the 1-minute trigger window)
+  const GAP_MS = 3000;
   for (let r = 0; r < ROUNDS; r++) {
     forwardNewAlerts_();
     if (r < ROUNDS - 1) Utilities.sleep(GAP_MS);
@@ -45,10 +43,12 @@ function pollBankAlerts() {
 function forwardNewAlerts_() {
   const props = PropertiesService.getScriptProperties();
   const seen = new Set(JSON.parse(props.getProperty('seenMsgIds') || '[]'));
-  const threads = GmailApp.search(GMAIL_QUERY, 0, 25);
+  // Newest first so a just-arrived credit is ingested immediately.
+  const threads = GmailApp.search(GMAIL_QUERY, 0, 20);
   let changed = false;
   for (const thread of threads) {
-    for (const msg of thread.getMessages()) {
+    const messages = thread.getMessages().reverse();
+    for (const msg of messages) {
       const id = msg.getId();
       if (seen.has(id)) continue;
       try {
@@ -76,10 +76,10 @@ function createTrigger() {
     if (t.getHandlerFunction() === 'pollBankAlerts') ScriptApp.deleteTrigger(t);
   });
   ScriptApp.newTrigger('pollBankAlerts').timeBased().everyMinutes(1).create();
-  console.log('Trigger created: pollBankAlerts every 1 minute.');
+  console.log('Trigger created: pollBankAlerts every 1 minute (inner loop ~3s).');
 }
 
-// Optional: run manually to test parsing/forwarding right now (ignores the label).
+// Optional: run manually to test parsing/forwarding right now.
 function testOnce() {
   const threads = GmailApp.search(GMAIL_QUERY, 0, 5);
   for (const thread of threads) {
