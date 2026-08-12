@@ -203,21 +203,32 @@ async function ingestCredit({ amount, utr, rawText, source }) {
 const subscriptionDays = 30;
 const subscriptionWindowMs = subscriptionDays * 24 * 60 * 60 * 1000;
 
+function isLifetimeOrder(order) {
+  return !!(order && (order.lifetime === true || order.grantedBy === 'admin-lifetime'));
+}
+
 function isActiveConfirmedOrder(order, now = Date.now()) {
-  return (
-    !!order &&
-    order.type === 'order' &&
-    order.status === 'confirmed' &&
-    !!order.confirmedAt &&
-    now - order.confirmedAt <= subscriptionWindowMs
-  );
+  if (!order || order.type !== 'order' || order.status !== 'confirmed' || !order.confirmedAt) {
+    return false;
+  }
+  if (isLifetimeOrder(order)) return true;
+  return now - order.confirmedAt <= subscriptionWindowMs;
+}
+
+function subscriptionPayload(order) {
+  return {
+    tier: order.tier,
+    at: new Date(order.confirmedAt).toISOString(),
+    orderId: order.id,
+    lifetime: isLifetimeOrder(order),
+  };
 }
 
 async function activeSubscription(orderId) {
   if (!orderId) return null;
   const order = await getOrder(orderId);
   if (!isActiveConfirmedOrder(order)) return null;
-  return { tier: order.tier, at: new Date(order.confirmedAt).toISOString(), orderId: order.id };
+  return subscriptionPayload(order);
 }
 
 async function activeSubscriptionByEmail(email) {
@@ -245,14 +256,16 @@ async function activeSubscriptionByEmail(email) {
     .filter((order) => isActiveConfirmedOrder(order, now))
     .sort(
       (a, b) =>
-        (b.confirmedAt || 0) - (a.confirmedAt || 0) || (b.seq || 0) - (a.seq || 0),
+        Number(isLifetimeOrder(b)) - Number(isLifetimeOrder(a)) ||
+        (b.confirmedAt || 0) - (a.confirmedAt || 0) ||
+        (b.seq || 0) - (a.seq || 0),
     );
   const order = active[0];
   if (!order) return null;
-  return { tier: order.tier, at: new Date(order.confirmedAt).toISOString(), orderId: order.id };
+  return subscriptionPayload(order);
 }
 
-async function grantSubscription(email, tier) {
+async function grantSubscription(email, tier, { lifetime = false } = {}) {
   const normalizedTier = String(tier || 'pro').toLowerCase();
   if (!['pro', 'expert', 'master'].includes(normalizedTier)) {
     return { error: 'invalid-tier' };
@@ -267,12 +280,13 @@ async function grantSubscription(email, tier) {
     baseAmount: prices[normalizedTier],
     payAmount: prices[normalizedTier],
     status: 'confirmed',
-    utr: 'admin-grant',
+    utr: lifetime ? 'admin-lifetime' : 'admin-grant',
     receiptId: null,
     createdAt: now,
     seq: (seq += 1),
     confirmedAt: now,
-    grantedBy: 'admin',
+    grantedBy: lifetime ? 'admin-lifetime' : 'admin',
+    lifetime: !!lifetime,
   };
   await putRecord(order);
   return { order };

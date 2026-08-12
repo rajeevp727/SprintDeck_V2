@@ -40,6 +40,7 @@ export interface ServerSubscription {
   tier?: string;
   at?: string;
   orderId?: string;
+  lifetime?: boolean;
 }
 
 export function getServerSubscription(orderId?: string | null): Promise<ServerSubscription> {

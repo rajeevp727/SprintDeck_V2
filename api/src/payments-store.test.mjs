@@ -39,6 +39,14 @@ describe('payments-store', () => {
     expect(await store.activeSubscriptionByEmail('expired@example.com')).toBeNull();
   });
 
+  it('lifetime grant stays active after 30 days', async () => {
+    const { order } = await store.grantSubscription('life@example.com', 'master', { lifetime: true });
+    expect(order.lifetime).toBe(true);
+    order.confirmedAt = Date.now() - 400 * 24 * 60 * 60 * 1000;
+    const sub = await store.activeSubscription(order.id);
+    expect(sub).toMatchObject({ tier: 'master', lifetime: true, orderId: order.id });
+  });
+
   it('grantSubscription rejects invalid tier', async () => {
     const result = await store.grantSubscription('x@y.com', 'platinum');
     expect(result.error).toBe('invalid-tier');

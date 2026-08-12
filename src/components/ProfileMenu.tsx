@@ -90,7 +90,9 @@ export default function ProfileMenu() {
                 <span className="profile-plan-copy">
                   <span className="profile-plan-name">{plan.name}</span>
                   <span className="profile-plan-meta">
-                    Active{subscription?.at ? ` · since ${formatSubDate(subscription.at)}` : ''}
+                    {subscription?.lifetime
+                      ? 'Lifetime membership'
+                      : `Active${subscription?.at ? ` · since ${formatSubDate(subscription.at)}` : ''}`}
                   </span>
                 </span>
                 <span className="profile-plan-action">Manage</span>

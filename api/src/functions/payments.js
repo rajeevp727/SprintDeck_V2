@@ -100,7 +100,13 @@ app.http('subscriptionStatus', {
     if (orderId) {
       const sub = await store.activeSubscription(orderId);
       return sub
-        ? ok({ active: true, tier: sub.tier, at: sub.at, orderId: sub.orderId || orderId })
+        ? ok({
+            active: true,
+            tier: sub.tier,
+            at: sub.at,
+            orderId: sub.orderId || orderId,
+            lifetime: !!sub.lifetime,
+          })
         : ok({ active: false });
     }
 
@@ -111,7 +117,13 @@ app.http('subscriptionStatus', {
 
     const sub = await store.activeSubscriptionByEmail(payload.email);
     return sub
-      ? ok({ active: true, tier: sub.tier, at: sub.at, orderId: sub.orderId })
+      ? ok({
+          active: true,
+          tier: sub.tier,
+          at: sub.at,
+          orderId: sub.orderId,
+          lifetime: !!sub.lifetime,
+        })
       : ok({ active: false });
   },
 });
