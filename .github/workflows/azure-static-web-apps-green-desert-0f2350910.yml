@@ -9,6 +9,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   # Production deploy only. PR staging environments are limited on the Free
   # SWA tier and fill up quickly with open Cursor/Dependabot PRs, which
@@ -39,6 +42,58 @@ jobs:
           api_location: "api" # Api source code path - optional
           output_location: "dist" # Built app content directory - optional
           ###### End of Repository/Build Configurations ######
+
+  sync_email_settings:
+    if: github.event_name == 'push'
+    needs: build_and_deploy_job
+    runs-on: ubuntu-latest
+    name: Sync email settings
+    steps:
+      - name: Check prerequisites
+        id: gate
+        env:
+          AZURE_CREDS: ${{ secrets.AZURE_CREDENTIALS }}
+          RESEND_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          if [ -z "$AZURE_CREDS" ] || [ -z "$RESEND_KEY" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping email sync — set AZURE_CREDENTIALS and RESEND_API_KEY GitHub secrets."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Azure login
+        if: steps.gate.outputs.enabled == 'true'
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Push RESEND_API_KEY and EMAIL_FROM to SWA production
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          SWA_NAME: ${{ vars.AZURE_SWA_NAME }}
+          SWA_RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          NAME="${SWA_NAME:-SprintDeck-Enterprise}"
+          if [ -z "${EMAIL_FROM:-}" ]; then
+            echo "Set GitHub secret EMAIL_FROM."
+            exit 1
+          fi
+          if [ -z "${SWA_RG:-}" ]; then
+            echo "Set repository variable AZURE_RESOURCE_GROUP."
+            exit 1
+          fi
+          echo "Syncing email settings to SWA: $NAME (resource group: $SWA_RG)"
+          az staticwebapp appsettings set \
+            --name "$NAME" \
+            --resource-group "$SWA_RG" \
+            --setting-names \
+              "RESEND_API_KEY=${RESEND_API_KEY}" \
+              "EMAIL_FROM=${EMAIL_FROM}"
+          echo "Verify: https://sprintdeck.in/api/auth/email-status"
 
   # PR validation without creating Azure staging environments.
   pr_build_job:

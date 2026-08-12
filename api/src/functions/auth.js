@@ -197,6 +197,8 @@ app.http('emailStatus', {
         emailFrom: !!(process.env.EMAIL_FROM && String(process.env.EMAIL_FROM).trim()),
       },
       host: process.env.WEBSITE_HOSTNAME || null,
+      hint:
+        'When envPresent.jwt is true but resend/emailFrom are false, RESEND_API_KEY and EMAIL_FROM are missing or empty in Azure SWA Environment variables (Production).',
     }),
 });
 
