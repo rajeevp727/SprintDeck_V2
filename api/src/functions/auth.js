@@ -125,16 +125,42 @@ app.http('changePassword', {
   route: 'auth/password',
   handler: async (req, context) => {
     if (!secret()) return bad('Auth is not configured', 503);
-    if (!isEmailConfigured()) {
-      context.error('[password-change] Email not configured — set RESEND_API_KEY or SENDGRID_API_KEY in Azure');
-      return bad('Password-change email is not configured yet. Contact support.', 503);
-    }
     if (rateLimited(req, 'pwchange', 5, 60_000)) return bad('Too many attempts — slow down', 429);
     const token = req.headers.get('x-auth-token') || '';
     const payload = token && jwt.verify(token, secret());
     if (!payload) return bad('Please sign in again', 401);
     const user = await users.getByEmail(payload.email);
     if (!user) return bad('Account not found', 404);
+
+    const body = await readBody(req);
+    const currentPassword = String(body.currentPassword || '');
+    const newPassword = String(body.newPassword || '');
+
+    // Direct change (fallback when email delivery is not configured, or explicit form submit).
+    if (currentPassword || newPassword) {
+      if (newPassword.length < minPassword) {
+        return bad(`New password must be at least ${minPassword} characters`);
+      }
+      if (!users.verifyPassword(user, currentPassword)) {
+        audit(context, 'auth.password.failed', { email: payload.email });
+        return bad('Current password is incorrect', 401);
+      }
+      if (currentPassword === newPassword) {
+        return bad('New password must be different from the current one');
+      }
+      await users.updatePassword(payload.email, newPassword);
+      audit(context, 'auth.password.changed', { email: payload.email });
+      return ok({ ok: true, method: 'direct' });
+    }
+
+    // Preferred path: email a one-time link.
+    if (!isEmailConfigured()) {
+      context.error('[password-change] Email not configured — set RESEND_API_KEY + EMAIL_FROM in Azure SWA Application settings');
+      return bad(
+        'Password email is not configured on the server. Add RESEND_API_KEY and EMAIL_FROM in Azure Static Web Apps → Configuration → Application settings, then try again.',
+        503,
+      );
+    }
     try {
       const resetToken = await resetTokenStore.saveResetToken(user.email, user.id);
       const resetUrl = `${appBaseUrl(req)}/reset-password?token=${encodeURIComponent(resetToken)}`;
@@ -145,8 +171,15 @@ app.http('changePassword', {
       context.error(`[password-change] email failed: ${(err && err.message) || err}`);
       return bad('Could not send password-change email — try again in a few minutes', 502);
     }
-    return ok({ ok: true, emailedTo: user.email });
+    return ok({ ok: true, method: 'email', emailedTo: user.email });
   },
+});
+
+app.http('emailStatus', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'auth/email-status',
+  handler: async () => ok({ configured: isEmailConfigured() }),
 });
 
 app.http('authMe', {
@@ -192,7 +225,10 @@ app.http('forgotPassword', {
     if (!secret()) return ok({ ok: true });
     if (!isEmailConfigured()) {
       context.error('[forgot-password] Email not configured — set RESEND_API_KEY or SENDGRID_API_KEY in Azure');
-      return bad('Password reset email is not configured yet. Contact support.', 503);
+      return bad(
+        'Password reset email is not configured on the server. Add RESEND_API_KEY and EMAIL_FROM in Azure Static Web Apps → Configuration → Application settings.',
+        503,
+      );
     }
     if (rateLimited(req, 'forgotpw', 5, 60_000)) return bad('Too many attempts — slow down', 429);
     const { email } = await readBody(req);

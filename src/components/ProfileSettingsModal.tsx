@@ -1,8 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import {
+  changePassword,
   checkName,
   deleteAccount,
   exportAccountData,
+  getEmailStatus,
   peekName,
   requestPasswordChangeEmail,
   updateProfile,
@@ -25,10 +27,16 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
   const [nameDone, setNameDone] = useState(false);
   const [nameError, setNameError] = useState('');
 
+  const [emailConfigured, setEmailConfigured] = useState<boolean | null>(null);
   const [pwBusy, setPwBusy] = useState(false);
   const [pwDone, setPwDone] = useState(false);
   const [pwError, setPwError] = useState('');
   const [pwEmailedTo, setPwEmailedTo] = useState('');
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [useDirectPw, setUseDirectPw] = useState(false);
 
   const [exportBusy, setExportBusy] = useState(false);
   const [exportError, setExportError] = useState('');
@@ -47,6 +55,26 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getEmailStatus()
+      .then((s) => {
+        if (!cancelled) {
+          setEmailConfigured(s.configured);
+          if (!s.configured) setUseDirectPw(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setEmailConfigured(false);
+          setUseDirectPw(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const trimmed = name.trim();
@@ -98,9 +126,37 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
       const { emailedTo } = await requestPasswordChangeEmail();
       setPwEmailedTo(emailedTo || user.email);
       setPwDone(true);
+      setEmailConfigured(true);
+      setUseDirectPw(false);
+    } catch (err) {
+      const msg = (err as Error).message;
+      setPwError(msg);
+      setPwDone(false);
+      if (/not configured/i.test(msg)) {
+        setEmailConfigured(false);
+        setUseDirectPw(true);
+      }
+    } finally {
+      setPwBusy(false);
+    }
+  }
+
+  async function savePasswordDirect(e: FormEvent) {
+    e.preventDefault();
+    if (next.length < 8) return setPwError('New password must be at least 8 characters');
+    if (next !== confirm) return setPwError('New passwords don’t match');
+    if (next === current) return setPwError('New password must be different from the current one');
+    setPwError('');
+    setPwBusy(true);
+    try {
+      await changePassword(current, next);
+      setPwDone(true);
+      setCurrent('');
+      setNext('');
+      setConfirm('');
+      setTimeout(() => setPwDone(false), 2500);
     } catch (err) {
       setPwError((err as Error).message);
-      setPwDone(false);
     } finally {
       setPwBusy(false);
     }
@@ -199,35 +255,115 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
 
         <section className="profile-settings-section" aria-labelledby="password-heading">
           <h4 id="password-heading">Password</h4>
-          <p className="auth-hint">
-            For security, password changes are completed through a one-time link sent to your email — we never
-            ask you to type a new password here.
-          </p>
-          <ul className="gdpr-list">
-            <li>Link is sent only to your account email</li>
-            <li>Expires in 30 minutes and can be used once</li>
-            <li>If you did not request it, ignore the email — your password stays the same</li>
-          </ul>
-          {pwDone ? (
-            <div className="pw-email-sent" role="status">
-              <p className="auth-hint" style={{ color: 'var(--green)' }}>
-                Check <strong>{pwEmailedTo || user.email}</strong> for a secure password link.
-              </p>
-              <p className="auth-hint">Open the link to choose a new password, then sign in again if prompted.</p>
-              <div className="profile-gdpr-actions">
-                <button type="button" className="ghost" onClick={sendPasswordLink} disabled={pwBusy}>
-                  {pwBusy ? 'Sending…' : 'Resend link'}
-                </button>
-              </div>
-            </div>
+          {emailConfigured === null ? (
+            <p className="auth-hint">Checking password options…</p>
+          ) : emailConfigured === false || useDirectPw ? (
+            <>
+              <p className="auth-hint">Confirm your current password, then choose a new one.</p>
+              {emailConfigured === false ? (
+                <div className="pw-email-setup" role="status">
+                  <p className="auth-hint">
+                    Email delivery is not configured on the live server yet. Add{' '}
+                    <strong>RESEND_API_KEY</strong> and <strong>EMAIL_FROM</strong> in Azure Static Web Apps →
+                    Configuration → Application settings to enable one-time email links.
+                  </p>
+                </div>
+              ) : null}
+              {pwDone && !pwEmailedTo ? (
+                <p className="auth-hint" style={{ color: 'var(--green)' }} role="status">
+                  Password updated
+                </p>
+              ) : (
+                <form className="auth-form" onSubmit={savePasswordDirect}>
+                  <label>
+                    Current password
+                    <input
+                      type={showPw ? 'text' : 'password'}
+                      value={current}
+                      autoComplete="current-password"
+                      onChange={(e) => setCurrent(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <label>
+                    New password
+                    <input
+                      type={showPw ? 'text' : 'password'}
+                      value={next}
+                      autoComplete="new-password"
+                      minLength={8}
+                      onChange={(e) => setNext(e.target.value)}
+                      required
+                    />
+                    <span className="auth-hint">At least 8 characters</span>
+                  </label>
+                  <label>
+                    Confirm new password
+                    <input
+                      type={showPw ? 'text' : 'password'}
+                      value={confirm}
+                      autoComplete="new-password"
+                      onChange={(e) => setConfirm(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <label className="pw-show">
+                    <input type="checkbox" checked={showPw} onChange={(e) => setShowPw(e.target.checked)} />
+                    Show passwords
+                  </label>
+                  <button type="submit" className="primary" disabled={pwBusy}>
+                    {pwBusy ? 'Updating…' : 'Reset / change password'}
+                  </button>
+                  {emailConfigured ? (
+                    <button
+                      type="button"
+                      className="linkish"
+                      onClick={() => {
+                        setUseDirectPw(false);
+                        setPwError('');
+                        setPwDone(false);
+                      }}
+                    >
+                      Prefer email link instead
+                    </button>
+                  ) : null}
+                  {pwError ? <p className="error">{pwError}</p> : null}
+                </form>
+              )}
+            </>
           ) : (
-            <div className="profile-gdpr-actions">
-              <button type="button" className="primary" onClick={sendPasswordLink} disabled={pwBusy}>
-                {pwBusy ? 'Sending…' : 'Reset / change password'}
-              </button>
-            </div>
+            <>
+              <p className="auth-hint">
+                For security, password changes are completed through a one-time link sent to your email — we never
+                ask you to type a new password here.
+              </p>
+              <ul className="gdpr-list">
+                <li>Link is sent only to your account email</li>
+                <li>Expires in 30 minutes and can be used once</li>
+                <li>If you did not request it, ignore the email — your password stays the same</li>
+              </ul>
+              {pwDone ? (
+                <div className="pw-email-sent" role="status">
+                  <p className="auth-hint" style={{ color: 'var(--green)' }}>
+                    Check <strong>{pwEmailedTo || user.email}</strong> for a secure password link.
+                  </p>
+                  <p className="auth-hint">Open the link to choose a new password, then sign in again if prompted.</p>
+                  <div className="profile-gdpr-actions">
+                    <button type="button" className="ghost" onClick={sendPasswordLink} disabled={pwBusy}>
+                      {pwBusy ? 'Sending…' : 'Resend link'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="profile-gdpr-actions">
+                  <button type="button" className="primary" onClick={sendPasswordLink} disabled={pwBusy}>
+                    {pwBusy ? 'Sending…' : 'Reset / change password'}
+                  </button>
+                </div>
+              )}
+              {pwError ? <p className="error">{pwError}</p> : null}
+            </>
           )}
-          {pwError ? <p className="error">{pwError}</p> : null}
         </section>
 
         <section className="profile-settings-section profile-settings-gdpr" aria-labelledby="gdpr-export-heading">
