@@ -186,8 +186,17 @@ app.http('emailStatus', {
         resend: !!(process.env.RESEND_API_KEY && String(process.env.RESEND_API_KEY).trim()),
         sendgrid: !!(process.env.SENDGRID_API_KEY && String(process.env.SENDGRID_API_KEY).trim()),
       },
-      // Never returns secret values — only whether EMAIL_FROM is set.
       hasFrom: !!(process.env.EMAIL_FROM && String(process.env.EMAIL_FROM).trim()),
+      // Booleans only — confirms which backend settings the Functions host sees.
+      envPresent: {
+        jwt: !!(process.env.JWT_SECRET && String(process.env.JWT_SECRET).trim()),
+        cosmos: !!(process.env.COSMOS_CONNECTION_STRING && String(process.env.COSMOS_CONNECTION_STRING).trim()),
+        ingest: !!(process.env.INGEST_SECRET && String(process.env.INGEST_SECRET).trim()),
+        webpubsub: !!(process.env.WEBPUBSUB_CONNECTION_STRING && String(process.env.WEBPUBSUB_CONNECTION_STRING).trim()),
+        resend: !!(process.env.RESEND_API_KEY && String(process.env.RESEND_API_KEY).trim()),
+        emailFrom: !!(process.env.EMAIL_FROM && String(process.env.EMAIL_FROM).trim()),
+      },
+      host: process.env.WEBSITE_HOSTNAME || null,
     }),
 });
 
