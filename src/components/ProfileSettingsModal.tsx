@@ -216,14 +216,14 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
               <p className="auth-hint">Open the link to choose a new password, then sign in again if prompted.</p>
               <div className="profile-gdpr-actions">
                 <button type="button" className="ghost" onClick={sendPasswordLink} disabled={pwBusy}>
-                  {pwBusy ? 'Sending…' : 'Resend email'}
+                  {pwBusy ? 'Sending…' : 'Resend link'}
                 </button>
               </div>
             </div>
           ) : (
             <div className="profile-gdpr-actions">
               <button type="button" className="primary" onClick={sendPasswordLink} disabled={pwBusy}>
-                {pwBusy ? 'Sending link…' : 'Email me a password link'}
+                {pwBusy ? 'Sending…' : 'Reset / change password'}
               </button>
             </div>
           )}
