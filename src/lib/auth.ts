@@ -74,16 +74,17 @@ export function logout() {
   notify();
 }
 
-export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+export async function requestPasswordChangeEmail(): Promise<{ emailedTo: string }> {
   const token = getToken();
   const res = await fetch('/api/auth/password', {
     method: 'POST',
     cache: 'no-store',
     headers: { 'Content-Type': 'application/json', ...(token ? { 'x-auth-token': token } : {}) },
-    body: JSON.stringify({ currentPassword, newPassword }),
+    body: '{}',
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+  return { emailedTo: String(data.emailedTo || cachedUser?.email || '') };
 }
 
 export async function updateProfile(name: string): Promise<AuthUser> {

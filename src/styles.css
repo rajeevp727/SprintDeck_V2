@@ -2850,6 +2850,12 @@ a.room-code:hover {
 .profile-delete-actions .danger {
   flex: 1 1 auto;
 }
+.pw-email-sent {
+  margin-top: 0.5rem;
+}
+.pw-email-sent .auth-hint {
+  margin: 0.25rem 0;
+}
 button.danger {
   background: color-mix(in srgb, var(--danger) 85%, #000);
   border: 1px solid var(--danger);

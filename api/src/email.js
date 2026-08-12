@@ -89,13 +89,18 @@ function isEmailConfigured() {
   return !!(process.env.RESEND_API_KEY || process.env.SENDGRID_API_KEY);
 }
 
-async function sendPasswordResetEmail(to, resetUrl) {
-  const subject = 'Reset your SprintDeck password';
-  const text = `Reset your SprintDeck password using this link (valid for 30 minutes):\n\n${resetUrl}\n\nIf you did not request this, you can ignore this email.`;
+async function sendPasswordResetEmail(to, resetUrl, { reason } = {}) {
+  const fromSettings = reason === 'settings';
+  const subject = fromSettings ? 'Change your SprintDeck password' : 'Reset your SprintDeck password';
+  const intro = fromSettings
+    ? 'You requested a password change from Account settings. Use this one-time link to set a new password (valid for 30 minutes):'
+    : 'Reset your SprintDeck password using this link (valid for 30 minutes):';
+  const text = `${intro}\n\n${resetUrl}\n\nIf you did not request this, you can ignore this email — your password will stay the same.`;
   const html = `
-    <p>Reset your SprintDeck password using the link below (valid for 30 minutes):</p>
-    <p><a href="${resetUrl}">${resetUrl}</a></p>
-    <p>If you did not request this, you can ignore this email.</p>
+    <p>${intro}</p>
+    <p><a href="${resetUrl}">Set a new password</a></p>
+    <p style="color:#666;font-size:13px;word-break:break-all;">${resetUrl}</p>
+    <p>If you did not request this, you can ignore this email — your password will stay the same.</p>
   `;
   return sendEmail({ to, subject, html, text });
 }

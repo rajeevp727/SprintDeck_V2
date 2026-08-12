@@ -1,5 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { changePassword, checkName, deleteAccount, exportAccountData, peekName, updateProfile, type AuthUser } from '../lib/auth';
+import {
+  checkName,
+  deleteAccount,
+  exportAccountData,
+  peekName,
+  requestPasswordChangeEmail,
+  updateProfile,
+  type AuthUser,
+} from '../lib/auth';
 import { CloseIcon } from './icons';
 
 interface Props {
@@ -17,13 +25,10 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
   const [nameDone, setNameDone] = useState(false);
   const [nameError, setNameError] = useState('');
 
-  const [current, setCurrent] = useState('');
-  const [next, setNext] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [showPw, setShowPw] = useState(false);
   const [pwBusy, setPwBusy] = useState(false);
   const [pwDone, setPwDone] = useState(false);
   const [pwError, setPwError] = useState('');
+  const [pwEmailedTo, setPwEmailedTo] = useState('');
 
   const [exportBusy, setExportBusy] = useState(false);
   const [exportError, setExportError] = useState('');
@@ -86,22 +91,16 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
     }
   }
 
-  async function savePassword(e: FormEvent) {
-    e.preventDefault();
-    if (next.length < 8) return setPwError('New password must be at least 8 characters');
-    if (next !== confirm) return setPwError('New passwords don’t match');
-    if (next === current) return setPwError('New password must be different from the current one');
+  async function sendPasswordLink() {
     setPwError('');
     setPwBusy(true);
     try {
-      await changePassword(current, next);
+      const { emailedTo } = await requestPasswordChangeEmail();
+      setPwEmailedTo(emailedTo || user.email);
       setPwDone(true);
-      setCurrent('');
-      setNext('');
-      setConfirm('');
-      setTimeout(() => setPwDone(false), 1500);
     } catch (err) {
       setPwError((err as Error).message);
+      setPwDone(false);
     } finally {
       setPwBusy(false);
     }
@@ -162,7 +161,6 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
 
   const nameChanged = name.trim().toLowerCase() !== (user.name || '').trim().toLowerCase();
   const canSaveName = nameChanged && name.trim().length >= 2 && nameStatus !== 'taken' && nameStatus !== 'checking';
-  const pwType = showPw ? 'text' : 'password';
   const deleteReady =
     deleteAck && deleteConfirm.trim().toUpperCase() === DELETE_CONFIRM_WORD && deletePw.length > 0 && !deleteBusy;
 
@@ -174,7 +172,7 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
         </button>
 
         <h3>Account settings</h3>
-        <p className="auth-sub">Update your display name and password.</p>
+        <p className="auth-sub">Manage your profile, password, and data.</p>
 
         <section className="profile-settings-section">
           <h4>Display name</h4>
@@ -199,51 +197,37 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
           </form>
         </section>
 
-        <section className="profile-settings-section">
-          <h4>Password</h4>
+        <section className="profile-settings-section" aria-labelledby="password-heading">
+          <h4 id="password-heading">Password</h4>
+          <p className="auth-hint">
+            For security, password changes are completed through a one-time link sent to your email — we never
+            ask you to type a new password here.
+          </p>
+          <ul className="gdpr-list">
+            <li>Link is sent only to your account email</li>
+            <li>Expires in 30 minutes and can be used once</li>
+            <li>If you did not request it, ignore the email — your password stays the same</li>
+          </ul>
           {pwDone ? (
-            <p className="auth-hint" style={{ color: 'var(--green)' }}>Password updated</p>
+            <div className="pw-email-sent" role="status">
+              <p className="auth-hint" style={{ color: 'var(--green)' }}>
+                Check <strong>{pwEmailedTo || user.email}</strong> for a secure password link.
+              </p>
+              <p className="auth-hint">Open the link to choose a new password, then sign in again if prompted.</p>
+              <div className="profile-gdpr-actions">
+                <button type="button" className="ghost" onClick={sendPasswordLink} disabled={pwBusy}>
+                  {pwBusy ? 'Sending…' : 'Resend email'}
+                </button>
+              </div>
+            </div>
           ) : (
-            <form className="auth-form" onSubmit={savePassword}>
-              <label>
-                Current password
-                <input
-                  type={pwType}
-                  value={current}
-                  autoComplete="current-password"
-                  onChange={(e) => setCurrent(e.target.value)}
-                />
-              </label>
-              <label>
-                New password
-                <input
-                  type={pwType}
-                  value={next}
-                  autoComplete="new-password"
-                  minLength={8}
-                  onChange={(e) => setNext(e.target.value)}
-                />
-                <span className="auth-hint">At least 8 characters</span>
-              </label>
-              <label>
-                Confirm new password
-                <input
-                  type={pwType}
-                  value={confirm}
-                  autoComplete="new-password"
-                  onChange={(e) => setConfirm(e.target.value)}
-                />
-              </label>
-              <label className="pw-show">
-                <input type="checkbox" checked={showPw} onChange={(e) => setShowPw(e.target.checked)} />
-                Show passwords
-              </label>
-              <button type="submit" className="primary" disabled={pwBusy}>
-                {pwBusy ? 'Updating…' : 'Update password'}
+            <div className="profile-gdpr-actions">
+              <button type="button" className="primary" onClick={sendPasswordLink} disabled={pwBusy}>
+                {pwBusy ? 'Sending link…' : 'Email me a password link'}
               </button>
-              {pwError ? <p className="error">{pwError}</p> : null}
-            </form>
+            </div>
           )}
+          {pwError ? <p className="error">{pwError}</p> : null}
         </section>
 
         <section className="profile-settings-section profile-settings-gdpr" aria-labelledby="gdpr-export-heading">

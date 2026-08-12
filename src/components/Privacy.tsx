@@ -66,7 +66,8 @@ export default function Privacy({ onBack }: Props) {
           profile, sign you out, and anonymise linked subscription records. Deletion is permanent.
         </li>
         <li>
-          <strong>Rectification:</strong> update your display name and password in Account settings.
+          <strong>Rectification:</strong> update your display name in Account settings. Change your password
+          via the secure email link from Account settings (or Forgot password when signed out).
         </li>
         <li>
           <strong>Withdraw consent:</strong> reject non-essential cookies in the banner; clear site data in

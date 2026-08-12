@@ -81,8 +81,8 @@ export default function Security({ onBack }: Props) {
           Bank-ingest receipts are redacted before storage; client error logs strip email addresses.
         </li>
         <li>
-          Security events (login, password change, account deletion, exports) are audit-logged without
-          storing passwords.
+          Security events (login, password-change requests, resets, account deletion, exports) are
+          audit-logged without storing passwords.
         </li>
       </ul>
 
