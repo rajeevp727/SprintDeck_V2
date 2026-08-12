@@ -61,6 +61,7 @@ export const tiers: Tier[] = [
 export interface Subscription {
   tier: TierId;
   at: string;
+  lifetime?: boolean;
 }
 
 const subRefKey = 'sprintdeck.subscription'; 
@@ -100,7 +101,11 @@ export async function refreshSubscription(): Promise<Subscription | null> {
       if (res.orderId && res.orderId !== orderId) {
         setSubscriptionRef(res.orderId);
       }
-      cachedSub = { tier: res.tier as TierId, at: res.at ?? new Date().toISOString() };
+      cachedSub = {
+        tier: res.tier as TierId,
+        at: res.at ?? new Date().toISOString(),
+        lifetime: !!res.lifetime,
+      };
     } else {
       cachedSub = null;
     }
