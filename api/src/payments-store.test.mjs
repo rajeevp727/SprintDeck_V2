@@ -40,11 +40,24 @@ describe('payments-store', () => {
   });
 
   it('lifetime grant stays active after 30 days', async () => {
-    const { order } = await store.grantSubscription('life@example.com', 'master', { lifetime: true });
+    const { order } = await store.grantSubscription('mrrajeev18@gmail.com', 'master', { lifetime: true });
     expect(order.lifetime).toBe(true);
     order.confirmedAt = Date.now() - 400 * 24 * 60 * 60 * 1000;
     const sub = await store.activeSubscription(order.id);
     expect(sub).toMatchObject({ tier: 'master', lifetime: true, orderId: order.id });
+  });
+
+  it('rejects lifetime grant for non-allowlisted emails', async () => {
+    const result = await store.grantSubscription('other@example.com', 'master', { lifetime: true });
+    expect(result.error).toBe('lifetime-not-allowed');
+  });
+
+  it('ignores lifetime flag on non-allowlisted order emails', async () => {
+    const { order } = await store.grantSubscription('other@example.com', 'master');
+    order.lifetime = true;
+    order.grantedBy = 'admin-lifetime';
+    order.confirmedAt = Date.now() - 400 * 24 * 60 * 60 * 1000;
+    expect(await store.activeSubscription(order.id)).toBeNull();
   });
 
   it('grantSubscription rejects invalid tier', async () => {
