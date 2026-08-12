@@ -139,7 +139,7 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
           className="wb-plan-pill"
           onClick={() => setShowSubscribe(true)}
         >
-          ✨ Free · Upgrade to host
+          ✨ Upgrade to host
         </button>
       ) : null}
 

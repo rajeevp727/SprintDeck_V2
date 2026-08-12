@@ -110,8 +110,8 @@ export default function ProfileMenu() {
                   ✨
                 </span>
                 <span className="profile-plan-copy">
-                  <span className="profile-plan-name">Free</span>
-                  <span className="profile-plan-meta">Upgrade for retros, whiteboards &amp; more</span>
+                  <span className="profile-plan-name">No plan</span>
+                  <span className="profile-plan-meta">Choose Pro, Expert, or Master</span>
                 </span>
                 <span className="profile-plan-action">Upgrade</span>
               </button>
