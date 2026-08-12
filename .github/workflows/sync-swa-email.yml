@@ -1,0 +1,48 @@
+name: Sync email settings to Azure SWA
+
+# GitHub demo-doc workflows already send mail with RESEND_API_KEY, but those
+# secrets do not reach the live API until they are copied into SWA app settings.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    if: secrets.AZURE_CREDENTIALS != '' && secrets.RESEND_API_KEY != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Push RESEND_API_KEY and EMAIL_FROM to production API settings
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          SWA_NAME: ${{ vars.AZURE_SWA_NAME }}
+          SWA_RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          NAME="${SWA_NAME:-SprintDeck-Enterprise}"
+          if [ -z "${EMAIL_FROM:-}" ]; then
+            echo "Set GitHub secret EMAIL_FROM (e.g. SprintDeck <noreply@your-domain>)."
+            exit 1
+          fi
+          if [ -z "${SWA_RG:-}" ]; then
+            echo "Set repository variable AZURE_RESOURCE_GROUP (Static Web App resource group)."
+            exit 1
+          fi
+          echo "Syncing email settings to SWA: $NAME (resource group: $SWA_RG)"
+          az staticwebapp appsettings set \
+            --name "$NAME" \
+            --resource-group "$SWA_RG" \
+            --setting-names \
+              "RESEND_API_KEY=${RESEND_API_KEY}" \
+              "EMAIL_FROM=${EMAIL_FROM}"
+          echo "Done. Verify: https://sprintdeck.in/api/auth/email-status"

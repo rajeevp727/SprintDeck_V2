@@ -263,9 +263,20 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
               {emailConfigured === false ? (
                 <div className="pw-email-setup" role="status">
                   <p className="auth-hint">
-                    Email delivery is not configured on the live server yet. Add{' '}
-                    <strong>RESEND_API_KEY</strong> and <strong>EMAIL_FROM</strong> in Azure Static Web Apps →
-                    Configuration → Application settings to enable one-time email links.
+                    Email delivery is not active on the live API yet. In Azure Portal → Environment variables →
+                    Production, set <strong>RESEND_API_KEY</strong> and <strong>EMAIL_FROM</strong>, then click{' '}
+                    <strong>Apply</strong> twice.
+                  </p>
+                  <p className="auth-hint">
+                    Or run the GitHub workflow <strong>Sync email settings to Azure SWA</strong> (needs{' '}
+                    <code>AZURE_CREDENTIALS</code> + repo variables <code>AZURE_RESOURCE_GROUP</code>).
+                  </p>
+                  <p className="auth-hint">
+                    Check{' '}
+                    <a href="/api/auth/email-status" target="_blank" rel="noopener noreferrer">
+                      /api/auth/email-status
+                    </a>{' '}
+                    — you want <code>configured: true</code>.
                   </p>
                 </div>
               ) : null}
