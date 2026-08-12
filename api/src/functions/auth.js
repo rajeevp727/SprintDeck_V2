@@ -179,7 +179,16 @@ app.http('emailStatus', {
   methods: ['GET'],
   authLevel: 'anonymous',
   route: 'auth/email-status',
-  handler: async () => ok({ configured: isEmailConfigured() }),
+  handler: async () =>
+    ok({
+      configured: isEmailConfigured(),
+      providers: {
+        resend: !!(process.env.RESEND_API_KEY && String(process.env.RESEND_API_KEY).trim()),
+        sendgrid: !!(process.env.SENDGRID_API_KEY && String(process.env.SENDGRID_API_KEY).trim()),
+      },
+      // Never returns secret values — only whether EMAIL_FROM is set.
+      hasFrom: !!(process.env.EMAIL_FROM && String(process.env.EMAIL_FROM).trim()),
+    }),
 });
 
 app.http('authMe', {
