@@ -76,3 +76,19 @@ jobs:
           base: main
           delete-branch: true
           labels: documentation
+
+      - name: Email IMPORTANT demo doc to owner
+        if: always()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+        run: |
+          if [ -z "$RESEND_API_KEY" ] && [ -z "$SENDGRID_API_KEY" ]; then
+            echo "Skipping email — add RESEND_API_KEY (or SENDGRID_API_KEY) + EMAIL_FROM repo secrets."
+            exit 0
+          fi
+          if [ -z "$EMAIL_FROM" ]; then
+            export EMAIL_FROM='SprintDeck <noreply@sprintdeck.in>'
+          fi
+          node scripts/email-demo-doc.cjs mrrajeev18@gmail.com

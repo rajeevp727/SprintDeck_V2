@@ -1,0 +1,47 @@
+name: Email demo documentation
+
+# Send the feature demo guide as a high-importance email.
+on:
+  workflow_dispatch:
+    inputs:
+      to:
+        description: 'Recipient email'
+        required: true
+        default: 'mrrajeev18@gmail.com'
+        type: string
+  workflow_call:
+    inputs:
+      to:
+        required: false
+        type: string
+        default: 'mrrajeev18@gmail.com'
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Send IMPORTANT demo documentation email
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          DEMO_DOC_EMAIL_TO: ${{ inputs.to || 'mrrajeev18@gmail.com' }}
+        run: |
+          if [ -z "$RESEND_API_KEY" ] && [ -z "$SENDGRID_API_KEY" ]; then
+            echo "Missing RESEND_API_KEY or SENDGRID_API_KEY GitHub secret."
+            echo "Add the same keys you use in Azure (SprintDeck-Enterprise)."
+            exit 1
+          fi
+          if [ -z "$EMAIL_FROM" ]; then
+            export EMAIL_FROM='SprintDeck <noreply@sprintdeck.in>'
+          fi
+          node scripts/email-demo-doc.cjs "$DEMO_DOC_EMAIL_TO"
