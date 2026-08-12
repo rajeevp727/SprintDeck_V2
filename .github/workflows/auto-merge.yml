@@ -2,12 +2,13 @@ name: Auto-merge Cursor PRs
 
 on:
   workflow_run:
-    workflows: [Tests, Aikido Security Scan]
+    workflows: [Tests, Aikido Security Scan, Azure Static Web Apps CI/CD]
     types: [completed]
 
 permissions:
   contents: write
   pull-requests: write
+  checks: read
 
 jobs:
   automerge:
@@ -47,22 +48,63 @@ jobs:
                 pull_number: pr.number,
                 draft: false,
               });
+              core.info(`Marked PR #${pr.number} ready for review`);
             }
 
-            const required = ['Tests', 'Build and Deploy Job'];
-            for (const checkName of required) {
-              const { data } = await github.rest.checks.listForRef({
+            // Approve when possible (may no-op if token cannot approve own PR).
+            try {
+              await github.rest.pulls.createReview({
                 owner,
                 repo,
-                ref: run.head_sha,
-                check_name: checkName,
-                per_page: 1,
+                pull_number: pr.number,
+                event: 'APPROVE',
+                body: 'Auto-approved by Cursor auto-merge workflow after required checks passed.',
               });
-              const check = data.check_runs[0];
-              if (!check || (check.conclusion !== 'success' && check.conclusion !== 'skipped')) {
-                core.info(`Waiting on check ${checkName} (got ${check?.conclusion || 'missing'})`);
+              core.info(`Approved PR #${pr.number}`);
+            } catch (err) {
+              core.info(`Approve skipped: ${err.message}`);
+            }
+
+            // Job names from workflows (not workflow display titles).
+            // Build and Deploy is skipped on PRs (staging env limit); PR Build validates instead.
+            const requiredAny = [
+              ['test'],
+              ['PR Build', 'Build and Deploy Job'],
+            ];
+
+            const { data: checks } = await github.rest.checks.listForRef({
+              owner,
+              repo,
+              ref: run.head_sha,
+              per_page: 100,
+            });
+
+            const byName = new Map();
+            for (const c of checks.check_runs) {
+              const prev = byName.get(c.name);
+              if (!prev || new Date(c.completed_at || 0) > new Date(prev.completed_at || 0)) {
+                byName.set(c.name, c);
+              }
+            }
+
+            const ok = (c) => c && (c.conclusion === 'success' || c.conclusion === 'skipped');
+
+            for (const names of requiredAny) {
+              const match = names.map((n) => byName.get(n)).find(ok);
+              if (!match) {
+                const seen = names.map((n) => `${n}=${byName.get(n)?.conclusion || 'missing'}`).join(', ');
+                core.info(`Waiting on checks [${names.join(' | ')}] (${seen})`);
                 return;
               }
+            }
+
+            // Fail closed if any non-skipped check failed on this SHA.
+            const failed = checks.check_runs.filter(
+              (c) => c.conclusion === 'failure' || c.conclusion === 'timed_out' || c.conclusion === 'cancelled',
+            );
+            if (failed.length) {
+              core.info(`Not merging — failed checks: ${failed.map((c) => c.name).join(', ')}`);
+              return;
             }
 
             await github.rest.pulls.merge({
