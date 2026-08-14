@@ -149,6 +149,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
         >
           <h2>Log in</h2>
 
+          <div className="auth-card">
           {accounts.length > 0 && (
             <div className="auth-suggest">
               <div className="auth-suggest-label">Saved accounts</div>
@@ -259,6 +260,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
             </div>
           )}
           <SocialAuthButtons remember={liRemember} onSuccess={onAuthed} mode="login" />
+          </div>
         </section>
 
         {}
@@ -268,6 +270,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
         >
           <h2>Create account</h2>
 
+          <div className="auth-card">
           <form className="auth-form" onSubmit={doRegister}>
             <div className="auth-row">
               <label>
@@ -379,6 +382,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
             </div>
           )}
           <SocialAuthButtons remember onSuccess={onAuthed} mode="signup" />
+          </div>
         </section>
       </div>
 
