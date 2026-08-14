@@ -9,6 +9,10 @@ function configured() {
   };
 }
 
+function looksLikeJwt(token) {
+  return String(token || '').split('.').length === 3;
+}
+
 async function verifyGoogleIdToken(idToken) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId) throw new Error('Google sign-in is not configured');
@@ -27,6 +31,36 @@ async function verifyGoogleIdToken(idToken) {
     email: String(payload.email).toLowerCase(),
     name: String(payload.name || payload.given_name || '').trim(),
     providerSub: String(payload.sub || ''),
+  };
+}
+
+async function verifyGoogleAccessToken(accessToken) {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) throw new Error('Google sign-in is not configured');
+
+  const tokenInfoRes = await fetch(
+    `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`,
+  );
+  if (!tokenInfoRes.ok) throw new Error('Invalid Google token');
+  const tokenInfo = await tokenInfoRes.json();
+  const audience = String(tokenInfo.aud || tokenInfo.azp || '');
+  if (audience !== clientId) throw new Error('Google token audience mismatch');
+  if (String(tokenInfo.email_verified || '') !== 'true') {
+    throw new Error('Google account email is not verified');
+  }
+
+  const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!userinfoRes.ok) throw new Error('Could not load Google profile');
+  const user = await userinfoRes.json();
+
+  if (!user.email) throw new Error('Google account has no email');
+
+  return {
+    email: String(user.email).toLowerCase(),
+    name: String(user.name || '').trim(),
+    providerSub: String(user.sub || tokenInfo.sub || ''),
   };
 }
 
@@ -56,7 +90,9 @@ async function verifyMicrosoftIdToken(idToken) {
 }
 
 async function verifyProviderToken(provider, idToken) {
-  if (provider === 'google') return verifyGoogleIdToken(idToken);
+  if (provider === 'google') {
+    return looksLikeJwt(idToken) ? verifyGoogleIdToken(idToken) : verifyGoogleAccessToken(idToken);
+  }
   if (provider === 'microsoft') return verifyMicrosoftIdToken(idToken);
   throw new Error('Unsupported sign-in provider');
 }

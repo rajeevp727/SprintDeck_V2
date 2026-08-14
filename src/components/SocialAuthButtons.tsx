@@ -1,5 +1,5 @@
-import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
-import { useEffect, useState } from 'react';
+import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
+import { useEffect, useState, type ReactNode } from 'react';
 import { loginWithOAuth } from '../lib/auth';
 import {
   fetchOAuthConfig,
@@ -8,10 +8,91 @@ import {
   preInitializeMicrosoft,
   type OAuthPublicConfig,
 } from '../lib/oauthConfig';
+import { GoogleIcon, MicrosoftIcon } from './OAuthBrandIcons';
 
 interface Props {
   remember?: boolean;
   onSuccess: () => void;
+}
+
+function SocialButton({
+  provider,
+  busy,
+  disabled,
+  onClick,
+  children,
+}: {
+  provider: 'google' | 'microsoft';
+  busy: boolean;
+  disabled: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className={`auth-social-btn auth-social-${provider}`}
+      disabled={disabled}
+      aria-busy={busy}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
+function GoogleSignInButton({
+  remember,
+  busy,
+  setBusy,
+  setError,
+  onSuccess,
+}: {
+  remember: boolean;
+  busy: 'google' | 'microsoft' | null;
+  setBusy: (v: 'google' | 'microsoft' | null) => void;
+  setError: (msg: string) => void;
+  onSuccess: () => void;
+}) {
+  const login = useGoogleLogin({
+    flow: 'implicit',
+    scope: 'openid email profile',
+    onSuccess: async (tokenResponse) => {
+      const accessToken = tokenResponse.access_token;
+      if (!accessToken) {
+        setError('Google sign-in did not return a token');
+        setBusy(null);
+        return;
+      }
+      setError('');
+      setBusy('google');
+      try {
+        await loginWithOAuth('google', accessToken, remember);
+        onSuccess();
+      } catch (err) {
+        setError((err as Error).message);
+        setBusy(null);
+      }
+    },
+    onError: () => {
+      setError('Google sign-in was cancelled or failed');
+      setBusy(null);
+    },
+  });
+
+  function onGoogle() {
+    if (busy) return;
+    setError('');
+    setBusy('google');
+    login();
+  }
+
+  return (
+    <SocialButton provider="google" busy={busy === 'google'} disabled={!!busy} onClick={onGoogle}>
+      <GoogleIcon className="auth-social-icon" />
+      <span>{busy === 'google' ? 'Signing in…' : 'Continue with Google'}</span>
+    </SocialButton>
+  );
 }
 
 function SocialButtons({
@@ -50,57 +131,41 @@ function SocialButtons({
     }
   }
 
-  const googleButton = showGoogle ? (
-    <div className={`auth-social-google-wrap${busy === 'google' ? ' busy' : ''}`}>
-      <GoogleLogin
-        onSuccess={async (res) => {
-          if (!res.credential) {
-            setError('Google sign-in did not return a token');
-            setBusy(null);
-            return;
-          }
-          setError('');
-          setBusy('google');
-          try {
-            await loginWithOAuth('google', res.credential, remember);
-            onSuccess();
-          } catch (err) {
-            setError((err as Error).message);
-            setBusy(null);
-          }
-        }}
-        onError={() => {
-          setError('Google sign-in was cancelled or failed');
-          setBusy(null);
-        }}
-        theme="outline"
-        size="large"
-        text="continue_with"
-        shape="rectangular"
-        width="100%"
-      />
-    </div>
-  ) : null;
+  const buttons = (
+    <>
+      {showMicrosoft && (
+        <SocialButton
+          provider="microsoft"
+          busy={busy === 'microsoft'}
+          disabled={!!busy}
+          onClick={onMicrosoft}
+        >
+          <MicrosoftIcon className="auth-social-icon" />
+          <span>{busy === 'microsoft' ? 'Signing in…' : 'Continue with Microsoft'}</span>
+        </SocialButton>
+      )}
+      {showGoogle && (
+        <GoogleSignInButton
+          remember={remember}
+          busy={busy}
+          setBusy={setBusy}
+          setError={setError}
+          onSuccess={onSuccess}
+        />
+      )}
+    </>
+  );
 
   return (
     <div className="auth-social">
-      <div className="auth-social-label">Or continue with</div>
       <div className="auth-social-row">
-        {showMicrosoft && (
-          <button
-            type="button"
-            className="auth-social-btn auth-social-ms"
-            disabled={!!busy}
-            onClick={onMicrosoft}
-          >
-            {busy === 'microsoft' ? 'Signing in…' : 'Microsoft'}
-          </button>
-        )}
         {showGoogle && config.google.clientId ? (
-          <GoogleOAuthProvider clientId={config.google.clientId}>{googleButton}</GoogleOAuthProvider>
-        ) : null}
+          <GoogleOAuthProvider clientId={config.google.clientId}>{buttons}</GoogleOAuthProvider>
+        ) : (
+          buttons
+        )}
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error auth-social-error">{error}</p>}
     </div>
   );
 }
