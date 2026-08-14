@@ -8,6 +8,7 @@ const { audit } = require('../audit');
 const payments = require('../payments-store');
 const resetTokenStore = require('../reset-token-store');
 const { sendPasswordResetEmail, isEmailConfigured } = require('../email');
+const oauth = require('../oauth');
 
 const noCache = { 'Cache-Control': 'no-store' };
 function ok(body) {
@@ -131,7 +132,7 @@ app.http('login', {
     if (rateLimited(req, 'login', 10, 60_000)) return bad('Too many attempts — slow down', 429);
     const { email, password, remember } = await readBody(req);
     const user = await users.getByEmail(email);
-    if (!user || !users.verifyPassword(user, password)) {
+    if (!user || !users.hasPassword(user) || !users.verifyPassword(user, password)) {
       audit(context, 'auth.login.failed', { email });
       return bad('Invalid email or password', 401);
     }
@@ -159,6 +160,9 @@ app.http('changePassword', {
 
     // Direct change (fallback when email delivery is not configured, or explicit form submit).
     if (currentPassword || newPassword) {
+      if (!users.hasPassword(user)) {
+        return bad('This account uses Microsoft or Google sign-in. Use that provider to sign in.', 400);
+      }
       if (newPassword.length < minPassword) {
         return bad(`New password must be at least ${minPassword} characters`);
       }
@@ -193,6 +197,55 @@ app.http('changePassword', {
       return bad('Could not send password-change email — try again in a few minutes', 502);
     }
     return ok({ ok: true, method: 'email', emailedTo: user.email });
+  },
+});
+
+app.http('oauthLogin', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'auth/oauth',
+  handler: async (req, context) => {
+    if (!secret()) return bad('Auth is not configured', 503);
+    if (rateLimited(req, 'oauth', 15, 60_000)) return bad('Too many attempts — slow down', 429);
+    const { provider, idToken, remember } = await readBody(req);
+    const p = String(provider || '').toLowerCase();
+    if (p !== 'google' && p !== 'microsoft') return bad('Unsupported sign-in provider', 400);
+    if (!String(idToken || '').trim()) return bad('Missing sign-in token', 400);
+
+    let profile;
+    try {
+      profile = await oauth.verifyProviderToken(p, idToken);
+    } catch (err) {
+      context.error(`[oauth] verify failed (${p}): ${(err && err.message) || err}`);
+      return bad('Sign-in could not be verified. Try again.', 401);
+    }
+
+    const result = await users.findOrCreateOAuthUser({
+      email: profile.email,
+      name: profile.name,
+      provider: p,
+      providerSub: profile.providerSub,
+    });
+    if (result.error === 'email-exists-other-provider') {
+      return bad('This email is registered with a different sign-in method', 409);
+    }
+    if (result.error) return bad('Could not sign in with that account', 409);
+
+    audit(context, 'auth.oauth', { email: result.user.email, provider: p });
+    return ok({ token: tokenFor(result.user, remember !== false), user: users.publicUser(result.user) });
+  },
+});
+
+app.http('oauthStatus', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'auth/oauth-status',
+  handler: async () => {
+    const providers = oauth.configured();
+    return ok({
+      configured: providers.google || providers.microsoft,
+      providers,
+    });
   },
 });
 
@@ -326,8 +379,11 @@ app.http('deleteAccount', {
     if (!payload) return bad('Please sign in again', 401);
     const { password } = await readBody(req);
     const user = await users.getByEmail(payload.email);
-    if (!user || !users.verifyPassword(user, password)) {
-      return bad('Password is incorrect', 401);
+    if (!user) return bad('Account not found', 404);
+    if (users.hasPassword(user)) {
+      if (!users.verifyPassword(user, password)) {
+        return bad('Password is incorrect', 401);
+      }
     }
     await payments.anonymizeOrdersForEmail(user.email);
     const result = await users.deleteUser(user.email);

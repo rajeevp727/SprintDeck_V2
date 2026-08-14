@@ -202,7 +202,9 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
     if (deleteConfirm.trim().toUpperCase() !== DELETE_CONFIRM_WORD) {
       return setDeleteError(`Type ${DELETE_CONFIRM_WORD} to confirm`);
     }
-    if (!deletePw) return setDeleteError('Enter your password to confirm deletion');
+    if (user.hasPassword !== false && !deletePw) {
+      return setDeleteError('Enter your password to confirm deletion');
+    }
     setDeleteError('');
     setDeleteBusy(true);
     try {
@@ -218,7 +220,10 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
   const nameChanged = name.trim().toLowerCase() !== (user.name || '').trim().toLowerCase();
   const canSaveName = nameChanged && name.trim().length >= 2 && nameStatus !== 'taken' && nameStatus !== 'checking';
   const deleteReady =
-    deleteAck && deleteConfirm.trim().toUpperCase() === DELETE_CONFIRM_WORD && deletePw.length > 0 && !deleteBusy;
+    deleteAck &&
+    deleteConfirm.trim().toUpperCase() === DELETE_CONFIRM_WORD &&
+    (user.hasPassword === false || deletePw.length > 0) &&
+    !deleteBusy;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -255,7 +260,12 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
 
         <section className="profile-settings-section" aria-labelledby="password-heading">
           <h4 id="password-heading">Password</h4>
-          {emailConfigured === null ? (
+          {user.hasPassword === false ? (
+            <p className="auth-hint">
+              You signed in with {user.authProvider === 'microsoft' ? 'Microsoft' : 'Google'}. Password changes are
+              managed by that provider.
+            </p>
+          ) : emailConfigured === null ? (
             <p className="auth-hint">Checking password options…</p>
           ) : emailConfigured === false || useDirectPw ? (
             <>
@@ -461,27 +471,31 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
                 </span>
               </label>
 
-              <label>
-                Password
-                <input
-                  type={showDeletePw ? 'text' : 'password'}
-                  value={deletePw}
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                  onChange={(e) => {
-                    setDeletePw(e.target.value);
-                    setDeleteError('');
-                  }}
-                />
-              </label>
-              <label className="pw-show">
-                <input
-                  type="checkbox"
-                  checked={showDeletePw}
-                  onChange={(e) => setShowDeletePw(e.target.checked)}
-                />
-                Show password
-              </label>
+              {user.hasPassword !== false ? (
+                <>
+                  <label>
+                    Password
+                    <input
+                      type={showDeletePw ? 'text' : 'password'}
+                      value={deletePw}
+                      autoComplete="current-password"
+                      placeholder="Enter your password"
+                      onChange={(e) => {
+                        setDeletePw(e.target.value);
+                        setDeleteError('');
+                      }}
+                    />
+                  </label>
+                  <label className="pw-show">
+                    <input
+                      type="checkbox"
+                      checked={showDeletePw}
+                      onChange={(e) => setShowDeletePw(e.target.checked)}
+                    />
+                    Show password
+                  </label>
+                </>
+              ) : null}
 
               <div className="profile-delete-actions">
                 <button type="button" className="ghost" onClick={resetDeleteFlow} disabled={deleteBusy}>

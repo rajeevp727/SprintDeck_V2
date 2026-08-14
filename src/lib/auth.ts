@@ -7,6 +7,8 @@ export interface AuthUser {
   id: string;
   email: string;
   name?: string;
+  authProvider?: 'local' | 'google' | 'microsoft';
+  hasPassword?: boolean;
 }
 
 export function getToken(): string | null {
@@ -61,6 +63,19 @@ export async function register(
 
 export async function login(email: string, password: string, remember = false): Promise<AuthUser> {
   const { token, user } = await post('/api/auth/login', { email, password, remember });
+  setToken(token);
+  cachedUser = user;
+  rememberAccount({ email: user.email, name: user.name });
+  notify();
+  return user;
+}
+
+export async function loginWithOAuth(
+  provider: 'google' | 'microsoft',
+  idToken: string,
+  remember = true,
+): Promise<AuthUser> {
+  const { token, user } = await post('/api/auth/oauth', { provider, idToken, remember });
   setToken(token);
   cachedUser = user;
   rememberAccount({ email: user.email, name: user.name });
@@ -250,6 +265,7 @@ export function useAuth(): {
   loading: boolean;
   register: typeof register;
   login: typeof login;
+  loginWithOAuth: typeof loginWithOAuth;
   logout: typeof logout;
 } {
   const [, bump] = useState(0);
@@ -262,5 +278,5 @@ export function useAuth(): {
       listeners.delete(rerender);
     };
   }, []);
-  return { user: cachedUser, loading, register, login, logout };
+  return { user: cachedUser, loading, register, login, loginWithOAuth, logout };
 }

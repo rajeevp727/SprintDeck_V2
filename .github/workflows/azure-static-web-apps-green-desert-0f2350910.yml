@@ -32,6 +32,9 @@ jobs:
         env:
           # Payee VPA injected into the frontend build from the repo secret UPI_ID.
           VITE_UPI_ID: ${{ secrets.UPI_ID }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          VITE_AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          VITE_AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_GREEN_DESERT_0F2350910 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
@@ -74,12 +77,16 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           APP_URL: ${{ vars.APP_URL }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
           SWA_NAME: ${{ vars.AZURE_SWA_NAME }}
           SWA_RG: ${{ vars.AZURE_RESOURCE_GROUP }}
         run: |
           set -euo pipefail
           NAME="${SWA_NAME:-SprintDeck-Enterprise}"
           PUBLIC_URL="${APP_URL:-https://sprintdeck.in}"
+          TENANT="${AZURE_TENANT_ID:-common}"
           if [ -z "${EMAIL_FROM:-}" ]; then
             echo "Set GitHub secret EMAIL_FROM."
             exit 1
@@ -95,7 +102,10 @@ jobs:
             --setting-names \
               "RESEND_API_KEY=${RESEND_API_KEY}" \
               "EMAIL_FROM=${EMAIL_FROM}" \
-              "APP_URL=${PUBLIC_URL}"
+              "APP_URL=${PUBLIC_URL}" \
+              "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}" \
+              "AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}" \
+              "AZURE_TENANT_ID=${TENANT}"
           echo "Verify: https://sprintdeck.in/api/auth/email-status"
 
   # PR validation without creating Azure staging environments.
@@ -117,6 +127,12 @@ jobs:
           npm run build
         env:
           VITE_UPI_ID: ${{ secrets.UPI_ID }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          VITE_AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          VITE_AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          VITE_AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          VITE_AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       - name: Install API dependencies
         working-directory: api
         run: npm ci

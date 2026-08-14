@@ -2,6 +2,9 @@
 
 interface ImportMetaEnv {
   readonly VITE_UPI_ID?: string;
+  readonly VITE_GOOGLE_CLIENT_ID?: string;
+  readonly VITE_AZURE_CLIENT_ID?: string;
+  readonly VITE_AZURE_TENANT_ID?: string;
 }
 
 interface ImportMeta {
