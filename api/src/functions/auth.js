@@ -245,6 +245,10 @@ app.http('oauthStatus', {
     return ok({
       configured: providers.google || providers.microsoft,
       providers,
+      // Public OAuth client IDs (safe to expose — not secrets).
+      microsoftClientId: providers.microsoft ? String(process.env.AZURE_CLIENT_ID || '').trim() : '',
+      azureTenantId: String(process.env.AZURE_TENANT_ID || 'common').trim() || 'common',
+      googleClientId: providers.google ? String(process.env.GOOGLE_CLIENT_ID || '').trim() : '',
     });
   },
 });

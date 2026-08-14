@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useAuth, checkName, peekName, forgotPassword } from '../lib/auth';
 import { getAccounts, forgetAccount, type RememberedAccount } from '../lib/rememberedAccounts';
 import { InfoIcon, CloseIcon } from './icons';
-import SocialAuthButtons from './SocialAuthButtons';
+import SocialAuthButtons, { useOAuthAvailable } from './SocialAuthButtons';
 
 interface Props {
   onAuthed: () => void;
@@ -11,6 +11,7 @@ interface Props {
 
 export default function AuthScreen({ onAuthed, onBack }: Props) {
   const { login, register } = useAuth();
+  const oauthAvailable = useOAuthAvailable();
   const [active, setActive] = useState<'login' | 'signup'>('login');
   const [accounts, setAccounts] = useState<RememberedAccount[]>(getAccounts());
   const [showPwInfo, setShowPwInfo] = useState(false);
@@ -149,9 +150,11 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
           <h2>Log in</h2>
 
           <SocialAuthButtons remember={liRemember} onSuccess={onAuthed} />
-          <div className="auth-divider" role="presentation">
-            <span>or use email</span>
-          </div>
+          {oauthAvailable && (
+            <div className="auth-divider" role="presentation">
+              <span>or use email</span>
+            </div>
+          )}
 
           {accounts.length > 0 && (
             <div className="auth-suggest">
@@ -266,9 +269,11 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
           <h2>Create account</h2>
 
           <SocialAuthButtons remember onSuccess={onAuthed} />
-          <div className="auth-divider" role="presentation">
-            <span>or sign up with email</span>
-          </div>
+          {oauthAvailable && (
+            <div className="auth-divider" role="presentation">
+              <span>or sign up with email</span>
+            </div>
+          )}
 
           <form className="auth-form" onSubmit={doRegister}>
             <div className="auth-row">
