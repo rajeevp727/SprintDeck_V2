@@ -2,20 +2,23 @@ interface IconProps {
   className?: string;
 }
 
+/** Official Microsoft four-square logo (Sign in with Microsoft). */
 export function MicrosoftIcon({ className }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" aria-hidden focusable="false">
-      <rect x="1" y="1" width="10" height="10" fill="#f25022" />
-      <rect x="13" y="1" width="10" height="10" fill="#7fba00" />
-      <rect x="1" y="13" width="10" height="10" fill="#00a4ef" />
-      <rect x="13" y="13" width="10" height="10" fill="#ffb900" />
+    <svg className={className} viewBox="0 0 21 21" aria-hidden focusable="false" role="img">
+      <title>Microsoft</title>
+      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
     </svg>
   );
 }
 
 export function GoogleIcon({ className }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" aria-hidden focusable="false">
+    <svg className={className} viewBox="0 0 24 24" aria-hidden focusable="false" role="img">
+      <title>Google</title>
       <path
         fill="#4285F4"
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

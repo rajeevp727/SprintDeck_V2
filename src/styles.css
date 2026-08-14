@@ -3341,6 +3341,7 @@ button.linkish {
   cursor: wait;
 }
 .auth-social-icon-slot {
+  grid-column: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3348,9 +3349,14 @@ button.linkish {
   height: 2rem;
 }
 .auth-social-icon {
+  display: block;
   width: 1.25rem;
   height: 1.25rem;
   flex-shrink: 0;
+}
+.auth-social-microsoft .auth-social-icon {
+  width: 1.35rem;
+  height: 1.35rem;
 }
 .auth-social-label {
   grid-column: 2;
