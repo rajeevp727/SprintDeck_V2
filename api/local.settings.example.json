@@ -1,0 +1,12 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "JWT_SECRET": "replace-with-openssl-rand-hex-32",
+    "AZURE_CLIENT_ID": "",
+    "AZURE_TENANT_ID": "common",
+    "GOOGLE_CLIENT_ID": "",
+    "APP_URL": "http://localhost:5273"
+  }
+}
