@@ -6,7 +6,6 @@ import { getSubscriptionRef, useSubscription } from '../lib/subscription';
 import { useProfileNamePrefill } from '../lib/useProfileName';
 import BrandLogo from './BrandLogo';
 import ProfileMenu from './ProfileMenu';
-import ThemeToggle from './ThemeToggle';
 
 const SubscriptionModal = lazy(() => import('./SubscriptionModal'));
 
@@ -108,7 +107,6 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
           <span className="auth-back-label">Back</span>
         </button>
         <div className="wb-start-actions">
-          <ThemeToggle />
           {user ? <ProfileMenu /> : null}
         </div>
       </div>

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import BrandLogo from './BrandLogo';
-import ThemeToggle from './ThemeToggle';
 
 interface Props {
   onSignIn: () => void;
@@ -41,9 +40,6 @@ export default function Landing({ onSignIn, onGuest }: Props) {
 
   return (
     <div className="landing">
-      <div className="page-theme-toggle">
-        <ThemeToggle />
-      </div>
       <header className="landing-hero">
         <div className="brand brand-with-logo">
           <BrandLogo />

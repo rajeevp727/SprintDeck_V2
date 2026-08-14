@@ -5,7 +5,6 @@ import { useAuth } from '../lib/auth';
 import { useProfileNamePrefill } from '../lib/useProfileName';
 import AdBanner from './AdBanner';
 import BrandLogo from './BrandLogo';
-import ThemeToggle from './ThemeToggle';
 
 interface Props {
   initialCode?: string;
@@ -60,9 +59,6 @@ export default function Home({ initialCode = '', onEnter, onPrivacy, onTerms, on
 
   return (
     <div className="home">
-      <div className="page-theme-toggle">
-        <ThemeToggle />
-      </div>
       {onBack && (
         <button className="ghost auth-back home-back" onClick={onBack} title="Back" aria-label="Back">
           <span aria-hidden>←</span>
