@@ -13,6 +13,7 @@ import { GoogleIcon, MicrosoftIcon } from './OAuthBrandIcons';
 interface Props {
   remember?: boolean;
   onSuccess: () => void;
+  mode?: 'login' | 'signup';
 }
 
 function SocialButton({
@@ -111,10 +112,12 @@ function SocialButtons({
   config,
   remember,
   onSuccess,
+  mode,
 }: {
   config: OAuthPublicConfig;
   remember: boolean;
   onSuccess: () => void;
+  mode: 'login' | 'signup';
 }) {
   const [busy, setBusy] = useState<'google' | 'microsoft' | null>(null);
   const [error, setError] = useState('');
@@ -167,10 +170,13 @@ function SocialButtons({
     </div>
   );
 
+  const heading = mode === 'signup' ? 'Sign up with' : 'Sign in with';
+  const ariaLabel = mode === 'signup' ? 'Sign up with a connected account' : 'Sign in with a connected account';
+
   return (
-    <section className="auth-social" aria-label="Sign in with a connected account">
+    <section className="auth-social" aria-label={ariaLabel}>
       <div className="auth-social-panel">
-        <p className="auth-social-heading">Sign in with</p>
+        <p className="auth-social-heading">{heading}</p>
         {showGoogle && config.google.clientId ? (
           <GoogleOAuthProvider clientId={config.google.clientId}>{buttons}</GoogleOAuthProvider>
         ) : (
@@ -186,7 +192,7 @@ function SocialButtons({
   );
 }
 
-export default function SocialAuthButtons({ remember = true, onSuccess }: Props) {
+export default function SocialAuthButtons({ remember = true, onSuccess, mode = 'login' }: Props) {
   const [config, setConfig] = useState<OAuthPublicConfig | null>(null);
 
   useEffect(() => {
@@ -205,7 +211,7 @@ export default function SocialAuthButtons({ remember = true, onSuccess }: Props)
   }, []);
 
   if (!config || !hasOAuthProviders(config)) return null;
-  return <SocialButtons config={config} remember={remember} onSuccess={onSuccess} />;
+  return <SocialButtons config={config} remember={remember} onSuccess={onSuccess} mode={mode} />;
 }
 
 export function useOAuthAvailable(): boolean | null {

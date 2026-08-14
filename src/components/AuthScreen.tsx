@@ -149,13 +149,6 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
         >
           <h2>Log in</h2>
 
-          <SocialAuthButtons remember={liRemember} onSuccess={onAuthed} />
-          {oauthAvailable && (
-            <div className="auth-divider" role="presentation">
-              <span>or sign in with email</span>
-            </div>
-          )}
-
           {accounts.length > 0 && (
             <div className="auth-suggest">
               <div className="auth-suggest-label">Saved accounts</div>
@@ -259,6 +252,13 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
             </div>
             {liErr && <p className="error">{liErr}</p>}
           </form>
+
+          {oauthAvailable && (
+            <div className="auth-divider auth-divider-sso" role="presentation">
+              <span>or</span>
+            </div>
+          )}
+          <SocialAuthButtons remember={liRemember} onSuccess={onAuthed} mode="login" />
         </section>
 
         {}
@@ -267,13 +267,6 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
           aria-hidden={active !== 'signup'}
         >
           <h2>Create account</h2>
-
-          <SocialAuthButtons remember onSuccess={onAuthed} />
-          {oauthAvailable && (
-            <div className="auth-divider" role="presentation">
-              <span>or sign up with email</span>
-            </div>
-          )}
 
           <form className="auth-form" onSubmit={doRegister}>
             <div className="auth-row">
@@ -379,6 +372,13 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
             </div>
             {rgErr && <p className="error">{rgErr}</p>}
           </form>
+
+          {oauthAvailable && (
+            <div className="auth-divider auth-divider-sso" role="presentation">
+              <span>or</span>
+            </div>
+          )}
+          <SocialAuthButtons remember onSuccess={onAuthed} mode="signup" />
         </section>
       </div>
 
