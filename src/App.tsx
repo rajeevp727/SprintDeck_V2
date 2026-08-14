@@ -4,6 +4,7 @@ import Room from './components/Room';
 import StickyAd from './components/StickyAd';
 import { ToastHost } from './components/Toast';
 import CookieConsent from './components/CookieConsent';
+import ThemeToggle from './components/ThemeToggle';
 
 const Privacy = lazy(() => import('./components/Privacy'));
 const Terms = lazy(() => import('./components/Terms'));
@@ -329,6 +330,9 @@ export default function App() {
 
   return (
     <>
+      <div className="app-theme-toggle">
+        <ThemeToggle />
+      </div>
       <Suspense fallback={null}>{page}</Suspense>
       <StickyAd />
       <ToastHost />

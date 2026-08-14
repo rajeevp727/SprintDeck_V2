@@ -2433,7 +2433,8 @@ a.room-code:hover {
   gap: 0.6rem;
 }
 
-.page-theme-toggle {
+.page-theme-toggle,
+.app-theme-toggle {
   position: fixed;
   top: 1rem;
   right: 1rem;

@@ -14,7 +14,6 @@ import { clearIdentity, getIdentity, saveIdentity } from '../lib/storage';
 import type { Session } from '../lib/types';
 import ConnectToolModal, { toolMeta, type ToolId } from './ConnectToolModal';
 import BrandLogo from './BrandLogo';
-import ThemeToggle from './ThemeToggle';
 import AdBanner from './AdBanner';
 import { CrownIcon } from './icons';
 import { nearestDeckValue } from '../lib/estimate';
@@ -420,7 +419,6 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
           </a>
         </div>
         <div className="room-actions">
-          <ThemeToggle />
           {isModerator &&
             (() => {
               const active = subscription;

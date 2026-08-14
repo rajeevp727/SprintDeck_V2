@@ -1,7 +1,6 @@
 import BrandLogo from './BrandLogo';
 import DeveloperCredit from './DeveloperCredit';
 import ProfileMenu from './ProfileMenu';
-import ThemeToggle from './ThemeToggle';
 
 interface Props {
   onPlanning: () => void;
@@ -21,7 +20,6 @@ export default function Dashboard({ onPlanning, onRetro, onTimesheet, onWhiteboa
           <BrandLogo />
         </div>
         <div className="dash-head-actions">
-          <ThemeToggle />
           <ProfileMenu />
         </div>
       </header>
