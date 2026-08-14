@@ -1,5 +1,5 @@
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { loginWithOAuth } from '../lib/auth';
 import {
   fetchOAuthConfig,
@@ -19,24 +19,32 @@ function SocialButton({
   provider,
   busy,
   disabled,
+  label,
+  busyLabel,
   onClick,
-  children,
 }: {
   provider: 'google' | 'microsoft';
   busy: boolean;
   disabled: boolean;
+  label: string;
+  busyLabel: string;
   onClick: () => void;
-  children: ReactNode;
 }) {
+  const Icon = provider === 'google' ? GoogleIcon : MicrosoftIcon;
+
   return (
     <button
       type="button"
       className={`auth-social-btn auth-social-${provider}`}
       disabled={disabled}
       aria-busy={busy}
+      aria-label={busy ? busyLabel : label}
       onClick={onClick}
     >
-      {children}
+      <span className="auth-social-icon-slot" aria-hidden>
+        <Icon className="auth-social-icon" />
+      </span>
+      <span className="auth-social-label">{busy ? busyLabel : label}</span>
     </button>
   );
 }
@@ -88,10 +96,14 @@ function GoogleSignInButton({
   }
 
   return (
-    <SocialButton provider="google" busy={busy === 'google'} disabled={!!busy} onClick={onGoogle}>
-      <GoogleIcon className="auth-social-icon" />
-      <span>{busy === 'google' ? 'Signing in…' : 'Continue with Google'}</span>
-    </SocialButton>
+    <SocialButton
+      provider="google"
+      busy={busy === 'google'}
+      disabled={!!busy}
+      label="Continue with Google"
+      busyLabel="Signing in with Google…"
+      onClick={onGoogle}
+    />
   );
 }
 
@@ -132,17 +144,16 @@ function SocialButtons({
   }
 
   const buttons = (
-    <>
+    <div className="auth-social-row">
       {showMicrosoft && (
         <SocialButton
           provider="microsoft"
           busy={busy === 'microsoft'}
           disabled={!!busy}
+          label="Continue with Microsoft"
+          busyLabel="Signing in with Microsoft…"
           onClick={onMicrosoft}
-        >
-          <MicrosoftIcon className="auth-social-icon" />
-          <span>{busy === 'microsoft' ? 'Signing in…' : 'Continue with Microsoft'}</span>
-        </SocialButton>
+        />
       )}
       {showGoogle && (
         <GoogleSignInButton
@@ -153,20 +164,25 @@ function SocialButtons({
           onSuccess={onSuccess}
         />
       )}
-    </>
+    </div>
   );
 
   return (
-    <div className="auth-social">
-      <div className="auth-social-row">
+    <section className="auth-social" aria-label="Sign in with a connected account">
+      <div className="auth-social-panel">
+        <p className="auth-social-heading">Sign in with</p>
         {showGoogle && config.google.clientId ? (
           <GoogleOAuthProvider clientId={config.google.clientId}>{buttons}</GoogleOAuthProvider>
         ) : (
           buttons
         )}
       </div>
-      {error && <p className="error auth-social-error">{error}</p>}
-    </div>
+      {error && (
+        <p className="error auth-social-error" role="alert">
+          {error}
+        </p>
+      )}
+    </section>
   );
 }
 

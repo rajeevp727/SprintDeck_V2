@@ -3162,6 +3162,14 @@ button.linkish {
     clip-path: none;
     border-radius: var(--radius);
     border: 1px solid var(--line);
+    gap: 0.75rem;
+  }
+  .auth-social-panel {
+    padding: 0.8rem 0.75rem 0.9rem;
+  }
+  .auth-social-btn {
+    min-height: 3.1rem;
+    font-size: 0.88rem;
   }
   .leaf-login,
   .leaf-create {
@@ -3279,53 +3287,107 @@ button.linkish {
   width: 100%;
 }
 .auth-social {
-  margin-bottom: 0.35rem;
+  margin: 0 0 0.15rem;
+}
+.auth-social-panel {
+  padding: 0.85rem 0.9rem 0.95rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+  background: color-mix(in srgb, var(--panel-2) 88%, var(--panel));
+}
+.auth-social-heading {
+  margin: 0 0 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
 }
 .auth-social-row {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 .auth-social-btn {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 2.75rem 1fr 2.75rem;
   align-items: center;
-  justify-content: center;
-  gap: 0.65rem;
   width: 100%;
-  min-height: 2.75rem;
-  padding: 0.65rem 1rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid color-mix(in srgb, var(--text) 18%, transparent);
-  background: color-mix(in srgb, var(--text) 4%, transparent);
-  color: var(--text);
-  font-size: 0.92rem;
+  min-height: 3rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.55rem;
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.2;
   cursor: pointer;
-  transition: border-color var(--transition), background var(--transition), opacity var(--transition);
+  transition:
+    border-color var(--transition),
+    background var(--transition),
+    box-shadow var(--transition),
+    transform 120ms ease;
 }
-.auth-social-btn:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+.auth-social-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+.auth-social-btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 .auth-social-btn:disabled {
-  opacity: 0.7;
+  opacity: 0.72;
   cursor: wait;
 }
+.auth-social-icon-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2rem;
+}
 .auth-social-icon {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1.25rem;
+  height: 1.25rem;
   flex-shrink: 0;
 }
+.auth-social-label {
+  grid-column: 2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.auth-social-microsoft {
+  border-color: #8c8c8c;
+  background: #2f2f2f;
+  color: #fff;
+}
+.auth-social-microsoft:hover:not(:disabled) {
+  border-color: #5c5c5c;
+  background: #1f1f1f;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+.auth-social-google {
+  border-color: #dadce0;
+  background: #fff;
+  color: #3c4043;
+}
+.auth-social-google:hover:not(:disabled) {
+  border-color: #c6c9cd;
+  background: #f8f9fa;
+  box-shadow: 0 4px 14px color-mix(in srgb, #4285f4 14%, transparent);
+}
 .auth-social-error {
-  margin: 0.35rem 0 0;
+  margin: 0.5rem 0 0;
   font-size: 0.85rem;
 }
 .auth-divider {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin: 0.55rem 0 0.85rem;
+  margin: 0.75rem 0 1rem;
   color: var(--muted);
   font-size: 0.78rem;
 }
