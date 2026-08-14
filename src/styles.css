@@ -3072,148 +3072,83 @@ button.linkish {
 
 .auth-book {
   position: relative;
-  width: min(920px, 100%);
-  height: 580px;
-  min-height: 580px;
+  width: min(480px, 100%);
+  height: auto;
+  min-height: 0;
   margin: 0 auto;
-  perspective: 2400px;
 }
 .auth-leaf {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  width: calc(50% + 30px);
+  position: relative;
+  width: 100%;
+  height: auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  transition: transform 1.5s cubic-bezier(0.2, 0.75, 0.25, 1), opacity 0.5s ease;
+  gap: 0.65rem;
+  background: transparent;
+  border: none;
+  border-radius: 0;
 }
 .auth-leaf h2 {
   margin: 0;
+  padding: 0 0.15rem;
 }
 .auth-card {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  flex: 1;
-  min-height: 0;
   width: 100%;
+  padding: 1.25rem 1.15rem 1.35rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow-sm);
 }
-.leaf-login .auth-card,
-.leaf-create .auth-card {
-  justify-content: flex-start;
-}
-
-.leaf-login {
-  left: 0;
-  transform-origin: right center;
-  padding: 2rem 4.5rem 2rem 1.9rem;
-  clip-path: polygon(0 0, 100% 0, calc(100% - 59px) 100%, 0 100%);
-}
-
+.leaf-login,
 .leaf-create {
-  right: 0;
-  transform-origin: left center;
-  padding: 2rem 1.9rem 2rem 4.5rem;
-  clip-path: polygon(59px 0, 100% 0, 100% 100%, 0 100%);
+  left: auto;
+  right: auto;
+  top: auto;
+  padding: 0;
+  clip-path: none;
+  transform: none;
+  transform-origin: center;
 }
 .auth-leaf.open {
-  transform: rotateY(0deg);
+  display: flex;
   opacity: 1;
   z-index: 2;
 }
-.leaf-login.folded {
-  transform: rotateY(-105deg);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 1;
-}
-.leaf-create.folded {
-  transform: rotateY(105deg);
+.auth-leaf.folded {
+  display: none;
   opacity: 0;
   pointer-events: none;
   z-index: 1;
 }
 
 .auth-slash-line {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  height: 584px;
-  width: 2px;
-  z-index: 3;
-  transform: translate(-50%, -50%) rotate(7deg);
-  background: linear-gradient(to bottom, transparent, var(--muted) 14%, var(--muted) 86%, transparent);
-  opacity: 0.55;
-  pointer-events: none;
+  display: none;
 }
 
 @media (max-width: 760px) {
   .auth-screen {
     padding: 1.5rem 1rem 3rem;
   }
-  .auth-book {
-    min-height: 0;
-    height: auto;
-    perspective: none;
-  }
-  .auth-leaf {
-    position: relative;
-    left: 0;
-    width: 100%;
-    min-height: 0;
-    height: auto;
-    padding: 0;
-    clip-path: none;
-    border: none;
-    background: transparent;
-    border-radius: 0;
-    gap: 0.65rem;
-  }
-  .auth-card {
-    padding: 1.25rem 1.15rem 1.35rem;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--panel);
-    box-shadow: var(--shadow-sm);
-  }
-  .auth-social-panel {
-    padding: 0;
-  }
   .auth-social-btn {
     min-height: 3.1rem;
     font-size: 0.88rem;
   }
-  .leaf-login,
-  .leaf-create {
-    top: auto;
-    bottom: auto;
-    transform-origin: center;
-    border-bottom: 1px solid var(--line);
-    border-top: 1px solid var(--line);
+}
+
+@media (min-width: 761px) {
+  .auth-book {
+    width: min(520px, 100%);
   }
-  .auth-leaf.open {
-    transform: none;
-    opacity: 1;
-    z-index: 2;
-    display: flex;
+  .auth-card {
+    padding: 1.5rem 1.35rem 1.5rem;
   }
-  .auth-leaf.folded {
-    display: none;
-    transform: none;
-    opacity: 0;
-    pointer-events: none;
-    z-index: 1;
-  }
-  .auth-slash-line {
-    display: none;
+  .auth-screen {
+    padding: 3rem 1.5rem 5rem;
   }
 }
 
