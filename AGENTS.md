@@ -1,5 +1,7 @@
 # Agent instructions
 
+> **Full playbook:** read [`memory.md`](./memory.md) first — product context, PR auto-merge checklist, coding standards, and UI/UX bar.
+
 ## Pull requests
 
 - **Always auto-merge** PRs you create on `cursor/*` branches:
