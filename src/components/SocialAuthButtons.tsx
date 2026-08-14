@@ -5,6 +5,7 @@ import {
   fetchOAuthConfig,
   hasOAuthProviders,
   loginWithMicrosoft,
+  preInitializeMicrosoft,
   type OAuthPublicConfig,
 } from '../lib/oauthConfig';
 
@@ -29,6 +30,7 @@ function SocialButtons({
   const showGoogle = config.google.enabled && !!config.google.clientId;
 
   async function onMicrosoft() {
+    if (busy) return;
     setError('');
     setBusy('microsoft');
     try {
@@ -36,7 +38,14 @@ function SocialButtons({
       await loginWithOAuth('microsoft', idToken, remember);
       onSuccess();
     } catch (err) {
-      setError((err as Error).message);
+      const msg = (err as Error).message || 'Microsoft sign-in failed';
+      if (msg.includes('interaction_in_progress')) {
+        setError('Microsoft sign-in is already open. Close the popup, wait a moment, then try again.');
+      } else if (msg.includes('user_cancelled') || msg.includes('popup_window_error')) {
+        setError('Microsoft sign-in was cancelled.');
+      } else {
+        setError(msg);
+      }
       setBusy(null);
     }
   }
@@ -102,7 +111,12 @@ export default function SocialAuthButtons({ remember = true, onSuccess }: Props)
   useEffect(() => {
     let cancelled = false;
     fetchOAuthConfig().then((c) => {
-      if (!cancelled) setConfig(c);
+      if (!cancelled) {
+        setConfig(c);
+        if (c.microsoft.enabled && c.microsoft.clientId) {
+          preInitializeMicrosoft(c).catch(() => {});
+        }
+      }
     });
     return () => {
       cancelled = true;
