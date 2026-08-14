@@ -152,7 +152,7 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
           <SocialAuthButtons remember={liRemember} onSuccess={onAuthed} />
           {oauthAvailable && (
             <div className="auth-divider" role="presentation">
-              <span>or continue with email</span>
+              <span>or sign in with email</span>
             </div>
           )}
 
