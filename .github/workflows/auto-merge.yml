@@ -107,10 +107,19 @@ jobs:
               return;
             }
 
-            await github.rest.pulls.merge({
-              owner,
-              repo,
-              pull_number: pr.number,
-              merge_method: 'squash',
-            });
-            core.info(`Merged PR #${pr.number} (${branch})`);
+            try {
+              await github.rest.pulls.merge({
+                owner,
+                repo,
+                pull_number: pr.number,
+                merge_method: 'squash',
+              });
+              core.info(`Merged PR #${pr.number} (${branch})`);
+            } catch (err) {
+              const msg = String(err?.message || err);
+              if (msg.includes('Merge already in progress') || msg.includes('Pull Request is not mergeable')) {
+                core.info(`Merge skipped for PR #${pr.number}: ${msg}`);
+                return;
+              }
+              throw err;
+            }
