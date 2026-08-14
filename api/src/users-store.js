@@ -95,6 +95,7 @@ async function createUser(email, password, name) {
     email: id,
     name: cleanName,
     nameLower,
+    authProvider: 'local',
     salt,
     passwordHash: hashPassword(password, salt),
     createdAt: Date.now(),
@@ -121,6 +122,89 @@ async function createUser(email, password, name) {
     throw err;
   }
   
+  if (nameLower) {
+    try {
+      await container.items.create({ id: `name:${nameLower}`, type: 'name-reservation', owner: id, createdAt: Date.now() });
+    } catch (err) {
+      if (err && err.code === 409) {
+        try {
+          await container.item(id, id).delete();
+        } catch { void 0; }
+        return { error: 'name-exists' };
+      }
+      throw err;
+    }
+  }
+  return { user };
+}
+
+function uniqueNameFromBase(baseName) {
+  const clean = String(baseName || '').trim().slice(0, 80);
+  if (clean.length >= 2) return clean;
+  return 'user';
+}
+
+async function pickAvailableName(preferred) {
+  const base = uniqueNameFromBase(preferred);
+  if (await isNameAvailable(base)) return base;
+  for (let i = 1; i <= 20; i++) {
+    const cand = `${base.replace(/\d+$/, '')}${i}`.slice(0, 80);
+    if (await isNameAvailable(cand)) return cand;
+  }
+  return `${base.slice(0, 70)}${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
+async function findOrCreateOAuthUser({ email, name, provider, providerSub }) {
+  const id = normalizeEmail(email);
+  if (!id) return { error: 'invalid-email' };
+  if (!providerSub) return { error: 'invalid-provider' };
+
+  const existing = await getByEmail(id);
+  if (existing) {
+    if (existing.providerSub && existing.authProvider && existing.authProvider !== provider) {
+      return { error: 'email-exists-other-provider' };
+    }
+    if (existing.providerSub && existing.providerSub !== providerSub) {
+      return { error: 'email-exists' };
+    }
+    if (!existing.providerSub) {
+      existing.authProvider = provider;
+      existing.providerSub = providerSub;
+      if (!existing.name && name) existing.name = uniqueNameFromBase(name);
+      if (!existing.nameLower && existing.name) existing.nameLower = normalizeName(existing.name);
+      const c = getContainer();
+      if (c) await (await c).items.upsert(existing);
+      else memory.set(existing.id, existing);
+    }
+    return { user: existing };
+  }
+
+  const cleanName = await pickAvailableName(name || id.split('@')[0]);
+  const nameLower = normalizeName(cleanName);
+  const user = {
+    id,
+    email: id,
+    name: cleanName,
+    nameLower,
+    authProvider: provider,
+    providerSub,
+    createdAt: Date.now(),
+  };
+
+  const c = getContainer();
+  if (!c) {
+    memory.set(id, user);
+    if (nameLower) memory.set(`name:${nameLower}`, { id: `name:${nameLower}`, owner: id });
+    return { user };
+  }
+
+  const container = await c;
+  try {
+    await container.items.create(user);
+  } catch (err) {
+    if (err && err.code === 409) return { error: 'email-exists' };
+    throw err;
+  }
   if (nameLower) {
     try {
       await container.items.create({ id: `name:${nameLower}`, type: 'name-reservation', owner: id, createdAt: Date.now() });
@@ -206,8 +290,18 @@ function verifyPassword(user, password) {
   return got.length === exp.length && crypto.timingSafeEqual(got, exp);
 }
 
+function hasPassword(user) {
+  return !!(user && user.salt && user.passwordHash);
+}
+
 function publicUser(user) {
-  return { id: user.id, email: user.email, name: user.name || '' };
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name || '',
+    authProvider: user.authProvider || (hasPassword(user) ? 'local' : 'local'),
+    hasPassword: hasPassword(user),
+  };
 }
 
 async function deleteUser(email) {
@@ -232,4 +326,16 @@ async function deleteUser(email) {
   return { deleted: true };
 }
 
-module.exports = { createUser, getByEmail, getByName, isNameAvailable, updatePassword, updateUserName, verifyPassword, publicUser, deleteUser };
+module.exports = {
+  createUser,
+  findOrCreateOAuthUser,
+  getByEmail,
+  getByName,
+  hasPassword,
+  isNameAvailable,
+  updatePassword,
+  updateUserName,
+  verifyPassword,
+  publicUser,
+  deleteUser,
+};
