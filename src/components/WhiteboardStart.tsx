@@ -1,9 +1,10 @@
-import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
 import { whiteboardApi } from '../lib/whiteboardApi';
 import { saveIdentity, getIdentity, getCurrentRoom } from '../lib/storage';
 import { useAuth } from '../lib/auth';
 import { getSubscriptionRef, useSubscription } from '../lib/subscription';
 import { useProfileNamePrefill } from '../lib/useProfileName';
+import { bootWhiteboardForUser, joinWhiteboardForUser, WhiteboardNeedsPro } from '../lib/whiteboardBoot';
 import BrandLogo from './BrandLogo';
 import ProfileMenu from './ProfileMenu';
 
@@ -12,9 +13,7 @@ const SubscriptionModal = lazy(() => import('./SubscriptionModal'));
 interface Props {
   onEnter: (code: string) => void;
   onBack: () => void;
-  
   shareToken?: string;
-  
   joinCode?: string;
 }
 
@@ -30,22 +29,60 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
   const [token, setToken] = useState(shareToken || '');
   const [showToken, setShowToken] = useState(!!shareToken);
   const [busy, setBusy] = useState(false);
+  const [autoBooting, setAutoBooting] = useState(false);
   const [error, setError] = useState('');
   const [showSubscribe, setShowSubscribe] = useState(false);
+  const autoBooted = useRef(false);
   const roomCode = getCurrentRoom();
 
   const needsPro = subLoaded && !subscribed;
   const isMemberFlow = mode === 'join';
   const showSubscriptionUpsell = !isMemberFlow && needsPro;
   const createDisabled = busy || needsPro || !name.trim();
+  const guestFlow = !user;
 
-  
   useEffect(() => {
     const c = (joinCode || code).trim().toUpperCase();
     if (!c) return;
     const id = getIdentity(c);
     if (id) onEnter(c);
   }, [joinCode, code, onEnter]);
+
+  useEffect(() => {
+    if (!user || autoBooted.current || !name.trim()) return;
+
+    const joinTarget = (joinCode || (mode === 'join' ? code : '')).trim().toUpperCase();
+    const shouldAutoCreate = !joinTarget && mode === 'create';
+    const shouldAutoJoin = !!joinTarget;
+    if (!shouldAutoCreate && !shouldAutoJoin) return;
+    if (shouldAutoCreate && !subLoaded) return;
+    if (shouldAutoJoin && getIdentity(joinTarget)) return;
+
+    autoBooted.current = true;
+    let cancelled = false;
+    setAutoBooting(true);
+    setError('');
+
+    const run = shouldAutoJoin
+      ? joinWhiteboardForUser(user, joinTarget, { shareToken: token.trim() || shareToken })
+      : bootWhiteboardForUser(user, boardName || 'Team whiteboard');
+
+    run
+      .then((boardCode) => {
+        if (!cancelled) onEnter(boardCode);
+      })
+      .catch((err: Error) => {
+        if (cancelled) return;
+        autoBooted.current = false;
+        setAutoBooting(false);
+        if (err instanceof WhiteboardNeedsPro) setShowSubscribe(true);
+        else setError(err.message || 'Could not open whiteboard');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, joinCode, code, mode, name, subLoaded, boardName, token, shareToken, onEnter]);
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
@@ -97,6 +134,23 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
       setError((err as Error).message);
       setBusy(false);
     }
+  }
+
+  if (user && autoBooting) {
+    return (
+      <div className="home wb-start">
+        <div className="wb-start-bar">
+          <button className="ghost auth-back wb-start-back" onClick={onBack} title="Back" aria-label="Back">
+            <span aria-hidden>←</span>
+            <span className="auth-back-label">Back</span>
+          </button>
+          <div className="wb-start-actions">
+            <ProfileMenu />
+          </div>
+        </div>
+        <p className="room-loading">Opening whiteboard…</p>
+      </div>
+    );
   }
 
   return (
@@ -167,17 +221,19 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
 
         {mode === 'create' ? (
           <form onSubmit={handleCreate} className="form">
-            <label>
-              Your name
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Alex"
-                autoFocus
-                maxLength={40}
-                required
-              />
-            </label>
+            {guestFlow ? (
+              <label>
+                Your name
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Alex"
+                  autoFocus
+                  maxLength={40}
+                  required
+                />
+              </label>
+            ) : null}
             <label>
               Board name <span className="muted">(optional)</span>
               <input
@@ -203,17 +259,19 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
           </form>
         ) : (
           <form onSubmit={handleJoin} className="form">
-            <label>
-              Your name
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Alex"
-                autoFocus
-                maxLength={40}
-                required
-              />
-            </label>
+            {guestFlow ? (
+              <label>
+                Your name
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Alex"
+                  autoFocus
+                  maxLength={40}
+                  required
+                />
+              </label>
+            ) : null}
             <label>
               Board code
               <input

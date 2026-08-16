@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import Home from './components/Home';
 import Room from './components/Room';
 import StickyAd from './components/StickyAd';
-import { ToastHost } from './components/Toast';
+import { ToastHost, toast } from './components/Toast';
 import CookieConsent from './components/CookieConsent';
 import ThemeToggle from './components/ThemeToggle';
 
@@ -19,6 +19,7 @@ const StandupTimesheet = lazy(() => import('./components/StandupTimesheet'));
 const Whiteboard = lazy(() => import('./components/Whiteboard'));
 const WhiteboardStart = lazy(() => import('./components/WhiteboardStart'));
 const ResetPasswordScreen = lazy(() => import('./components/ResetPasswordScreen'));
+const SubscriptionModal = lazy(() => import('./components/SubscriptionModal'));
 import {
   getIdentity,
   saveIdentity,
@@ -31,13 +32,12 @@ import {
   getPendingOrder,
   clearPendingOrder,
   setSubscriptionRef,
-  getSubscriptionRef,
   refreshSubscription,
   isSubscribed,
 } from './lib/subscription';
 import { getStatus } from './lib/verifier';
-import { displayNameFor, refreshUser, useAuth } from './lib/auth';
-import { whiteboardApi } from './lib/whiteboardApi';
+import { useAuth } from './lib/auth';
+import { bootWhiteboardForUser, WhiteboardNeedsPro } from './lib/whiteboardBoot';
 
 type Route =
   | { kind: 'room'; code: string }
@@ -116,7 +116,9 @@ function computeRoute(): Route {
 export default function App() {
   const [route, setRoute] = useState<Route>(computeRoute);
   const { user, loading: authLoading } = useAuth();
-  const [guest, setGuest] = useState(false); 
+  const [guest, setGuest] = useState(false);
+  const [wbBooting, setWbBooting] = useState(false);
+  const [showWbSubscribe, setShowWbSubscribe] = useState(false);
 
   
   
@@ -229,24 +231,22 @@ export default function App() {
     go('/whiteboard', { kind: 'whiteboardStart' });
   }
   async function startWhiteboard() {
-    try {
-      await refreshSubscription();
-      if (!isSubscribed()) {
-        goWhiteboardStart();
-        return;
-      }
-      const profile = (await refreshUser()) || user;
-      const name = displayNameFor(profile) || 'Host';
-      const res = await whiteboardApi.createBoard({
-        name: 'Team whiteboard',
-        facilitatorName: name,
-        subRef: getSubscriptionRef() ?? '',
-        access: 'open',
-      });
-      saveIdentity(res.whiteboard.code, res.participantId, name);
-      goWhiteboard(res.whiteboard.code);
-    } catch {
+    if (!user) {
       goWhiteboardStart();
+      return;
+    }
+    setWbBooting(true);
+    try {
+      const code = await bootWhiteboardForUser(user);
+      goWhiteboard(code);
+    } catch (err) {
+      if (err instanceof WhiteboardNeedsPro) {
+        setShowWbSubscribe(true);
+      } else {
+        toast((err as Error).message || 'Could not open whiteboard', 'error');
+      }
+    } finally {
+      setWbBooting(false);
     }
   }
   function goWhiteboard(code: string) {
@@ -356,7 +356,17 @@ export default function App() {
       <div className="app-theme-toggle">
         <ThemeToggle />
       </div>
+      {wbBooting ? (
+        <div className="wb-boot-overlay" role="status" aria-live="polite">
+          <p>Opening whiteboard…</p>
+        </div>
+      ) : null}
       <Suspense fallback={null}>{page}</Suspense>
+      {showWbSubscribe ? (
+        <Suspense fallback={null}>
+          <SubscriptionModal onClose={() => setShowWbSubscribe(false)} />
+        </Suspense>
+      ) : null}
       <StickyAd />
       <ToastHost />
       <CookieConsent onPrivacy={goPrivacy} />
