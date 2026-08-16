@@ -31,11 +31,13 @@ import {
   getPendingOrder,
   clearPendingOrder,
   setSubscriptionRef,
+  getSubscriptionRef,
   refreshSubscription,
   isSubscribed,
 } from './lib/subscription';
 import { getStatus } from './lib/verifier';
-import { useAuth } from './lib/auth';
+import { displayNameFor, refreshUser, useAuth } from './lib/auth';
+import { whiteboardApi } from './lib/whiteboardApi';
 
 type Route =
   | { kind: 'room'; code: string }
@@ -226,6 +228,27 @@ export default function App() {
   function goWhiteboardStart() {
     go('/whiteboard', { kind: 'whiteboardStart' });
   }
+  async function startWhiteboard() {
+    try {
+      await refreshSubscription();
+      if (!isSubscribed()) {
+        goWhiteboardStart();
+        return;
+      }
+      const profile = (await refreshUser()) || user;
+      const name = displayNameFor(profile) || 'Host';
+      const res = await whiteboardApi.createBoard({
+        name: 'Team whiteboard',
+        facilitatorName: name,
+        subRef: getSubscriptionRef() ?? '',
+        access: 'open',
+      });
+      saveIdentity(res.whiteboard.code, res.participantId, name);
+      goWhiteboard(res.whiteboard.code);
+    } catch {
+      goWhiteboardStart();
+    }
+  }
   function goWhiteboard(code: string) {
     const c = code.toUpperCase();
     go(`/whiteboard/${c}`, { kind: 'whiteboard', code: c });
@@ -306,7 +329,7 @@ export default function App() {
         onPlanning={startPlanning}
         onRetro={goRetroStart}
         onTimesheet={goTimesheet}
-        onWhiteboard={goWhiteboardStart}
+        onWhiteboard={startWhiteboard}
         onPrivacy={goPrivacy}
         onTerms={goTerms}
         onSecurity={goSecurity}
