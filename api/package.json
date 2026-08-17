@@ -13,6 +13,6 @@
     "jose": "^6.2.8"
   },
   "devDependencies": {
-    "azure-functions-core-tools": "^4.0.6280"
+    "azure-functions-core-tools": "^4.13.0"
   }
 }
