@@ -23,7 +23,9 @@ jobs:
             const repo = context.repo.repo;
             const run = context.payload.workflow_run;
             const branch = run.head_branch;
-            if (!branch || !branch.startsWith('cursor/')) {
+            const isCursor = branch?.startsWith('cursor/');
+            const isDependabot = branch?.startsWith('dependabot/');
+            if (!branch || (!isCursor && !isDependabot)) {
               core.info(`Skip auto-merge for branch ${branch || '(unknown)'}`);
               return;
             }

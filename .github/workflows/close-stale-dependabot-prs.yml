@@ -1,0 +1,39 @@
+name: Close stale Dependabot PRs
+
+on:
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const superseded = new Set([8, 14, 16]);
+            const deferred = new Set([9, 12, 13, 15, 17, 18]);
+
+            const messages = {
+              superseded:
+                'Superseded by #70 and equivalent changes on `main`. Closing to clear the PR queue.',
+              deferred:
+                'Closing: major-version bump with failing CI — needs a dedicated migration PR, not a blind merge.',
+            };
+
+            for (const number of [...superseded, ...deferred]) {
+              const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+              if (pr.state !== 'open') {
+                core.info(`PR #${number} already ${pr.state}`);
+                continue;
+              }
+              const body = superseded.has(number) ? messages.superseded : messages.deferred;
+              await github.rest.issues.createComment({ owner, repo, issue_number: number, body });
+              await github.rest.pulls.update({ owner, repo, pull_number: number, state: 'closed' });
+              core.info(`Closed PR #${number}`);
+            }
