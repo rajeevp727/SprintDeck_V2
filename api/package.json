@@ -10,7 +10,7 @@
     "@azure/cosmos": "^4.10.0",
     "@azure/functions": "^4.16.2",
     "@azure/web-pubsub": "^1.2.0",
-    "jose": "^6.2.8"
+    "jose": "^6.2.9"
   },
   "devDependencies": {
     "azure-functions-core-tools": "^4.13.0"
