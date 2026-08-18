@@ -18,6 +18,9 @@ jobs:
       - name: Squash-merge cursor/* PR when checks pass
         uses: actions/github-script@v9
         with:
+          # PAT (secret AUTO_MERGE_PAT) triggers push workflows after merge.
+          # GITHUB_TOKEN merges do not fire push → production deploy.
+          github-token: ${{ secrets.AUTO_MERGE_PAT || github.token }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
