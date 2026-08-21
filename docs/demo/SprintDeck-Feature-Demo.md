@@ -1,6 +1,6 @@
 # SprintDeck Enterprise — Feature Demo Guide
 
-_Last updated: 2026-08-12_  
+_Last updated: 2026-08-21_  
 _Auto-refreshed every Friday when the product changed that week._  
 _Live app: https://sprintdeck.in · Developed by [OmegaTechnologies](https://omega-technologies.in)_
 
@@ -198,22 +198,11 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 > Every Friday, the previous **Updated this week** block is moved here, then that section is refreshed.
 
 <!-- FEATURES_HISTORY_START -->
-
 ### Seed — demo guide created (2026-08-12)
 - Full feature demo walkthrough added
 - Friday automation: promote last week → Features, refresh Updated this week
 
-<!-- FEATURES_HISTORY_END -->
-
----
-
-# Updated this week
-
-> Current week only. Next Friday this block is **promoted into Features → Feature history**, then replaced.
-
-<!-- UPDATED_THIS_WEEK_START -->
-
-### Week of 2026-08-12
+### Archived — Week of 2026-08-12 (moved 2026-08-21)
 **Areas touched:** Plans & billing, Auth / compliance, Landing / branding, Whiteboard
 
 **Highlights**
@@ -236,5 +225,60 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 - `9d1a12f` Add omegatechnologies developer credit in dashboard footer (#34)
 - `ecd5ebd` Restore 4 feature cards on landing page (#33)
 - `269862c` Fix password reset: send email and add reset page (#32)
+
+<!-- FEATURES_HISTORY_END -->
+
+---
+
+# Updated this week
+
+> Current week only. Next Friday this block is **promoted into Features → Feature history**, then replaced.
+
+<!-- UPDATED_THIS_WEEK_START -->
+
+### Week of 2026-08-21
+**Areas touched:** Whiteboard, Auth / compliance, Landing / branding
+
+**Highlights**
+- Deploy production only on push to main
+- chore: add CI health marker for pipeline validation
+- chore(deps-dev): bump eslint-plugin-react-refresh to 0.5.4
+- chore(deps-dev): bump eslint from 10.8.0 to 10.8.1
+- chore(deps-dev): bump typescript-eslint from 8.65.0 to 8.67.0
+- chore(deps-dev): bump globals from 17.8.0 to 17.11.0
+- chore(deps): bump jose from 6.2.8 to 6.2.9 in /api
+- Auto-merge Dependabot PRs and close stale queue
+- chore(deps): apply safe Dependabot updates
+- chore(deps): bump actions/setup-node from 4 to 7
+- chore(deps-dev): bump azure-functions-core-tools in /api
+- chore(deps): bump actions/github-script from 7 to 9
+
+**Commits**
+- `9b328a4` Deploy production only on push to main (#79)
+- `4f73e41` chore: add CI health marker for pipeline validation (#78)
+- `43dc7bb` chore(deps-dev): bump eslint-plugin-react-refresh to 0.5.4 (#77)
+- `fd0397d` chore(deps-dev): bump eslint from 10.8.0 to 10.8.1 (#76)
+- `e93b291` chore(deps-dev): bump typescript-eslint from 8.65.0 to 8.67.0 (#74)
+- `a0d1622` chore(deps-dev): bump globals from 17.8.0 to 17.11.0 (#73)
+- `6cd924a` chore(deps): bump jose from 6.2.8 to 6.2.9 in /api (#72)
+- `ee610d3` Auto-merge Dependabot PRs and close stale queue (#71)
+- `e01b063` chore(deps): apply safe Dependabot updates (#70)
+- `0d863ce` chore(deps): bump actions/setup-node from 4 to 7 (#11)
+- `670f72c` chore(deps-dev): bump azure-functions-core-tools in /api (#69)
+- `18734fe` chore(deps): bump actions/github-script from 7 to 9 (#68)
+- `f833b92` Fix production deploy after auto-merge PRs
+- `c4400ef` Skip whiteboard name screen for logged-in users (#66)
+- `fc42e1e` Auto-start whiteboard with profile username from dashboard (#65)
+- `1826b1d` Show theme toggle globally on every screen including auth (#64)
+- `3d9df93` Apply unified auth card styling on mobile and desktop (#63)
+- `28db2ea` Unify auth card to wrap email form and SSO buttons (#62)
+- `ac907eb` Move SSO buttons below switch CTA on login and signup (#61)
+- `1d1160f` Show Microsoft logo clearly on SSO sign-in button (#60)
+- `349c489` Polish SSO login UI with brand-aligned Microsoft and Google buttons (#59)
+- `3a0e3b0` Add memory.md agent playbook for context, standards, and auto-merge (#58)
+- `75116d4` Harden auto-merge workflow against concurrent merge races (#57)
+- `610cc7d` Improve auth UI/UX: unified SSO buttons and mobile layout (#56)
+- `fdc53cf` Fix MSAL interaction_in_progress error on Microsoft sign-in
+- …and 3 more commits
 
 <!-- UPDATED_THIS_WEEK_END -->
