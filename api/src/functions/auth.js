@@ -213,6 +213,16 @@ app.http('resetPassword', {
   return ok({ ok: true });
 });
 
+// GET /api/auth/email-status  → { configured: boolean }
+app.http('emailStatus', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'auth/email-status',
+  handler: async () => {
+    return ok({ configured: !!secret() });
+  },
+});
+
 // --- OAuth SSO (Google + Microsoft) ---
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID || '';

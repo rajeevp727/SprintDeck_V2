@@ -178,6 +178,32 @@ export function logout() {
   notify();
 }
 
+export async function loginWithOAuth(
+  provider: 'google' | 'microsoft',
+  idToken: string,
+  remember = true,
+): Promise<AuthUser> {
+  const { token, user } = await post('/api/auth/oauth', { provider, idToken, remember });
+  setToken(token);
+  cachedUser = user;
+  rememberAccount({ email: user.email, name: user.name });
+  notify();
+  return user;
+}
+
+export async function getEmailStatus(): Promise<{ configured: boolean }> {
+  const res = await fetch('/api/auth/email-status', { cache: 'no-store' });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return { configured: false };
+  return { configured: !!data.configured };
+}
+
+export function displayNameFor(user: AuthUser | null | undefined): string {
+  if (!user) return '';
+  const raw = (user.name || user.email.split('@')[0] || '').trim();
+  return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : user.email;
+}
+
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
   const token = getToken();
   const res = await fetch('/api/auth/password', {
@@ -213,6 +239,9 @@ const nameCheckCache = new Map<string, NameCheck>();
 // (no debounce, no "checking" flash, no network).
 export function peekName(name: string): NameCheck | null {
   return nameCheckCache.get(name.trim().toLowerCase()) ?? null;
+}
+export function clearNameCheckCache() {
+  nameCheckCache.clear();
 }
 export async function checkName(name: string): Promise<NameCheck> {
   const key = name.trim().toLowerCase();
@@ -261,6 +290,7 @@ export function useAuth(): {
   loading: boolean;
   register: typeof register;
   login: typeof login;
+  loginWithOAuth: typeof loginWithOAuth;
   logout: typeof logout;
 } {
   const [, bump] = useState(0);
@@ -273,5 +303,5 @@ export function useAuth(): {
       listeners.delete(rerender);
     };
   }, []);
-  return { user: cachedUser, loading, register, login, logout };
+  return { user: cachedUser, loading, register, login, loginWithOAuth, logout };
 }
