@@ -2,10 +2,38 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import Home from './components/Home';
 import Room from './components/Room';
 import StickyAd from './components/StickyAd';
-import { ToastHost, toast } from './components/Toast';
-import CookieConsent from './components/CookieConsent';
-import ThemeToggle from './components/ThemeToggle';
+import { ToastHost } from './components/Toast';
 
+// OAuth callback pages — no lazy-load needed (tiny).
+function GoogleCallback() {
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    const params = new URLSearchParams(hash);
+    const idToken = params.get('id_token') || '';
+    if (idToken) {
+      window.opener?.postMessage({ type: 'sso-callback', idToken }, window.location.origin);
+    }
+    window.history.replaceState({}, '', '/');
+    window.close();
+  }, []);
+  return null;
+}
+
+function MicrosoftCallback() {
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    const params = new URLSearchParams(hash);
+    const idToken = params.get('id_token') || '';
+    if (idToken) {
+      window.opener?.postMessage({ type: 'sso-callback', idToken }, window.location.origin);
+    }
+    window.history.replaceState({}, '', '/');
+    window.close();
+  }, []);
+  return null;
+}
+
+// Rarely-visited legal pages — code-split out of the initial bundle.
 const Privacy = lazy(() => import('./components/Privacy'));
 const Terms = lazy(() => import('./components/Terms'));
 const Security = lazy(() => import('./components/Security'));
@@ -17,9 +45,6 @@ const Dashboard = lazy(() => import('./components/Dashboard'));
 const RetroStart = lazy(() => import('./components/RetroStart'));
 const StandupTimesheet = lazy(() => import('./components/StandupTimesheet'));
 const Whiteboard = lazy(() => import('./components/Whiteboard'));
-const WhiteboardStart = lazy(() => import('./components/WhiteboardStart'));
-const ResetPasswordScreen = lazy(() => import('./components/ResetPasswordScreen'));
-const SubscriptionModal = lazy(() => import('./components/SubscriptionModal'));
 import {
   getIdentity,
   saveIdentity,
@@ -37,7 +62,6 @@ import {
 } from './lib/subscription';
 import { getStatus } from './lib/verifier';
 import { useAuth } from './lib/auth';
-import { bootWhiteboardForUser, WhiteboardNeedsPro } from './lib/whiteboardBoot';
 
 type Route =
   | { kind: 'room'; code: string }
@@ -47,17 +71,23 @@ type Route =
   | { kind: 'terms' }
   | { kind: 'security' }
   | { kind: 'auth' }
-  | { kind: 'resetPassword'; token: string }
   | { kind: 'plan' }
   | { kind: 'retroStart' }
   | { kind: 'timesheet' }
   | { kind: 'home'; joinCode?: string }
-  | { kind: 'whiteboardStart'; joinCode?: string; shareToken?: string }
-  | { kind: 'whiteboard'; code: string };
+  | { kind: 'whiteboard' }
+  | { kind: 'oauthCallback'; provider: 'google' | 'microsoft' };
 
+// The retrospective board has its own real URL path: /retro/CODE (unlike poker,
+// whose code stays out of the URL) so the facilitator can share a plain link.
 const RETRO_PATH_RE = /^\/retro\/([A-Za-z0-9-]+)\/?$/;
-const WB_PATH_RE = /^\/whiteboard\/([A-Za-z0-9-]+)\/?$/;
+const GOOGLE_CB_RE = /^\/auth\/google\/callback\/?$/;
+const MS_CB_RE = /^\/auth\/microsoft\/callback\/?$/;
 
+// The room code is NOT kept in the URL — it lives in storage (see storage.ts).
+// Invite links carry the code as a ?room=CODE query param, which is read on
+// open and then stripped from the address bar. A legacy /room-CODE path is also
+// honored. Otherwise the room resumes from storage; the visible URL stays "/".
 function codeFromUrl(): string {
   const params = new URLSearchParams(window.location.search);
   const fromQuery = (params.get('room') || '').toUpperCase();
@@ -72,26 +102,12 @@ function computeRoute(): Route {
   if (path === '/terms' || path === '/terms/') return { kind: 'terms' };
   if (path === '/security' || path === '/security/') return { kind: 'security' };
   if (path === '/login' || path === '/login/') return { kind: 'auth' };
-  if (path === '/reset-password' || path === '/reset-password/') {
-    const token = new URLSearchParams(window.location.search).get('token') || '';
-    return { kind: 'resetPassword', token };
-  }
   if (path === '/plan' || path === '/plan/') return { kind: 'plan' };
   if (path === '/retro-new' || path === '/retro-new/') return { kind: 'retroStart' };
   if (path === '/timesheet' || path === '/timesheet/') return { kind: 'timesheet' };
-  if (path === '/whiteboard' || path === '/whiteboard/') {
-    const t = new URLSearchParams(window.location.search).get('t') || undefined;
-    return { kind: 'whiteboardStart', shareToken: t };
-  }
-
-  const wbMatch = path.match(WB_PATH_RE);
-  if (wbMatch) {
-    const wc = wbMatch[1].toUpperCase();
-    const t = new URLSearchParams(window.location.search).get('t') || undefined;
-    return getIdentity(wc)
-      ? { kind: 'whiteboard', code: wc }
-      : { kind: 'whiteboardStart', joinCode: wc, shareToken: t };
-  }
+  if (path === '/whiteboard' || path === '/whiteboard/') return { kind: 'whiteboard' };
+  if (GOOGLE_CB_RE.test(path)) return { kind: 'oauthCallback', provider: 'google' };
+  if (MS_CB_RE.test(path)) return { kind: 'oauthCallback', provider: 'microsoft' };
 
   const retroMatch = path.match(RETRO_PATH_RE);
   if (retroMatch) {
@@ -116,18 +132,16 @@ function computeRoute(): Route {
 export default function App() {
   const [route, setRoute] = useState<Route>(computeRoute);
   const { user, loading: authLoading } = useAuth();
-  const [guest, setGuest] = useState(false);
-  const [wbBooting, setWbBooting] = useState(false);
-  const [showWbSubscribe, setShowWbSubscribe] = useState(false);
+  const [guest, setGuest] = useState(false); // "continue as guest" from the landing
 
-  
-  
-  
-  
+  // Background payment watcher: a bank email → ingest confirm can land minutes
+  // after the modal closed. While a pending order exists (persisted in storage),
+  // poll its status and activate the plan the moment it confirms — surviving the
+  // QR window elapsing and page reloads.
   useEffect(() => {
     let active = true;
     async function check() {
-      await refreshSubscription();
+      await refreshSubscription(); // sync the cache with the server first
       if (isSubscribed()) {
         clearPendingOrder();
         return;
@@ -137,32 +151,29 @@ export default function App() {
       try {
         const { status } = await getStatus(pending.orderId);
         if (status === 'confirmed') {
-          setSubscriptionRef(pending.orderId);
+          setSubscriptionRef(pending.orderId); // store the order ref; tier comes from the server
           await refreshSubscription();
           clearPendingOrder();
-          if (active) setRoute(computeRoute());
+          if (active) setRoute(computeRoute()); // re-render so the Upgrade button / popup update
         } else if (status === 'expired') {
           clearPendingOrder();
         }
-      } catch { void 0; }
+      } catch {
+        /* transient — try again next tick */
+      }
     }
     check();
     const id = setInterval(() => {
-      if (!document.hidden && getPendingOrder()) check();
-    }, 2000);
-    const onVisible = () => {
-      if (!document.hidden && getPendingOrder()) check();
-    };
-    document.addEventListener('visibilitychange', onVisible);
+      if (!document.hidden) check(); // pause while the tab is backgrounded
+    }, 15000);
     return () => {
       active = false;
       clearInterval(id);
-      document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
 
   useEffect(() => {
-    
+    // Strip the code (query param or legacy path) out of the address bar.
     if (window.location.search || /^\/room-/.test(window.location.pathname)) {
       window.history.replaceState({}, '', '/');
     }
@@ -178,7 +189,7 @@ export default function App() {
   }
   function goRoom(code: string) {
     setCurrentRoom(code);
-    go('/', { kind: 'room', code: code.toUpperCase() }, true); 
+    go('/', { kind: 'room', code: code.toUpperCase() }, true); // clean URL, no code
   }
   function goHome() {
     clearCurrentRoom();
@@ -187,9 +198,9 @@ export default function App() {
   function goRetro(code: string) {
     const c = code.toUpperCase();
     const next: Route = getIdentity(c) ? { kind: 'retro', code: c } : { kind: 'retroJoin', code: c };
-    go(`/retro/${c}`, next); 
+    go(`/retro/${c}`, next); // keep the code in the URL
   }
-  
+  // Leave a retro back to the poker room you're in (if any), else home.
   function exitRetro() {
     const current = getCurrentRoom();
     const next: Route = current && getIdentity(current) ? { kind: 'room', code: current } : { kind: 'home' };
@@ -210,7 +221,7 @@ export default function App() {
   function goPlan() {
     go('/plan', { kind: 'plan' });
   }
-  
+  // Signed-in host: create a session with their account name and go straight in.
   async function startPlanning() {
     const hostName = user?.name || user?.email?.split('@')[0] || 'Host';
     try {
@@ -218,7 +229,7 @@ export default function App() {
       saveIdentity(res.session.code, res.participantId, hostName);
       goRoom(res.session.code);
     } catch {
-      goPlan();
+      goPlan(); // fall back to the create form on failure
     }
   }
   function goRetroStart() {
@@ -227,31 +238,8 @@ export default function App() {
   function goTimesheet() {
     go('/timesheet', { kind: 'timesheet' });
   }
-  function goWhiteboardStart() {
-    go('/whiteboard', { kind: 'whiteboardStart' });
-  }
-  async function startWhiteboard() {
-    if (!user) {
-      goWhiteboardStart();
-      return;
-    }
-    setWbBooting(true);
-    try {
-      const code = await bootWhiteboardForUser(user);
-      goWhiteboard(code);
-    } catch (err) {
-      if (err instanceof WhiteboardNeedsPro) {
-        setShowWbSubscribe(true);
-      } else {
-        toast((err as Error).message || 'Could not open whiteboard', 'error');
-      }
-    } finally {
-      setWbBooting(false);
-    }
-  }
-  function goWhiteboard(code: string) {
-    const c = code.toUpperCase();
-    go(`/whiteboard/${c}`, { kind: 'whiteboard', code: c });
+  function goWhiteboard() {
+    go('/whiteboard', { kind: 'whiteboard' });
   }
 
   let page;
@@ -269,7 +257,6 @@ export default function App() {
         onMissingIdentity={goHome}
         onGoRoom={() => goRoom(route.code)}
         onGoRetro={goRetro}
-        onGoWhiteboard={goWhiteboard}
       />
     );
   } else if (route.kind === 'retro') {
@@ -278,12 +265,12 @@ export default function App() {
     );
   } else if (route.kind === 'retroJoin') {
     page = <RetroHome joinCode={route.code} onEnter={goRetro} onExit={goHome} />;
-  } else if (route.kind === 'resetPassword') {
-    page = <ResetPasswordScreen token={route.token} onDone={goAuth} />;
   } else if (route.kind === 'auth') {
     page = <AuthScreen onAuthed={goHome} onBack={goHome} />;
+  } else if (route.kind === 'oauthCallback') {
+    page = route.provider === 'google' ? <GoogleCallback /> : <MicrosoftCallback />;
   } else if (route.kind === 'plan') {
-    
+    // Planning create/join, reached from the dashboard.
     page = (
       <Home onEnter={goRoom} onPrivacy={goPrivacy} onTerms={goTerms} onSecurity={goSecurity} onBack={goHome} />
     );
@@ -291,27 +278,12 @@ export default function App() {
     page = <RetroStart onEnter={goRetro} onBack={goHome} />;
   } else if (route.kind === 'timesheet') {
     page = <StandupTimesheet onBack={goHome} />;
-  } else if (route.kind === 'whiteboardStart') {
-    page = (
-      <WhiteboardStart
-        onEnter={goWhiteboard}
-        onBack={goHome}
-        joinCode={route.joinCode}
-        shareToken={route.shareToken}
-      />
-    );
   } else if (route.kind === 'whiteboard') {
-    page = (
-      <Whiteboard
-        code={route.code}
-        onLeave={goHome}
-        onMissingIdentity={() => go('/whiteboard/' + route.code, { kind: 'whiteboardStart', joinCode: route.code })}
-      />
-    );
+    page = <Whiteboard onBack={goHome} />;
   } else if (authLoading) {
-    page = null; 
+    page = null; // resolving the session — avoid flashing the landing then the app
   } else if (route.joinCode) {
-    
+    // Arriving via an invite link — join the room (guests welcome).
     page = (
       <Home
         initialCode={route.joinCode}
@@ -323,20 +295,20 @@ export default function App() {
       />
     );
   } else if (user) {
-    
+    // Signed in → dashboard of ceremonies.
     page = (
       <Dashboard
         onPlanning={startPlanning}
         onRetro={goRetroStart}
         onTimesheet={goTimesheet}
-        onWhiteboard={startWhiteboard}
+        onWhiteboard={goWhiteboard}
         onPrivacy={goPrivacy}
         onTerms={goTerms}
         onSecurity={goSecurity}
       />
     );
   } else if (guest) {
-    
+    // Continuing as guest → New session, with a login/register nudge above it.
     page = (
       <Home
         onEnter={goRoom}
@@ -353,23 +325,9 @@ export default function App() {
 
   return (
     <>
-      <div className="app-theme-toggle">
-        <ThemeToggle />
-      </div>
-      {wbBooting ? (
-        <div className="wb-boot-overlay" role="status" aria-live="polite">
-          <p>Opening whiteboard…</p>
-        </div>
-      ) : null}
       <Suspense fallback={null}>{page}</Suspense>
-      {showWbSubscribe ? (
-        <Suspense fallback={null}>
-          <SubscriptionModal onClose={() => setShowWbSubscribe(false)} />
-        </Suspense>
-      ) : null}
       <StickyAd />
       <ToastHost />
-      <CookieConsent onPrivacy={goPrivacy} />
     </>
   );
 }

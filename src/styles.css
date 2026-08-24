@@ -3387,6 +3387,55 @@ button.linkish {
 .auth-forgot-btn:hover {
   color: var(--accent);
 }
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0.9rem 0 0.7rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.auth-sso-row {
+  display: flex;
+  gap: 0.6rem;
+}
+.sso-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+.sso-btn:hover:not(:disabled) {
+  background: var(--panel-2);
+  border-color: var(--accent);
+}
+.sso-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.auth-sso-error {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
 @media (prefers-reduced-motion: reduce) {
   .auth-leaf {
     transition: opacity 0.3s ease;

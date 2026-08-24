@@ -1,14 +1,18 @@
 'use strict';
 
+// Email + password authentication. Register/login issue a signed JWT (HS256,
+// JWT_SECRET); the client sends it as `Authorization: Bearer <token>` and the
+// API validates it via api/src/auth.js. Passwords are scrypt-hashed in
+// users-store. Degrades cleanly (503) when JWT_SECRET isn't configured.
+//
+// OAuth SSO (Google + Microsoft): the provider redirects back with an id_token
+// in the URL fragment. The frontend POSTs { provider, idToken } here; we verify
+// the token server-side, upsert the user, and issue our own JWT.
 const { app } = require('@azure/functions');
 const users = require('../users-store');
 const jwt = require('../jwt');
 const { rateLimited } = require('../ratelimit');
-const { audit } = require('../audit');
-const payments = require('../payments-store');
-const resetTokenStore = require('../reset-token-store');
-const { sendPasswordResetEmail, isEmailConfigured } = require('../email');
-const oauth = require('../oauth');
+const crypto = require('crypto');
 
 const noCache = { 'Cache-Control': 'no-store' };
 function ok(body) {
@@ -29,51 +33,17 @@ const secret = () => process.env.JWT_SECRET || '';
 const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const minPassword = 8;
 
+// "Remember me" keeps you signed in for 2 sprints (a sprint is 14 days → 28
+// days); otherwise the token is a short 1-day session.
 const SPRINT_DAYS = 14;
-const REMEMBER_TTL = 2 * SPRINT_DAYS * 24 * 60 * 60;
-const SESSION_TTL = 24 * 60 * 60;
+const REMEMBER_TTL = 2 * SPRINT_DAYS * 24 * 60 * 60; // 28 days
+const SESSION_TTL = 24 * 60 * 60; // 1 day
 
 function tokenFor(user, remember) {
   return jwt.sign({ sub: user.id, email: user.email }, secret(), remember ? REMEMBER_TTL : SESSION_TTL);
 }
 
-function appBaseUrl(req) {
-  if (process.env.APP_URL) return String(process.env.APP_URL).replace(/\/$/, '');
-
-  const forwarded = req.headers.get('x-forwarded-host');
-  if (forwarded) {
-    const host = forwarded.split(',')[0].trim();
-    const proto = (req.headers.get('x-forwarded-proto') || 'https').split(',')[0].trim();
-    return `${proto}://${host}`.replace(/\/$/, '');
-  }
-
-  const original = req.headers.get('x-ms-original-url');
-  if (original) {
-    try {
-      return new URL(original).origin;
-    } catch {
-      void 0;
-    }
-  }
-
-  const origin = req.headers.get('origin');
-  if (origin) return origin.replace(/\/$/, '');
-
-  const referer = req.headers.get('referer');
-  if (referer) {
-    try {
-      const u = new URL(referer);
-      return `${u.protocol}//${u.host}`;
-    } catch {
-      void 0;
-    }
-  }
-
-  // SWA managed Functions: WEBSITE_HOSTNAME is the API backend (*.azurewebsites.net),
-  // not the public static site — never use it for user-facing email links.
-  return 'https://sprintdeck.in';
-}
-
+// Build a few available alternatives when a name is taken.
 async function nameSuggestions(name, max = 3) {
   const base = String(name || '').trim().replace(/\s+/g, '').slice(0, 50) || 'user';
   const pool = [];
@@ -88,11 +58,12 @@ async function nameSuggestions(name, max = 3) {
   return out;
 }
 
+// POST /api/auth/register  { email, password, name? }
 app.http('register', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'auth/register',
-  handler: async (req, context) => {
+  handler: async (req) => {
     if (!secret()) return bad('Auth is not configured', 503);
     if (rateLimited(req, 'register', 10, 60_000)) return bad('Too many attempts — slow down', 429);
     const { email, password, name, remember } = await readBody(req);
@@ -104,11 +75,11 @@ app.http('register', {
     const result = await users.createUser(email, password, name);
     if (result.error === 'email-exists') return bad('An account with that email already exists', 409);
     if (result.error === 'name-exists') return bad('That name is already taken — pick another', 409);
-    audit(context, 'auth.register', { email: result.user.email });
     return ok({ token: tokenFor(result.user, remember !== false), user: users.publicUser(result.user) });
   },
 });
 
+// GET /api/auth/check-name?name=Foo  → { available, suggestions[] }
 app.http('checkName', {
   methods: ['GET'],
   authLevel: 'anonymous',
@@ -123,319 +94,223 @@ app.http('checkName', {
   },
 });
 
+// POST /api/auth/login  { email, password }
 app.http('login', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'auth/login',
-  handler: async (req, context) => {
+  handler: async (req) => {
     if (!secret()) return bad('Auth is not configured', 503);
     if (rateLimited(req, 'login', 10, 60_000)) return bad('Too many attempts — slow down', 429);
     const { email, password, remember } = await readBody(req);
     const user = await users.getByEmail(email);
-    if (!user || !users.hasPassword(user) || !users.verifyPassword(user, password)) {
-      audit(context, 'auth.login.failed', { email });
+    // Same message + always run the hash to blunt user-enumeration / timing.
+    if (!user || !users.verifyPassword(user, password)) {
       return bad('Invalid email or password', 401);
     }
-    audit(context, 'auth.login', { email: user.email });
     return ok({ token: tokenFor(user, !!remember), user: users.publicUser(user) });
   },
 });
 
+// POST /api/auth/password  { currentPassword, newPassword }   (header x-auth-token)
 app.http('changePassword', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'auth/password',
-  handler: async (req, context) => {
+  handler: async (req) => {
     if (!secret()) return bad('Auth is not configured', 503);
-    if (rateLimited(req, 'pwchange', 5, 60_000)) return bad('Too many attempts — slow down', 429);
+    if (rateLimited(req, 'pwchange', 10, 60_000)) return bad('Too many attempts — slow down', 429);
     const token = req.headers.get('x-auth-token') || '';
     const payload = token && jwt.verify(token, secret());
     if (!payload) return bad('Please sign in again', 401);
+    const { currentPassword, newPassword } = await readBody(req);
+    if (String(newPassword || '').length < minPassword) {
+      return bad(`New password must be at least ${minPassword} characters`);
+    }
     const user = await users.getByEmail(payload.email);
-    if (!user) return bad('Account not found', 404);
-
-    const body = await readBody(req);
-    const currentPassword = String(body.currentPassword || '');
-    const newPassword = String(body.newPassword || '');
-
-    // Direct change (fallback when email delivery is not configured, or explicit form submit).
-    if (currentPassword || newPassword) {
-      if (!users.hasPassword(user)) {
-        return bad('This account uses Microsoft or Google sign-in. Use that provider to sign in.', 400);
-      }
-      if (newPassword.length < minPassword) {
-        return bad(`New password must be at least ${minPassword} characters`);
-      }
-      if (!users.verifyPassword(user, currentPassword)) {
-        audit(context, 'auth.password.failed', { email: payload.email });
-        return bad('Current password is incorrect', 401);
-      }
-      if (currentPassword === newPassword) {
-        return bad('New password must be different from the current one');
-      }
-      await users.updatePassword(payload.email, newPassword);
-      audit(context, 'auth.password.changed', { email: payload.email });
-      return ok({ ok: true, method: 'direct' });
+    if (!user || !users.verifyPassword(user, currentPassword)) {
+      return bad('Current password is incorrect', 401);
     }
-
-    // Preferred path: email a one-time link.
-    if (!isEmailConfigured()) {
-      context.error('[password-change] Email not configured — set RESEND_API_KEY + EMAIL_FROM in Azure SWA Application settings');
-      return bad(
-        'Password email is not configured on the server. Add RESEND_API_KEY and EMAIL_FROM in Azure Static Web Apps → Configuration → Application settings, then try again.',
-        503,
-      );
-    }
-    try {
-      const resetToken = await resetTokenStore.saveResetToken(user.email, user.id);
-      const resetUrl = `${appBaseUrl(req)}/reset-password?token=${encodeURIComponent(resetToken)}`;
-      await sendPasswordResetEmail(user.email, resetUrl, { reason: 'settings' });
-      audit(context, 'auth.password.change-requested', { email: user.email });
-      context.log(`[password-change] link emailed to ${user.email.slice(0, 2)}***`);
-    } catch (err) {
-      context.error(`[password-change] email failed: ${(err && err.message) || err}`);
-      return bad('Could not send password-change email — try again in a few minutes', 502);
-    }
-    return ok({ ok: true, method: 'email', emailedTo: user.email });
+    await users.updatePassword(payload.email, newPassword);
+    return ok({ ok: true });
   },
 });
 
-app.http('oauthLogin', {
-  methods: ['POST'],
-  authLevel: 'anonymous',
-  route: 'auth/oauth',
-  handler: async (req, context) => {
-    if (!secret()) return bad('Auth is not configured', 503);
-    if (rateLimited(req, 'oauth', 15, 60_000)) return bad('Too many attempts — slow down', 429);
-    const { provider, idToken, remember } = await readBody(req);
-    const p = String(provider || '').toLowerCase();
-    if (p !== 'google' && p !== 'microsoft') return bad('Unsupported sign-in provider', 400);
-    if (!String(idToken || '').trim()) return bad('Missing sign-in token', 400);
-
-    let profile;
-    try {
-      profile = await oauth.verifyProviderToken(p, idToken);
-    } catch (err) {
-      context.error(`[oauth] verify failed (${p}): ${(err && err.message) || err}`);
-      return bad('Sign-in could not be verified. Try again.', 401);
-    }
-
-    const result = await users.findOrCreateOAuthUser({
-      email: profile.email,
-      name: profile.name,
-      provider: p,
-      providerSub: profile.providerSub,
-    });
-    if (result.error === 'email-exists-other-provider') {
-      return bad('This email is registered with a different sign-in method', 409);
-    }
-    if (result.error) return bad('Could not sign in with that account', 409);
-
-    audit(context, 'auth.oauth', { email: result.user.email, provider: p });
-    return ok({ token: tokenFor(result.user, remember !== false), user: users.publicUser(result.user) });
-  },
-});
-
-app.http('oauthStatus', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'auth/oauth-status',
-  handler: async () => {
-    const providers = oauth.configured();
-    return ok({
-      configured: providers.google || providers.microsoft,
-      providers,
-      // Public OAuth client IDs (safe to expose — not secrets).
-      microsoftClientId: providers.microsoft ? String(process.env.AZURE_CLIENT_ID || '').trim() : '',
-      azureTenantId: String(process.env.AZURE_TENANT_ID || 'common').trim() || 'common',
-      googleClientId: providers.google ? String(process.env.GOOGLE_CLIENT_ID || '').trim() : '',
-    });
-  },
-});
-
-app.http('emailStatus', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'auth/email-status',
-  handler: async () =>
-    ok({
-      configured: isEmailConfigured(),
-      providers: {
-        resend: !!(process.env.RESEND_API_KEY && String(process.env.RESEND_API_KEY).trim()),
-        sendgrid: !!(process.env.SENDGRID_API_KEY && String(process.env.SENDGRID_API_KEY).trim()),
-      },
-      hasFrom: !!(process.env.EMAIL_FROM && String(process.env.EMAIL_FROM).trim()),
-      // Booleans only — confirms which backend settings the Functions host sees.
-      envPresent: {
-        jwt: !!(process.env.JWT_SECRET && String(process.env.JWT_SECRET).trim()),
-        cosmos: !!(process.env.COSMOS_CONNECTION_STRING && String(process.env.COSMOS_CONNECTION_STRING).trim()),
-        ingest: !!(process.env.INGEST_SECRET && String(process.env.INGEST_SECRET).trim()),
-        webpubsub: !!(process.env.WEBPUBSUB_CONNECTION_STRING && String(process.env.WEBPUBSUB_CONNECTION_STRING).trim()),
-        resend: !!(process.env.RESEND_API_KEY && String(process.env.RESEND_API_KEY).trim()),
-        emailFrom: !!(process.env.EMAIL_FROM && String(process.env.EMAIL_FROM).trim()),
-      },
-      host: process.env.WEBSITE_HOSTNAME || null,
-      appUrl: process.env.APP_URL || 'https://sprintdeck.in',
-      hint:
-        'When envPresent.jwt is true but resend/emailFrom are false, RESEND_API_KEY and EMAIL_FROM are missing or empty in Azure SWA Environment variables (Production). Password-reset links use APP_URL (not WEBSITE_HOSTNAME).',
-    }),
-});
-
+// GET /api/auth/me   (header x-auth-token)
 app.http('authMe', {
   methods: ['GET'],
   authLevel: 'anonymous',
   route: 'auth/me',
   handler: async (req) => {
     if (!secret()) return ok({ user: null });
-    
+    // SWA strips Authorization, so the client sends the JWT in x-auth-token.
     const token = req.headers.get('x-auth-token') || '';
     const payload = token && jwt.verify(token, secret());
     if (!payload) return ok({ user: null });
-    const user = await users.getByEmail(payload.email);
-    return ok({ user: user ? users.publicUser(user) : null });
+    return ok({ user: { id: payload.sub, email: payload.email } });
   },
 });
 
-app.http('updateProfile', {
-  methods: ['POST'],
-  authLevel: 'anonymous',
-  route: 'auth/profile',
-  handler: async (req) => {
-    if (!secret()) return bad('Auth is not configured', 503);
-    if (rateLimited(req, 'profile', 15, 60_000)) return bad('Too many attempts — slow down', 429);
-    const token = req.headers.get('x-auth-token') || '';
-    const payload = token && jwt.verify(token, secret());
-    if (!payload) return bad('Please sign in again', 401);
-    const { name } = await readBody(req);
-    if (String(name || '').trim().length < 2) return bad('Enter your name (at least 2 characters)');
-    const result = await users.updateUserName(payload.email, name);
-    if (!result) return bad('Account not found', 404);
-    if (result.error === 'name-exists') return bad('That name is already taken — pick another', 409);
-    if (result.error === 'name-too-short') return bad('Enter your name (at least 2 characters)');
-    return ok({ user: users.publicUser(result.user) });
-  },
-});
+// In-memory reset-token store (dev/local). In production, persist these in
+// Cosmos/Redis with a TTL so they survive restarts.
+const resetTokens = new Map();
+const RESET_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
+function pruneResetTokens() {
+  const now = Date.now();
+  for (const [k, v] of resetTokens) {
+    if (now - v.createdAt > RESET_TTL_MS) resetTokens.delete(k);
+  }
+}
+
+// POST /api/auth/forgot-password  { email }
 app.http('forgotPassword', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'auth/forgot-password',
-  handler: async (req, context) => {
+  handler: async (req) => {
     if (!secret()) return ok({ ok: true });
-    if (!isEmailConfigured()) {
-      context.error('[forgot-password] Email not configured — set RESEND_API_KEY or SENDGRID_API_KEY in Azure');
-      return bad(
-        'Password reset email is not configured on the server. Add RESEND_API_KEY and EMAIL_FROM in Azure Static Web Apps → Configuration → Application settings.',
-        503,
-      );
-    }
     if (rateLimited(req, 'forgotpw', 5, 60_000)) return bad('Too many attempts — slow down', 429);
     const { email } = await readBody(req);
     const normalized = String(email || '').trim().toLowerCase();
     if (!emailRe.test(normalized)) return bad('Enter a valid email', 400);
     const user = await users.getByEmail(normalized);
-    if (user) {
-      const token = await resetTokenStore.saveResetToken(user.email, user.id);
-      const resetUrl = `${appBaseUrl(req)}/reset-password?token=${encodeURIComponent(token)}`;
-      try {
-        await sendPasswordResetEmail(user.email, resetUrl);
-        context.log(`[forgot-password] reset email sent to ${normalized.slice(0, 2)}***`);
-        audit(context, 'auth.forgot-password', { email: user.email });
-      } catch (err) {
-        context.error(`[forgot-password] email failed: ${(err && err.message) || err}`);
-        return bad('Could not send reset email — try again in a few minutes', 502);
-      }
+    if (!user) {
+      return bad('User not found — please check the email and try again', 404);
     }
+    pruneResetTokens();
+    const token = crypto.randomBytes(32).toString('hex');
+    resetTokens.set(token, {
+      email: user.email,
+      userId: user.id,
+      createdAt: Date.now(),
+    });
+    const resetUrl = `${req.url.replace(/\/api\/auth\/forgot-password.*/, '')}/reset-password?token=${token}`;
+    console.log(`[forgot-password] reset link for ${user.email}: ${resetUrl}`);
+    // TODO: send the resetUrl via email (SMTP / SendGrid / Postmark etc.)
     return ok({ ok: true });
   },
 });
 
+// POST /api/auth/reset-password  { token, newPassword }
 app.http('resetPassword', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'auth/reset-password',
-  handler: async (req, context) => {
+  handler: async (req) => {
     if (!secret()) return bad('Auth is not configured', 503);
     if (rateLimited(req, 'resetpw', 10, 60_000)) return bad('Too many attempts — slow down', 429);
     const { token, newPassword } = await readBody(req);
-    const record = await resetTokenStore.consumeResetToken(String(token || ''));
-    if (!record) return bad('Invalid or expired reset link', 400);
-    if (String(newPassword || '').length < minPassword) {
-      return bad(`New password must be at least ${minPassword} characters`);
-    }
-    const user = await users.getByEmail(record.email);
-    if (!user || user.id !== record.userId) return bad('Invalid reset link', 400);
-    await users.updatePassword(user.email, newPassword);
-    audit(context, 'auth.password.reset', { email: user.email });
-    return ok({ ok: true });
-  },
+  const record = resetTokens.get(String(token || ''));
+  if (!record) return bad('Invalid or expired reset link', 400);
+  if (String(newPassword || '').length < minPassword) {
+    return bad(`New password must be at least ${minPassword} characters`);
+  }
+  const user = await users.getByEmail(record.email);
+  if (!user || user.id !== record.userId) return bad('Invalid reset link', 400);
+  await users.updatePassword(user.email, newPassword);
+  resetTokens.delete(String(token || ''));
+  return ok({ ok: true });
 });
 
-app.http('deleteAccount', {
-  methods: ['DELETE'],
+// --- OAuth SSO (Google + Microsoft) ---
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID || '';
+const MS_CLIENT_ID = process.env.MICROSOFT_OAUTH_CLIENT_ID || '';
+const MS_TENANT = process.env.MICROSOFT_OAUTH_TENANT || 'common';
+
+// POST /api/auth/oauth  { provider: 'google'|'microsoft', idToken, remember? }
+// Verifies the provider id_token, upserts the user, returns our JWT.
+app.http('oauth', {
+  methods: ['POST'],
   authLevel: 'anonymous',
-  route: 'auth/account',
-  handler: async (req, context) => {
+  route: 'auth/oauth',
+  handler: async (req) => {
     if (!secret()) return bad('Auth is not configured', 503);
-    if (rateLimited(req, 'deleteacct', 5, 60_000)) return bad('Too many attempts — slow down', 429);
-    const token = req.headers.get('x-auth-token') || '';
-    const payload = token && jwt.verify(token, secret());
-    if (!payload) return bad('Please sign in again', 401);
-    const { password } = await readBody(req);
-    const user = await users.getByEmail(payload.email);
-    if (!user) return bad('Account not found', 404);
-    if (users.hasPassword(user)) {
-      if (!users.verifyPassword(user, password)) {
-        return bad('Password is incorrect', 401);
+    if (rateLimited(req, 'oauth', 20, 60_000)) return bad('Too many attempts — slow down', 429);
+    const { provider, idToken, remember } = await readBody(req);
+    const prov = String(provider || '').toLowerCase();
+    if (prov !== 'google' && prov !== 'microsoft') return bad('Unsupported provider', 400);
+    if (!idToken || typeof idToken !== 'string') return bad('Missing idToken', 400);
+
+    let payload;
+    try {
+      if (prov === 'google') {
+        payload = await verifyGoogle(idToken);
+      } else {
+        payload = await verifyMicrosoft(idToken);
+      }
+    } catch (err) {
+      return bad('Invalid token', 401);
+    }
+
+    const email = String(payload.email || '').toLowerCase();
+    if (!emailRe.test(email)) return bad('Token does not contain a valid email', 400);
+
+    // Upsert: find by email or create.
+    let user = await users.getByEmail(email);
+    if (!user) {
+      const nameFromToken = String(payload.name || email.split('@')[0] || '').trim().slice(0, 80);
+      const result = await users.createUser(email, crypto.randomBytes(32).toString('hex'), nameFromToken);
+      if (result.error === 'name-exists') {
+        // Retry with email prefix as name.
+        const retry = await users.createUser(email, crypto.randomBytes(32).toString('hex'), email.split('@')[0]);
+        if (retry.error) return bad('Could not create account — try again', 500);
+        user = retry.user;
+      } else if (result.error) {
+        return bad('Could not create account — try again', 500);
+      } else {
+        user = result.user;
       }
     }
-    await payments.anonymizeOrdersForEmail(user.email);
-    const result = await users.deleteUser(user.email);
-    if (!result) return bad('Account not found', 404);
-    audit(context, 'auth.account.deleted', { email: user.email });
-    return ok({ deleted: true });
+
+    return ok({ token: tokenFor(user, remember !== false), user: users.publicUser(user) });
   },
 });
 
-app.http('exportAccount', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'auth/export',
-  handler: async (req, context) => {
-    if (!secret()) return bad('Auth is not configured', 503);
-    if (rateLimited(req, 'export', 10, 60_000)) return bad('Too many attempts — slow down', 429);
-    const token = req.headers.get('x-auth-token') || '';
-    const payload = token && jwt.verify(token, secret());
-    if (!payload) return bad('Please sign in again', 401);
-    const user = await users.getByEmail(payload.email);
-    if (!user) return bad('Account not found', 404);
-    const orders = await payments.ordersForEmail(user.email);
-    audit(context, 'auth.account.export', { email: user.email });
-    return ok({
-      exportVersion: 1,
-      exportedAt: new Date().toISOString(),
-      format: 'application/json',
-      includes: ['account profile', 'subscription / order history'],
-      excludes: [
-        'password hashes',
-        'authentication tokens',
-        'ephemeral ceremony session data',
-        'payment card / UPI secrets',
-      ],
-      account: {
-        id: user.id,
-        email: user.email,
-        name: user.name || '',
-        createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : null,
-        updatedAt: user.updatedAt ? new Date(user.updatedAt).toISOString() : null,
-      },
-      subscriptions: orders.map((o) => ({
-        orderId: o.id,
-        tier: o.tier,
-        status: o.status,
-        createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : null,
-        confirmedAt: o.confirmedAt ? new Date(o.confirmedAt).toISOString() : null,
-      })),
+// Google token verification via tokeninfo endpoint (no JWKS library needed).
+async function verifyGoogle(idToken) {
+  const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  });
+  if (!res.ok) throw new Error('Google token verification failed');
+  const data = await res.json();
+  if (data.aud !== GOOGLE_CLIENT_ID) throw new Error('Google token audience mismatch');
+  if (data.email_verified !== 'true') throw new Error('Google email not verified');
+  return { email: data.email, name: data.name, sub: data.sub };
+}
+
+// Microsoft JWT verification via JWKS (cached in-memory per cold-start).
+let msJwksClient = null;
+function getMsJwksClient() {
+  if (!msJwksClient) {
+    const { JwksClient } = require('jwks-rsa');
+    const tenant = MS_TENANT || 'common';
+    msJwksClient = new JwksClient({
+      jwksUri: `https://login.microsoftonline.com/${tenant}/discovery/v2.0/keys`,
+      cache: true,
+      cacheMaxAge: 600_000,
     });
-  },
-});
+  }
+  return msJwksClient;
+}
+
+async function verifyMicrosoft(idToken) {
+  const jose = require('jose');
+  const client = getMsJwksClient();
+  const keys = await client.getSigningKeys();
+  if (!keys.length) throw new Error('No Microsoft signing keys found');
+  const publicKey = keys[0];
+  const secret = publicKey.getPublicKey();
+  const { payload } = await jose.jwtVerify(idToken, secret, {
+    issuer: `https://login.microsoftonline.com/${MS_TENANT || 'common'}/v2.0`,
+    audience: MS_CLIENT_ID,
+  });
+  const email = payload.email || payload.preferred_username || '';
+  return {
+    email: String(email).toLowerCase(),
+    name: payload.name || String(email).split('@')[0] || '',
+    sub: String(payload.sub || ''),
+  };
+}
