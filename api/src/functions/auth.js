@@ -211,6 +211,7 @@ app.http('resetPassword', {
   await users.updatePassword(user.email, newPassword);
   resetTokens.delete(String(token || ''));
   return ok({ ok: true });
+},
 });
 
 // GET /api/auth/email-status  → { configured: boolean }
