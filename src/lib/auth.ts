@@ -63,8 +63,8 @@ async function post(path: string, body: unknown): Promise<{ token: string; user:
 
 // --- OAuth SSO helpers ---
 
-function currentOrigin() {
-  return window.location.origin;
+function oauthRedirectOrigin(): string {
+  return (import.meta.env.VITE_OAUTH_REDIRECT_ORIGIN as string | undefined) || window.location.origin;
 }
 
 export function getGoogleAuthUrl(): string {
@@ -72,7 +72,7 @@ export function getGoogleAuthUrl(): string {
   if (!clientId) return '';
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: `${currentOrigin()}/auth/google/callback`,
+    redirect_uri: `${oauthRedirectOrigin()}/auth/google/callback`,
     response_type: 'token',
     scope: 'openid profile email',
     prompt: 'select_account',
@@ -86,7 +86,7 @@ export function getMicrosoftAuthUrl(): string {
   if (!clientId) return '';
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: `${currentOrigin()}/auth/microsoft/callback`,
+    redirect_uri: `${oauthRedirectOrigin()}/auth/microsoft/callback`,
     response_type: 'token',
     scope: 'openid profile email',
     prompt: 'select_account',

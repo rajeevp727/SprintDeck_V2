@@ -45,6 +45,7 @@ const Dashboard = lazy(() => import('./components/Dashboard'));
 const RetroStart = lazy(() => import('./components/RetroStart'));
 const StandupTimesheet = lazy(() => import('./components/StandupTimesheet'));
 const Whiteboard = lazy(() => import('./components/Whiteboard'));
+const ResetPasswordScreen = lazy(() => import('./components/ResetPasswordScreen'));
 const WhiteboardStart = lazy(() => import('./components/WhiteboardStart'));
 import {
   getIdentity,
@@ -78,13 +79,15 @@ type Route =
   | { kind: 'home'; joinCode?: string }
   | { kind: 'whiteboard'; code: string }
   | { kind: 'whiteboardStart'; joinCode?: string; shareToken?: string }
-  | { kind: 'oauthCallback'; provider: 'google' | 'microsoft' };
+  | { kind: 'oauthCallback'; provider: 'google' | 'microsoft' }
+  | { kind: 'resetPassword'; token: string };
 
 // The retrospective board has its own real URL path: /retro/CODE (unlike poker,
 // whose code stays out of the URL) so the facilitator can share a plain link.
 const RETRO_PATH_RE = /^\/retro\/([A-Za-z0-9-]+)\/?$/;
 const GOOGLE_CB_RE = /^\/auth\/google\/callback\/?$/;
 const MS_CB_RE = /^\/auth\/microsoft\/callback\/?$/;
+const RESET_PW_RE = /^\/reset-password\/?$/;
 const WHITEBOARD_PATH_RE = /^\/whiteboard\/([A-Za-z0-9-]+)\/?$/;
 const STATIC_ROUTES: Record<string, Route> = {
   '/privacy': { kind: 'privacy' },
@@ -123,6 +126,11 @@ function computeRoute(): Route {
   if (staticRoute) return staticRoute;
   if (GOOGLE_CB_RE.test(path)) return { kind: 'oauthCallback', provider: 'google' };
   if (MS_CB_RE.test(path)) return { kind: 'oauthCallback', provider: 'microsoft' };
+  if (RESET_PW_RE.test(path)) {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token') || '';
+    return { kind: 'resetPassword', token };
+  }
 
   const retroMatch = path.match(RETRO_PATH_RE);
   if (retroMatch) {
@@ -326,6 +334,88 @@ export default function App() {
     go(`/whiteboard/${code}`, { kind: 'whiteboard', code });
   }
 
+  let page;
+  if (route.kind === 'privacy') {
+    page = <Privacy onBack={goHome} />;
+  } else if (route.kind === 'terms') {
+    page = <Terms onBack={goHome} />;
+  } else if (route.kind === 'security') {
+    page = <Security onBack={goHome} />;
+  } else if (route.kind === 'room') {
+    page = (
+      <Room
+        code={route.code}
+        onLeave={goHome}
+        onMissingIdentity={goHome}
+        onGoRoom={() => goRoom(route.code)}
+        onGoRetro={goRetro}
+      />
+    );
+  } else if (route.kind === 'retro') {
+    page = (
+      <RetroBoard code={route.code} onLeave={exitRetro} onMissingIdentity={() => goRetro(route.code)} />
+    );
+  } else if (route.kind === 'retroJoin') {
+    page = <RetroHome joinCode={route.code} onEnter={goRetro} onExit={goHome} />;
+  } else if (route.kind === 'auth') {
+    page = <AuthScreen onAuthed={goHome} onBack={goHome} />;
+  } else if (route.kind === 'oauthCallback') {
+    page = route.provider === 'google' ? <GoogleCallback /> : <MicrosoftCallback />;
+  } else if (route.kind === 'resetPassword') {
+    page = <ResetPasswordScreen token={route.token} onDone={goHome} />;
+  } else if (route.kind === 'plan') {
+    // Planning create/join, reached from the dashboard.
+    page = (
+      <Home onEnter={goRoom} onPrivacy={goPrivacy} onTerms={goTerms} onSecurity={goSecurity} onBack={goHome} />
+    );
+  } else if (route.kind === 'retroStart') {
+    page = <RetroStart onEnter={goRetro} onBack={goHome} />;
+  } else if (route.kind === 'timesheet') {
+    page = <StandupTimesheet onBack={goHome} />;
+  } else if (route.kind === 'whiteboard') {
+    page = <Whiteboard onBack={goHome} />;
+  } else if (authLoading) {
+    page = null; // resolving the session — avoid flashing the landing then the app
+  } else if (route.joinCode) {
+    // Arriving via an invite link — join the room (guests welcome).
+    page = (
+      <Home
+        initialCode={route.joinCode}
+        onEnter={goRoom}
+        onPrivacy={goPrivacy}
+        onTerms={goTerms}
+        onSecurity={goSecurity}
+        onSignIn={goAuth}
+      />
+    );
+  } else if (user) {
+    // Signed in → dashboard of ceremonies.
+    page = (
+      <Dashboard
+        onPlanning={startPlanning}
+        onRetro={goRetroStart}
+        onTimesheet={goTimesheet}
+        onWhiteboard={goWhiteboard}
+        onPrivacy={goPrivacy}
+        onTerms={goTerms}
+        onSecurity={goSecurity}
+      />
+    );
+  } else if (guest) {
+    // Continuing as guest → New session, with a login/register nudge above it.
+    page = (
+      <Home
+        onEnter={goRoom}
+        onPrivacy={goPrivacy}
+        onTerms={goTerms}
+        onSecurity={goSecurity}
+        onSignIn={goAuth}
+        onBack={() => setGuest(false)}
+      />
+    );
+  } else {
+    page = <Landing onSignIn={goAuth} onGuest={() => setGuest(true)} />;
+  }
   const page = renderPage({
     route,
     authLoading,
