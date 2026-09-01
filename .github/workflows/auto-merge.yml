@@ -1,4 +1,4 @@
-name: Auto-merge Cursor PRs
+name: Auto-merge agent PRs
 
 on:
   workflow_run:
@@ -15,7 +15,7 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Squash-merge cursor/* PR when checks pass
+      - name: Squash-merge agent PR when checks pass
         uses: actions/github-script@v9
         with:
           # PAT (secret AUTO_MERGE_PAT) triggers push workflows after merge.
@@ -27,8 +27,9 @@ jobs:
             const run = context.payload.workflow_run;
             const branch = run.head_branch;
             const isCursor = branch?.startsWith('cursor/');
+            const isCodex = branch?.startsWith('codex/');
             const isDependabot = branch?.startsWith('dependabot/');
-            if (!branch || (!isCursor && !isDependabot)) {
+            if (!branch || (!isCursor && !isCodex && !isDependabot)) {
               core.info(`Skip auto-merge for branch ${branch || '(unknown)'}`);
               return;
             }

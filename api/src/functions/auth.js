@@ -8,11 +8,15 @@
 // OAuth SSO (Google + Microsoft): the provider redirects back with an id_token
 // in the URL fragment. The frontend POSTs { provider, idToken } here; we verify
 // the token server-side, upsert the user, and issue our own JWT.
+//
+// SMTP: forgot-password sends a real email via nodemailer when SMTP_* env vars
+// are configured. Falls back to console.log when SMTP is absent (dev mode).
 const { app } = require('@azure/functions');
 const users = require('../users-store');
 const jwt = require('../jwt');
 const { rateLimited } = require('../ratelimit');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 
 const noCache = { 'Cache-Control': 'no-store' };
 function ok(body) {
@@ -33,6 +37,48 @@ const secret = () => process.env.JWT_SECRET || '';
 const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const minPassword = 8;
 
+// SMTP configuration from environment variables.
+const smtpHost = process.env.SMTP_HOST || '';
+const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
+const smtpSecure = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true';
+const smtpUser = process.env.SMTP_USER || '';
+const smtpPass = process.env.SMTP_PASS || '';
+const emailFrom = process.env.EMAIL_FROM || 'SprintDeck <noreply@sprintdeck.in>';
+const appUrl = process.env.APP_URL || 'https://sprintdeck.in';
+
+let mailer = null;
+function getMailer() {
+  if (!smtpHost || !smtpUser) return null;
+  if (!mailer) {
+    mailer = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: { user: smtpUser, pass: smtpPass },
+    });
+  }
+  return mailer;
+}
+
+async function sendResetEmail(toEmail, resetUrl) {
+  const transporter = getMailer();
+  if (!transporter) {
+    console.log(`[forgot-password] reset link for ${toEmail}: ${resetUrl}`);
+    return;
+  }
+  await transporter.sendMail({
+    from: emailFrom,
+    to: toEmail,
+    subject: 'Reset your SprintDeck password',
+    html: `
+      <p>You requested to reset your SprintDeck password.</p>
+      <p><a href="${resetUrl}">Click here to reset your password</a></p>
+      <p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+    `,
+  });
+  console.log(`[forgot-password] sent reset email to ${toEmail}`);
+}
+
 // "Remember me" keeps you signed in for 2 sprints (a sprint is 14 days → 28
 // days); otherwise the token is a short 1-day session.
 const SPRINT_DAYS = 14;
@@ -41,6 +87,13 @@ const SESSION_TTL = 24 * 60 * 60; // 1 day
 
 function tokenFor(user, remember) {
   return jwt.sign({ sub: user.id, email: user.email }, secret(), remember ? REMEMBER_TTL : SESSION_TTL);
+}
+
+async function authenticatedUser(req) {
+  const token = req.headers.get('x-auth-token') || '';
+  const payload = token && jwt.verify(token, secret());
+  if (!payload) return null;
+  return users.getByEmail(payload.email);
 }
 
 // Build a few available alternatives when a name is taken.
@@ -120,18 +173,16 @@ app.http('changePassword', {
   handler: async (req) => {
     if (!secret()) return bad('Auth is not configured', 503);
     if (rateLimited(req, 'pwchange', 10, 60_000)) return bad('Too many attempts — slow down', 429);
-    const token = req.headers.get('x-auth-token') || '';
-    const payload = token && jwt.verify(token, secret());
-    if (!payload) return bad('Please sign in again', 401);
+    const user = await authenticatedUser(req);
+    if (!user) return bad('Please sign in again', 401);
     const { currentPassword, newPassword } = await readBody(req);
     if (String(newPassword || '').length < minPassword) {
       return bad(`New password must be at least ${minPassword} characters`);
     }
-    const user = await users.getByEmail(payload.email);
-    if (!user || !users.verifyPassword(user, currentPassword)) {
+    if (!users.verifyPassword(user, currentPassword)) {
       return bad('Current password is incorrect', 401);
     }
-    await users.updatePassword(payload.email, newPassword);
+    await users.updatePassword(user.email, newPassword);
     return ok({ ok: true });
   },
 });
@@ -144,10 +195,59 @@ app.http('authMe', {
   handler: async (req) => {
     if (!secret()) return ok({ user: null });
     // SWA strips Authorization, so the client sends the JWT in x-auth-token.
-    const token = req.headers.get('x-auth-token') || '';
-    const payload = token && jwt.verify(token, secret());
-    if (!payload) return ok({ user: null });
-    return ok({ user: { id: payload.sub, email: payload.email } });
+    const user = await authenticatedUser(req);
+    return ok({ user: user ? users.publicUser(user) : null });
+  },
+});
+
+// POST /api/auth/profile  { name } (header x-auth-token)
+app.http('updateProfile', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'auth/profile',
+  handler: async (req) => {
+    if (!secret()) return bad('Auth is not configured', 503);
+    const user = await authenticatedUser(req);
+    if (!user) return bad('Please sign in again', 401);
+    const { name } = await readBody(req);
+    const nextName = String(name || '').trim();
+    if (nextName.length < 2) return bad('Enter your name (at least 2 characters)');
+    if (nextName.toLowerCase() !== String(user.name || '').trim().toLowerCase() && !(await users.isNameAvailable(nextName))) {
+      return bad('That name is already taken', 409);
+    }
+    const result = await users.updateUserName(user.email, nextName);
+    if (result.error) return bad('That name is already taken', 409);
+    return ok({ user: users.publicUser(result.user) });
+  },
+});
+
+// GET /api/auth/export (header x-auth-token)
+app.http('exportAccountData', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'auth/export',
+  handler: async (req) => {
+    const user = await authenticatedUser(req);
+    if (!user) return bad('Please sign in again', 401);
+    return ok({ account: users.publicUser(user), exportedAt: new Date().toISOString() });
+  },
+});
+
+// POST /api/auth/delete { password? } (header x-auth-token)
+app.http('deleteAccount', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'auth/delete',
+  handler: async (req) => {
+    if (!secret()) return bad('Auth is not configured', 503);
+    const user = await authenticatedUser(req);
+    if (!user) return bad('Please sign in again', 401);
+    const { password } = await readBody(req);
+    if (users.hasPassword(user) && !users.verifyPassword(user, password)) {
+      return bad('Current password is incorrect', 401);
+    }
+    await users.deleteUser(user.email);
+    return ok({ deleted: true });
   },
 });
 
@@ -186,8 +286,7 @@ app.http('forgotPassword', {
       createdAt: Date.now(),
     });
     const resetUrl = `${req.url.replace(/\/api\/auth\/forgot-password.*/, '')}/reset-password?token=${token}`;
-    console.log(`[forgot-password] reset link for ${user.email}: ${resetUrl}`);
-    // TODO: send the resetUrl via email (SMTP / SendGrid / Postmark etc.)
+    await sendResetEmail(user.email, resetUrl);
     return ok({ ok: true });
   },
 });
