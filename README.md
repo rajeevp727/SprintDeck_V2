@@ -3,8 +3,8 @@
 SprintDeck V2 is a **real-time agile-ceremonies hub** for distributed teams. It runs
 planning poker, retrospectives, and whiteboards — and, on the **Paid** plans, connects to
 your project-management tool (Linear, Jira, Azure DevOps) to pull estimation tickets and
-**write the agreed story points back** after voting. No login required to join a room;
-connecting a tool uses your own API key.
+**write the agreed story points back** after voting. Email/password or SSO is required
+to create or join any room; connecting a tool uses your own API key.
 
 - **Live:** `https://sprintdeck.in`
 - **SWA:** `https://green-desert-0f2350910.7.azurestaticapps.net/`
@@ -64,7 +64,7 @@ code in the URL so a facilitator can share a plain link.
 
 ### Planning Poker flow
 
-1. Moderator creates a room (5-char code); teammates join by code or invite link — no login.
+1. Moderator creates a room (5-char code); teammates join by code or invite link — account required.
 2. Moderator clicks **Connect a project management tool** (Linear / Jira / Azure DevOps)
    → pastes a read/write API key → pulls the tool's estimation view into the queue.
    **Or** add tasks manually (one per line).
@@ -128,7 +128,7 @@ Pick a plan → POST /api/order (amount validated server-side) → order stored 
 │   │   ├── RetroNote.tsx     # editable sticky note
 │   │   ├── Whiteboard.tsx    # canvas with pen/shapes/stickies (local state)
 │   │   ├── Dashboard.tsx     # signed-in home (ceremony picker)
-│   │   ├── Landing.tsx       # public marketing page (sign in / guest)
+│   │   ├── Landing.tsx       # public marketing page (sign in)
 │   │   ├── Home.tsx          # create/join room form
 │   │   ├── AuthScreen.tsx    # email/password login/register with live name check
 │   │   ├── ProfileMenu.tsx   # account dropdown (change password, sign out)
@@ -249,11 +249,11 @@ timesheet | auth | plan | privacy | terms | security
 
 ### Identity
 
-- **Anonymous rooms** are the default — no account is needed to create or join.
-- **Optional email/password auth** (Pro/Expert/Master plans, accounts, name
-  availability, password reset via email link) is available for signed-in users. JWT is
-  HS256 (`JWT_SECRET`), short-lived (1 day) or "remember me" (28 days). `auth.ts`
-  degrades cleanly to 503 if `JWT_SECRET` isn't set.
+- **Email/password auth** is mandatory for all room and module access (planning poker,
+  retrospectives, whiteboards, timesheet). Users register/login with email + password or
+  sign in with **Google / Microsoft SSO**. JWT is HS256 (`JWT_SECRET`), short-lived
+  (1 day) or "remember me" (28 days). `auth.ts` degrades cleanly to 503 if `JWT_SECRET`
+  isn't set.
 - **Google + Microsoft SSO** via OAuth 2.0. The frontend opens a popup, the provider
   redirects back with an `id_token`, and the backend verifies it and issues its own JWT.
   Redirect URIs are configured per environment (`localhost`, `sprintdeck.in`, Azure SWA).

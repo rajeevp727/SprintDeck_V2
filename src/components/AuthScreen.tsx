@@ -297,10 +297,10 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
               title="Sign in with Microsoft"
             >
               <svg viewBox="0 0 21 21" width="20" height="20" aria-hidden>
-                <rect x="1" y="1" width="9" height="9" fill="#f3f3f3"/>
-                <rect x="11" y="1" width="9" height="9" fill="#f3f3f3"/>
-                <rect x="1" y="11" width="9" height="9" fill="#f3f3f3"/>
-                <rect x="11" y="11" width="9" height="9" fill="#f3f3f3"/>
+                <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+                <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+                <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+                <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
               </svg>
               {ssoBusy === 'microsoft' ? 'Signing in…' : 'Microsoft'}
             </button>

@@ -357,22 +357,17 @@ app.http('oauth', {
     const email = String(payload.email || '').toLowerCase();
     if (!emailRe.test(email)) return bad('Token does not contain a valid email', 400);
 
-    // Upsert: find by email or create.
-    let user = await users.getByEmail(email);
-    if (!user) {
-      const nameFromToken = String(payload.name || email.split('@')[0] || '').trim().slice(0, 80);
-      const result = await users.createUser(email, crypto.randomBytes(32).toString('hex'), nameFromToken);
-      if (result.error === 'name-exists') {
-        // Retry with email prefix as name.
-        const retry = await users.createUser(email, crypto.randomBytes(32).toString('hex'), email.split('@')[0]);
-        if (retry.error) return bad('Could not create account — try again', 500);
-        user = retry.user;
-      } else if (result.error) {
-        return bad('Could not create account — try again', 500);
-      } else {
-        user = result.user;
-      }
-    }
+    const result = await users.findOrCreateOAuthUser({
+      email,
+      name: String(payload.name || email.split('@')[0] || '').trim().slice(0, 80),
+      provider: prov,
+      providerSub: payload.sub,
+    });
+    if (result.error === 'email-exists-other-provider') return bad('Email already used by another provider', 409);
+    if (result.error === 'invalid-email') return bad('Invalid email', 400);
+    if (result.error === 'invalid-provider') return bad('Invalid provider', 400);
+    if (result.error) return bad('Could not create account — try again', 500);
+    user = result.user;
 
     return ok({ token: tokenFor(user, remember !== false), user: users.publicUser(user) });
   },

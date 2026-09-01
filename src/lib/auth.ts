@@ -73,7 +73,7 @@ export function getGoogleAuthUrl(): string {
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: `${oauthRedirectOrigin()}/auth/google/callback`,
-    response_type: 'token',
+    response_type: 'id_token',
     scope: 'openid profile email',
     prompt: 'select_account',
   });
@@ -87,7 +87,7 @@ export function getMicrosoftAuthUrl(): string {
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: `${oauthRedirectOrigin()}/auth/microsoft/callback`,
-    response_type: 'token',
+    response_type: 'id_token',
     scope: 'openid profile email',
     prompt: 'select_account',
   });
