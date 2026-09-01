@@ -6,8 +6,8 @@ your project-management tool (Linear, Jira, Azure DevOps) to pull estimation tic
 **write the agreed story points back** after voting. No login required to join a room;
 connecting a tool uses your own API key.
 
-- **Live:** `https://<your-swa-domain>.azurestaticapps.net`
-- **Free sibling (plain planning poker, no integrations):** https://sprintdeck.rajeevstech.in
+- **Live:** `https://sprintdeck.in`
+- **SWA:** `https://green-desert-0f2350910.7.azurestaticapps.net/`
 - **Repo:** `rajeevp727/SprintDeck_V2` · branch `main` auto-deploys on push
 
 > **Note on integrations:** Linear is the only **live** tool integration (real
@@ -40,7 +40,7 @@ npm run dev:all          # starts web (vite :5273) + API (func :7072)
 | API          | Azure Functions (Node 20), served at `/api` by Static Web Apps |
 | Database     | Azure Cosmos DB (NoSQL, serverless) + in-memory fallback  |
 | Realtime     | Short polling every 1.5s (everywhere) + Azure Web PubSub (chat & retrospectives) |
-| Auth         | Email/password, JWT in a custom `x-auth-token` header *(SWA strips `Authorization`)* |
+| Auth         | Email/password + Google/Microsoft SSO, JWT in `x-auth-token` header *(SWA strips `Authorization`)* |
 | Payments     | PhonePe UPI (QR + bank-email auto-ingest via Google Apps Script) — no PSP |
 | Ads          | Google AdSense (publisher ID is public; slot ID pending approval) |
 | Deploy       | Azure Static Web Apps (Free tier)                           |
@@ -254,6 +254,11 @@ timesheet | auth | plan | privacy | terms | security
   availability, password reset via email link) is available for signed-in users. JWT is
   HS256 (`JWT_SECRET`), short-lived (1 day) or "remember me" (28 days). `auth.ts`
   degrades cleanly to 503 if `JWT_SECRET` isn't set.
+- **Google + Microsoft SSO** via OAuth 2.0. The frontend opens a popup, the provider
+  redirects back with an `id_token`, and the backend verifies it and issues its own JWT.
+  Redirect URIs are configured per environment (`localhost`, `sprintdeck.in`, Azure SWA).
+- Password reset emails are sent via SMTP (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`) when
+  configured; otherwise the reset link is logged to the server console (dev mode).
 - Per-room identity (`pp.identity`) is stored in `localStorage` so a refresh rejoins
   seamlessly. Identity is per-room, not global.
 
@@ -462,12 +467,12 @@ CI: `.github/workflows/test.yml` runs `npm install && npm test` on push/PR to `m
 ## Deploy
 
 - Azure Static Web App **`SprintDeck-Enterprise`** (Free tier) on
-  `https://<your-swa-domain>.azurestaticapps.net`.
+  `https://green-desert-0f2350910.7.azurestaticapps.net/` and custom domain `https://sprintdeck.in`.
 - Repo `rajeevp727/SprintDeck_V2`, branch `main` → auto-deploys via
   `.github/workflows/azure-static-web-apps-green-desert-0f2350910.yml`.
 - Build config: App `/`, API `api`, Output `dist`.
 - The workflow injects `secrets.UPI_ID` → `VITE_UPI_ID` at build time.
-- Custom domain: configure a CNAME in the SWA networking settings.
+- Custom domain: CNAME to the SWA default domain.
 
 ## Docs & references
 
