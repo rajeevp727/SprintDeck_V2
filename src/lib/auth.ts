@@ -15,6 +15,8 @@ export interface AuthUser {
   id: string;
   email: string;
   name?: string;
+  authProvider?: 'local' | 'google' | 'microsoft';
+  hasPassword?: boolean;
 }
 
 export function getToken(): string | null {
@@ -225,6 +227,45 @@ export async function forgotPassword(email: string): Promise<void> {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+}
+
+async function authenticatedRequest<T>(path: string, body?: unknown, method = 'POST'): Promise<T> {
+  const token = getToken();
+  const res = await fetch(path, {
+    method,
+    cache: 'no-store',
+    headers: {
+      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...(token ? { 'x-auth-token': token } : {}),
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+  return data as T;
+}
+
+export async function updateProfile(name: string): Promise<AuthUser> {
+  const { user } = await authenticatedRequest<{ user: AuthUser }>('/api/auth/profile', { name });
+  cachedUser = user;
+  rememberAccount({ email: user.email, name: user.name });
+  notify();
+  return user;
+}
+
+export async function requestPasswordChangeEmail(): Promise<{ emailedTo: string }> {
+  if (!cachedUser?.email) throw new Error('Please sign in again');
+  await forgotPassword(cachedUser.email);
+  return { emailedTo: cachedUser.email };
+}
+
+export async function exportAccountData(): Promise<unknown> {
+  return authenticatedRequest('/api/auth/export', undefined, 'GET');
+}
+
+export async function deleteAccount(password: string): Promise<void> {
+  await authenticatedRequest('/api/auth/delete', { password });
+  logout();
 }
 
 export async function resetPasswordWithToken(token: string, newPassword: string): Promise<void> {
