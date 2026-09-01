@@ -195,6 +195,7 @@ function renderExplicitRoute(props: PageProps): ReactNode | null {
   if (route.kind === 'retroJoin') return <RetroHome joinCode={route.code} onEnter={props.onRetro} onExit={props.onHome} />;
   if (route.kind === 'auth') return <AuthScreen onAuthed={props.onHome} onBack={props.onHome} />;
   if (route.kind === 'oauthCallback') return route.provider === 'google' ? <GoogleCallback /> : <MicrosoftCallback />;
+  if (route.kind === 'resetPassword') return <ResetPasswordScreen token={route.token} onDone={props.onHome} />;
   if (route.kind === 'plan') return <Home onEnter={props.onRoom} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} onBack={props.onHome} />;
   if (route.kind === 'retroStart') return <RetroStart onEnter={props.onRetro} onBack={props.onHome} />;
   if (route.kind === 'timesheet') return <StandupTimesheet onBack={props.onHome} />;
@@ -207,8 +208,11 @@ function renderPage(props: PageProps): ReactNode {
   const explicitPage = renderExplicitRoute(props);
   if (explicitPage) return explicitPage;
   if (props.authLoading) return null;
-  if (props.route.joinCode) {
-    return <Home initialCode={props.route.joinCode} onEnter={props.onRoom} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} onSignIn={props.onAuth} />;
+  const joinCode = props.route.kind === 'home' || props.route.kind === 'whiteboardStart'
+    ? props.route.joinCode
+    : undefined;
+  if (joinCode) {
+    return <Home initialCode={joinCode} onEnter={props.onRoom} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} onSignIn={props.onAuth} />;
   }
   if (props.authenticated) {
     return <Dashboard onPlanning={props.onStartPlanning} onRetro={props.onRetroStart} onTimesheet={props.onTimesheet} onWhiteboard={props.onWhiteboardStart} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} />;
@@ -334,88 +338,6 @@ export default function App() {
     go(`/whiteboard/${code}`, { kind: 'whiteboard', code });
   }
 
-  let page;
-  if (route.kind === 'privacy') {
-    page = <Privacy onBack={goHome} />;
-  } else if (route.kind === 'terms') {
-    page = <Terms onBack={goHome} />;
-  } else if (route.kind === 'security') {
-    page = <Security onBack={goHome} />;
-  } else if (route.kind === 'room') {
-    page = (
-      <Room
-        code={route.code}
-        onLeave={goHome}
-        onMissingIdentity={goHome}
-        onGoRoom={() => goRoom(route.code)}
-        onGoRetro={goRetro}
-      />
-    );
-  } else if (route.kind === 'retro') {
-    page = (
-      <RetroBoard code={route.code} onLeave={exitRetro} onMissingIdentity={() => goRetro(route.code)} />
-    );
-  } else if (route.kind === 'retroJoin') {
-    page = <RetroHome joinCode={route.code} onEnter={goRetro} onExit={goHome} />;
-  } else if (route.kind === 'auth') {
-    page = <AuthScreen onAuthed={goHome} onBack={goHome} />;
-  } else if (route.kind === 'oauthCallback') {
-    page = route.provider === 'google' ? <GoogleCallback /> : <MicrosoftCallback />;
-  } else if (route.kind === 'resetPassword') {
-    page = <ResetPasswordScreen token={route.token} onDone={goHome} />;
-  } else if (route.kind === 'plan') {
-    // Planning create/join, reached from the dashboard.
-    page = (
-      <Home onEnter={goRoom} onPrivacy={goPrivacy} onTerms={goTerms} onSecurity={goSecurity} onBack={goHome} />
-    );
-  } else if (route.kind === 'retroStart') {
-    page = <RetroStart onEnter={goRetro} onBack={goHome} />;
-  } else if (route.kind === 'timesheet') {
-    page = <StandupTimesheet onBack={goHome} />;
-  } else if (route.kind === 'whiteboard') {
-    page = <Whiteboard onBack={goHome} />;
-  } else if (authLoading) {
-    page = null; // resolving the session — avoid flashing the landing then the app
-  } else if (route.joinCode) {
-    // Arriving via an invite link — join the room (guests welcome).
-    page = (
-      <Home
-        initialCode={route.joinCode}
-        onEnter={goRoom}
-        onPrivacy={goPrivacy}
-        onTerms={goTerms}
-        onSecurity={goSecurity}
-        onSignIn={goAuth}
-      />
-    );
-  } else if (user) {
-    // Signed in → dashboard of ceremonies.
-    page = (
-      <Dashboard
-        onPlanning={startPlanning}
-        onRetro={goRetroStart}
-        onTimesheet={goTimesheet}
-        onWhiteboard={goWhiteboard}
-        onPrivacy={goPrivacy}
-        onTerms={goTerms}
-        onSecurity={goSecurity}
-      />
-    );
-  } else if (guest) {
-    // Continuing as guest → New session, with a login/register nudge above it.
-    page = (
-      <Home
-        onEnter={goRoom}
-        onPrivacy={goPrivacy}
-        onTerms={goTerms}
-        onSecurity={goSecurity}
-        onSignIn={goAuth}
-        onBack={() => setGuest(false)}
-      />
-    );
-  } else {
-    page = <Landing onSignIn={goAuth} onGuest={() => setGuest(true)} />;
-  }
   const page = renderPage({
     route,
     authLoading,
