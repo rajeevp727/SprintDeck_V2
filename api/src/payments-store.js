@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const { sameAmount } = require('./parse');
 
 const conn = process.env.COSMOS_CONNECTION_STRING || '';
-const dbName = 'sprintdeck';
+const dbName = process.env.COSMOS_DB_NAME || 'sprintdeck';
 const containerName = 'payments';
 
 const orderTtlMs = (Number(process.env.ORDER_TTL_MINUTES) || 30) * 60 * 1000;

@@ -3,7 +3,7 @@
 const crypto = require('crypto');
 
 const conn = process.env.COSMOS_CONNECTION_STRING || '';
-const dbName = 'sprintdeck';
+const dbName = process.env.COSMOS_DB_NAME || 'sprintdeck';
 const containerName = 'users';
 const RESET_TTL_SEC = 30 * 60;
 

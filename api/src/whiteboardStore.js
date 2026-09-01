@@ -5,7 +5,7 @@ const { CosmosClient } = require('@azure/cosmos');
 const realtime = require('./realtime');
 
 const conn = process.env.COSMOS_CONNECTION_STRING || '';
-const dbName = 'sprintdeck';
+const dbName = process.env.COSMOS_DB_NAME || 'sprintdeck';
 const containerName = 'whiteboards';
 
 const memory = new Map();
