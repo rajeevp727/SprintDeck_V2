@@ -43,6 +43,13 @@ function tokenFor(user, remember) {
   return jwt.sign({ sub: user.id, email: user.email }, secret(), remember ? REMEMBER_TTL : SESSION_TTL);
 }
 
+async function authenticatedUser(req) {
+  const token = req.headers.get('x-auth-token') || '';
+  const payload = token && jwt.verify(token, secret());
+  if (!payload) return null;
+  return users.getByEmail(payload.email);
+}
+
 // Build a few available alternatives when a name is taken.
 async function nameSuggestions(name, max = 3) {
   const base = String(name || '').trim().replace(/\s+/g, '').slice(0, 50) || 'user';
@@ -120,18 +127,16 @@ app.http('changePassword', {
   handler: async (req) => {
     if (!secret()) return bad('Auth is not configured', 503);
     if (rateLimited(req, 'pwchange', 10, 60_000)) return bad('Too many attempts — slow down', 429);
-    const token = req.headers.get('x-auth-token') || '';
-    const payload = token && jwt.verify(token, secret());
-    if (!payload) return bad('Please sign in again', 401);
+    const user = await authenticatedUser(req);
+    if (!user) return bad('Please sign in again', 401);
     const { currentPassword, newPassword } = await readBody(req);
     if (String(newPassword || '').length < minPassword) {
       return bad(`New password must be at least ${minPassword} characters`);
     }
-    const user = await users.getByEmail(payload.email);
-    if (!user || !users.verifyPassword(user, currentPassword)) {
+    if (!users.verifyPassword(user, currentPassword)) {
       return bad('Current password is incorrect', 401);
     }
-    await users.updatePassword(payload.email, newPassword);
+    await users.updatePassword(user.email, newPassword);
     return ok({ ok: true });
   },
 });
@@ -144,10 +149,59 @@ app.http('authMe', {
   handler: async (req) => {
     if (!secret()) return ok({ user: null });
     // SWA strips Authorization, so the client sends the JWT in x-auth-token.
-    const token = req.headers.get('x-auth-token') || '';
-    const payload = token && jwt.verify(token, secret());
-    if (!payload) return ok({ user: null });
-    return ok({ user: { id: payload.sub, email: payload.email } });
+    const user = await authenticatedUser(req);
+    return ok({ user: user ? users.publicUser(user) : null });
+  },
+});
+
+// POST /api/auth/profile  { name } (header x-auth-token)
+app.http('updateProfile', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'auth/profile',
+  handler: async (req) => {
+    if (!secret()) return bad('Auth is not configured', 503);
+    const user = await authenticatedUser(req);
+    if (!user) return bad('Please sign in again', 401);
+    const { name } = await readBody(req);
+    const nextName = String(name || '').trim();
+    if (nextName.length < 2) return bad('Enter your name (at least 2 characters)');
+    if (nextName.toLowerCase() !== String(user.name || '').trim().toLowerCase() && !(await users.isNameAvailable(nextName))) {
+      return bad('That name is already taken', 409);
+    }
+    const result = await users.updateUserName(user.email, nextName);
+    if (result.error) return bad('That name is already taken', 409);
+    return ok({ user: users.publicUser(result.user) });
+  },
+});
+
+// GET /api/auth/export (header x-auth-token)
+app.http('exportAccountData', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'auth/export',
+  handler: async (req) => {
+    const user = await authenticatedUser(req);
+    if (!user) return bad('Please sign in again', 401);
+    return ok({ account: users.publicUser(user), exportedAt: new Date().toISOString() });
+  },
+});
+
+// POST /api/auth/delete { password? } (header x-auth-token)
+app.http('deleteAccount', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'auth/delete',
+  handler: async (req) => {
+    if (!secret()) return bad('Auth is not configured', 503);
+    const user = await authenticatedUser(req);
+    if (!user) return bad('Please sign in again', 401);
+    const { password } = await readBody(req);
+    if (users.hasPassword(user) && !users.verifyPassword(user, password)) {
+      return bad('Current password is incorrect', 401);
+    }
+    await users.deleteUser(user.email);
+    return ok({ deleted: true });
   },
 });
 
