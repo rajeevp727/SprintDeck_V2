@@ -40,7 +40,7 @@ jobs:
           cache: npm
       - name: Build frontend bundle
         run: |
-          npm ci
+          npm ci --legacy-peer-deps
           npm run build
           cp staticwebapp.config.json dist/staticwebapp.config.json
       - name: Build And Deploy
@@ -144,7 +144,7 @@ jobs:
           cache: npm
       - name: Install and build app
         run: |
-          npm ci
+          npm ci --legacy-peer-deps
           npm run build
         env:
           VITE_UPI_ID: ${{ secrets.UPI_ID }}
