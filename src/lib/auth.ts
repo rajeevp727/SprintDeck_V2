@@ -61,8 +61,8 @@ async function post(path: string, body: unknown): Promise<{ token: string; user:
 
 // --- OAuth SSO helpers ---
 
-function currentOrigin() {
-  return window.location.origin;
+function oauthRedirectOrigin(): string {
+  return (import.meta.env.VITE_OAUTH_REDIRECT_ORIGIN as string | undefined) || window.location.origin;
 }
 
 export function getGoogleAuthUrl(): string {
@@ -70,7 +70,7 @@ export function getGoogleAuthUrl(): string {
   if (!clientId) return '';
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: `${currentOrigin()}/auth/google/callback`,
+    redirect_uri: `${oauthRedirectOrigin()}/auth/google/callback`,
     response_type: 'token',
     scope: 'openid profile email',
     prompt: 'select_account',
@@ -84,7 +84,7 @@ export function getMicrosoftAuthUrl(): string {
   if (!clientId) return '';
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: `${currentOrigin()}/auth/microsoft/callback`,
+    redirect_uri: `${oauthRedirectOrigin()}/auth/microsoft/callback`,
     response_type: 'token',
     scope: 'openid profile email',
     prompt: 'select_account',
@@ -222,6 +222,17 @@ export async function forgotPassword(email: string): Promise<void> {
     cache: 'no-store',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+}
+
+export async function resetPasswordWithToken(token: string, newPassword: string): Promise<void> {
+  const res = await fetch('/api/auth/reset-password', {
+    method: 'POST',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);

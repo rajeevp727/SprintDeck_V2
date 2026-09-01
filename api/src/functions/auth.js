@@ -8,11 +8,15 @@
 // OAuth SSO (Google + Microsoft): the provider redirects back with an id_token
 // in the URL fragment. The frontend POSTs { provider, idToken } here; we verify
 // the token server-side, upsert the user, and issue our own JWT.
+//
+// SMTP: forgot-password sends a real email via nodemailer when SMTP_* env vars
+// are configured. Falls back to console.log when SMTP is absent (dev mode).
 const { app } = require('@azure/functions');
 const users = require('../users-store');
 const jwt = require('../jwt');
 const { rateLimited } = require('../ratelimit');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 
 const noCache = { 'Cache-Control': 'no-store' };
 function ok(body) {
@@ -32,6 +36,48 @@ async function readBody(req) {
 const secret = () => process.env.JWT_SECRET || '';
 const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const minPassword = 8;
+
+// SMTP configuration from environment variables.
+const smtpHost = process.env.SMTP_HOST || '';
+const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
+const smtpSecure = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true';
+const smtpUser = process.env.SMTP_USER || '';
+const smtpPass = process.env.SMTP_PASS || '';
+const emailFrom = process.env.EMAIL_FROM || 'SprintDeck <noreply@sprintdeck.in>';
+const appUrl = process.env.APP_URL || 'https://sprintdeck.in';
+
+let mailer = null;
+function getMailer() {
+  if (!smtpHost || !smtpUser) return null;
+  if (!mailer) {
+    mailer = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: { user: smtpUser, pass: smtpPass },
+    });
+  }
+  return mailer;
+}
+
+async function sendResetEmail(toEmail, resetUrl) {
+  const transporter = getMailer();
+  if (!transporter) {
+    console.log(`[forgot-password] reset link for ${toEmail}: ${resetUrl}`);
+    return;
+  }
+  await transporter.sendMail({
+    from: emailFrom,
+    to: toEmail,
+    subject: 'Reset your SprintDeck password',
+    html: `
+      <p>You requested to reset your SprintDeck password.</p>
+      <p><a href="${resetUrl}">Click here to reset your password</a></p>
+      <p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+    `,
+  });
+  console.log(`[forgot-password] sent reset email to ${toEmail}`);
+}
 
 // "Remember me" keeps you signed in for 2 sprints (a sprint is 14 days → 28
 // days); otherwise the token is a short 1-day session.
@@ -186,8 +232,7 @@ app.http('forgotPassword', {
       createdAt: Date.now(),
     });
     const resetUrl = `${req.url.replace(/\/api\/auth\/forgot-password.*/, '')}/reset-password?token=${token}`;
-    console.log(`[forgot-password] reset link for ${user.email}: ${resetUrl}`);
-    // TODO: send the resetUrl via email (SMTP / SendGrid / Postmark etc.)
+    await sendResetEmail(user.email, resetUrl);
     return ok({ ok: true });
   },
 });

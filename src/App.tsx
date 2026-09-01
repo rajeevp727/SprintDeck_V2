@@ -45,6 +45,7 @@ const Dashboard = lazy(() => import('./components/Dashboard'));
 const RetroStart = lazy(() => import('./components/RetroStart'));
 const StandupTimesheet = lazy(() => import('./components/StandupTimesheet'));
 const Whiteboard = lazy(() => import('./components/Whiteboard'));
+const ResetPasswordScreen = lazy(() => import('./components/ResetPasswordScreen'));
 import {
   getIdentity,
   saveIdentity,
@@ -76,13 +77,15 @@ type Route =
   | { kind: 'timesheet' }
   | { kind: 'home'; joinCode?: string }
   | { kind: 'whiteboard' }
-  | { kind: 'oauthCallback'; provider: 'google' | 'microsoft' };
+  | { kind: 'oauthCallback'; provider: 'google' | 'microsoft' }
+  | { kind: 'resetPassword'; token: string };
 
 // The retrospective board has its own real URL path: /retro/CODE (unlike poker,
 // whose code stays out of the URL) so the facilitator can share a plain link.
 const RETRO_PATH_RE = /^\/retro\/([A-Za-z0-9-]+)\/?$/;
 const GOOGLE_CB_RE = /^\/auth\/google\/callback\/?$/;
 const MS_CB_RE = /^\/auth\/microsoft\/callback\/?$/;
+const RESET_PW_RE = /^\/reset-password\/?$/;
 
 // The room code is NOT kept in the URL — it lives in storage (see storage.ts).
 // Invite links carry the code as a ?room=CODE query param, which is read on
@@ -108,6 +111,11 @@ function computeRoute(): Route {
   if (path === '/whiteboard' || path === '/whiteboard/') return { kind: 'whiteboard' };
   if (GOOGLE_CB_RE.test(path)) return { kind: 'oauthCallback', provider: 'google' };
   if (MS_CB_RE.test(path)) return { kind: 'oauthCallback', provider: 'microsoft' };
+  if (RESET_PW_RE.test(path)) {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token') || '';
+    return { kind: 'resetPassword', token };
+  }
 
   const retroMatch = path.match(RETRO_PATH_RE);
   if (retroMatch) {
@@ -269,6 +277,8 @@ export default function App() {
     page = <AuthScreen onAuthed={goHome} onBack={goHome} />;
   } else if (route.kind === 'oauthCallback') {
     page = route.provider === 'google' ? <GoogleCallback /> : <MicrosoftCallback />;
+  } else if (route.kind === 'resetPassword') {
+    page = <ResetPasswordScreen token={route.token} onDone={goHome} />;
   } else if (route.kind === 'plan') {
     // Planning create/join, reached from the dashboard.
     page = (
