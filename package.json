@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "postinstall": "node -e \"const fs=require('fs');const f='node_modules/gensync/index.js';if(fs.existsSync(f)){let s=fs.readFileSync(f,'utf8');s=s.replace('            cls','            (()=>{})()');fs.writeFileSync(f,s);console.log('patched gensync for Node 24');}\""
   },
   "dependencies": {
     "@azure/msal-browser": "^5.18.0",
