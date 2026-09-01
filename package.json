@@ -32,7 +32,7 @@
     "concurrently": "^9.1.0",
     "eslint": "^10.8.1",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.4",
+    "eslint-plugin-react-refresh": "^0.5.5",
     "gensync": "^1.0.0-beta.2",
     "globals": "^17.11.0",
     "typescript": "^5.6.3",
