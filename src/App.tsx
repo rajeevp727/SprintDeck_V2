@@ -86,6 +86,24 @@ const RETRO_PATH_RE = /^\/retro\/([A-Za-z0-9-]+)\/?$/;
 const GOOGLE_CB_RE = /^\/auth\/google\/callback\/?$/;
 const MS_CB_RE = /^\/auth\/microsoft\/callback\/?$/;
 const WHITEBOARD_PATH_RE = /^\/whiteboard\/([A-Za-z0-9-]+)\/?$/;
+const STATIC_ROUTES: Record<string, Route> = {
+  '/privacy': { kind: 'privacy' },
+  '/privacy/': { kind: 'privacy' },
+  '/terms': { kind: 'terms' },
+  '/terms/': { kind: 'terms' },
+  '/security': { kind: 'security' },
+  '/security/': { kind: 'security' },
+  '/login': { kind: 'auth' },
+  '/login/': { kind: 'auth' },
+  '/plan': { kind: 'plan' },
+  '/plan/': { kind: 'plan' },
+  '/retro-new': { kind: 'retroStart' },
+  '/retro-new/': { kind: 'retroStart' },
+  '/timesheet': { kind: 'timesheet' },
+  '/timesheet/': { kind: 'timesheet' },
+  '/whiteboard': { kind: 'whiteboardStart' },
+  '/whiteboard/': { kind: 'whiteboardStart' },
+};
 
 // The room code is NOT kept in the URL — it lives in storage (see storage.ts).
 // Invite links carry the code as a ?room=CODE query param, which is read on
@@ -101,14 +119,8 @@ function codeFromUrl(): string {
 
 function computeRoute(): Route {
   const path = window.location.pathname;
-  if (path === '/privacy' || path === '/privacy/') return { kind: 'privacy' };
-  if (path === '/terms' || path === '/terms/') return { kind: 'terms' };
-  if (path === '/security' || path === '/security/') return { kind: 'security' };
-  if (path === '/login' || path === '/login/') return { kind: 'auth' };
-  if (path === '/plan' || path === '/plan/') return { kind: 'plan' };
-  if (path === '/retro-new' || path === '/retro-new/') return { kind: 'retroStart' };
-  if (path === '/timesheet' || path === '/timesheet/') return { kind: 'timesheet' };
-  if (path === '/whiteboard' || path === '/whiteboard/') return { kind: 'whiteboardStart' };
+  const staticRoute = STATIC_ROUTES[path];
+  if (staticRoute) return staticRoute;
   if (GOOGLE_CB_RE.test(path)) return { kind: 'oauthCallback', provider: 'google' };
   if (MS_CB_RE.test(path)) return { kind: 'oauthCallback', provider: 'microsoft' };
 
