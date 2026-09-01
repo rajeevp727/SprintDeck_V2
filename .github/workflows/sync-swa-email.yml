@@ -1,12 +1,10 @@
 name: Sync email settings to Azure SWA
 
-# GitHub demo-doc workflows already send mail with RESEND_API_KEY, but those
-# secrets do not reach the live API until they are copied into SWA app settings.
+# The production deploy workflow performs this sync after its deployment. Keep
+# this workflow manual-only for recovery or configuration maintenance so a
+# merge to main triggers one deployment workflow, not a duplicate sync run.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 permissions:
   contents: read
