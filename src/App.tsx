@@ -199,7 +199,7 @@ function renderPage(props: PageProps): ReactNode {
   const explicitPage = renderExplicitRoute(props);
   if (explicitPage) return explicitPage;
   if (props.authLoading) return null;
-  if (props.route.joinCode) {
+  if (props.route.kind === 'home' && props.route.joinCode) {
     return <Home initialCode={props.route.joinCode} onEnter={props.onRoom} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} onSignIn={props.onAuth} />;
   }
   if (props.authenticated) {
