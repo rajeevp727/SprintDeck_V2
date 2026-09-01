@@ -10,6 +10,13 @@ on:
       - main
   workflow_dispatch:
 
+# Keep only the newest run for a PR or the main branch. A newer commit fully
+# supersedes an in-progress frontend deployment, so concurrent runs waste SWA
+# capacity and can surface as multiple deployments for the same change.
+concurrency:
+  group: swa-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
