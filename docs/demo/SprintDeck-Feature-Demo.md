@@ -1,6 +1,6 @@
 # SprintDeck Enterprise — Feature Demo Guide
 
-_Last updated: 2026-08-12_  
+_Last updated: 2026-09-04_  
 _Auto-refreshed every Friday when the product changed that week._  
 _Live app: https://sprintdeck.in · Developed by [OmegaTechnologies](https://omega-technologies.in)_
 
@@ -198,22 +198,11 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 > Every Friday, the previous **Updated this week** block is moved here, then that section is refreshed.
 
 <!-- FEATURES_HISTORY_START -->
-
 ### Seed — demo guide created (2026-08-12)
 - Full feature demo walkthrough added
 - Friday automation: promote last week → Features, refresh Updated this week
 
-<!-- FEATURES_HISTORY_END -->
-
----
-
-# Updated this week
-
-> Current week only. Next Friday this block is **promoted into Features → Feature history**, then replaced.
-
-<!-- UPDATED_THIS_WEEK_START -->
-
-### Week of 2026-08-12
+### Archived — Week of 2026-08-12 (moved 2026-09-04)
 **Areas touched:** Plans & billing, Auth / compliance, Landing / branding, Whiteboard
 
 **Highlights**
@@ -236,5 +225,46 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 - `9d1a12f` Add omegatechnologies developer credit in dashboard footer (#34)
 - `ecd5ebd` Restore 4 feature cards on landing page (#33)
 - `269862c` Fix password reset: send email and add reset page (#32)
+
+<!-- FEATURES_HISTORY_END -->
+
+---
+
+# Updated this week
+
+> Current week only. Next Friday this block is **promoted into Features → Feature history**, then replaced.
+
+<!-- UPDATED_THIS_WEEK_START -->
+
+### Week of 2026-09-04
+**Areas touched:** Whiteboard, Auth / compliance
+
+**Highlights**
+- fix: use --legacy-peer-deps for npm ci in CI build
+- Google SSO
+- sso
+- fix: add postinstall script to patch gensync for Node 24 compatibility
+- fix: resolve merge conflicts, deduplicate page declaration, add resetPassword route, upgrade @babel/core for Node 24
+- docs: update README with live URLs and SSO details
+- fixes
+- Refactor app routing to add Whiteboard flow and update CI/workflow build steps
+- docs: record persistent engineering delivery standard
+- ci: cancel superseded static app deployments
+- fix: deploy compiled frontend bundle
+- fix: restore production frontend build and whiteboard routing
+
+**Commits**
+- `9f4436e` fix: use --legacy-peer-deps for npm ci in CI build
+- `9ae0120` Google SSO
+- `85c1319` sso
+- `4845cee` fix: add postinstall script to patch gensync for Node 24 compatibility
+- `3284b98` fix: resolve merge conflicts, deduplicate page declaration, add resetPassword route, upgrade @babel/core for Node 24
+- `608e50d` docs: update README with live URLs and SSO details
+- `4074d6a` fixes
+- `5f4b6ab` Refactor app routing to add Whiteboard flow and update CI/workflow build steps (#93)
+- `942dd2e` docs: record persistent engineering delivery standard (#92)
+- `d05e88e` ci: cancel superseded static app deployments (#91)
+- `640df24` fix: deploy compiled frontend bundle (#90)
+- `681d41f` fix: restore production frontend build and whiteboard routing (#89)
 
 <!-- UPDATED_THIS_WEEK_END -->
