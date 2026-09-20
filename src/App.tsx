@@ -5,27 +5,15 @@ import StickyAd from './components/StickyAd';
 import { ToastHost } from './components/Toast';
 
 // OAuth callback pages — no lazy-load needed (tiny).
-function GoogleCallback() {
+function SsoCallback() {
   useEffect(() => {
-    const hash = window.location.hash.slice(1);
-    const params = new URLSearchParams(hash);
+    const params = new URLSearchParams(window.location.hash.slice(1));
     const idToken = params.get('id_token') || '';
     if (idToken) {
-      window.opener?.postMessage({ type: 'sso-callback', idToken }, window.location.origin);
-    }
-    window.history.replaceState({}, '', '/');
-    window.close();
-  }, []);
-  return null;
-}
-
-function MicrosoftCallback() {
-  useEffect(() => {
-    const hash = window.location.hash.slice(1);
-    const params = new URLSearchParams(hash);
-    const idToken = params.get('id_token') || '';
-    if (idToken) {
-      window.opener?.postMessage({ type: 'sso-callback', idToken }, window.location.origin);
+      window.opener?.postMessage(
+        { type: 'sso-callback', idToken, state: params.get('state') || '' },
+        window.location.origin,
+      );
     }
     window.history.replaceState({}, '', '/');
     window.close();
@@ -194,7 +182,7 @@ function renderExplicitRoute(props: PageProps): ReactNode | null {
   if (route.kind === 'retro') return <RetroBoard code={route.code} onLeave={props.onExitRetro} onMissingIdentity={() => props.onRetro(route.code)} />;
   if (route.kind === 'retroJoin') return <RetroHome joinCode={route.code} onEnter={props.onRetro} onExit={props.onHome} />;
   if (route.kind === 'auth') return <AuthScreen onAuthed={props.onHome} onBack={props.onHome} />;
-  if (route.kind === 'oauthCallback') return route.provider === 'google' ? <GoogleCallback /> : <MicrosoftCallback />;
+  if (route.kind === 'oauthCallback') return <SsoCallback />;
   if (route.kind === 'resetPassword') return <ResetPasswordScreen token={route.token} onDone={props.onHome} />;
   if (route.kind === 'plan') return <Home onEnter={props.onRoom} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} onBack={props.onHome} />;
   if (route.kind === 'retroStart') return <RetroStart onEnter={props.onRetro} onBack={props.onHome} />;

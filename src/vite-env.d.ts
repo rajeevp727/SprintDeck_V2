@@ -8,6 +8,10 @@ interface ImportMetaEnv {
   readonly VITE_GOOGLE_CLIENT_ID?: string;
   readonly VITE_MICROSOFT_CLIENT_ID?: string;
   readonly VITE_MICROSOFT_TENANT?: string;
+  // Entra spellings the deploy workflow injects; the MICROSOFT_* names win when both are set.
+  readonly VITE_AZURE_CLIENT_ID?: string;
+  readonly VITE_AZURE_TENANT_ID?: string;
+  readonly VITE_OAUTH_REDIRECT_ORIGIN?: string;
 }
 
 interface ImportMeta {

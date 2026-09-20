@@ -67,8 +67,36 @@ function oauthRedirectOrigin(): string {
   return (import.meta.env.VITE_OAUTH_REDIRECT_ORIGIN as string | undefined) || window.location.origin;
 }
 
-export function getGoogleAuthUrl(): string {
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+function randomToken(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export function googleClientId(): string {
+  return (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim();
+}
+
+export function microsoftClientId(): string {
+  return (
+    import.meta.env.VITE_MICROSOFT_CLIENT_ID ||
+    import.meta.env.VITE_AZURE_CLIENT_ID ||
+    ''
+  ).trim();
+}
+
+function microsoftTenant(): string {
+  return (
+    import.meta.env.VITE_MICROSOFT_TENANT ||
+    import.meta.env.VITE_AZURE_TENANT_ID ||
+    'common'
+  ).trim();
+}
+
+// `nonce` is mandatory for the id_token response type at both providers, and
+// `state` comes back untouched so the opener can reject a token it never asked for.
+export function getGoogleAuthUrl(nonce = '', state = ''): string {
+  const clientId = googleClientId();
   if (!clientId) return '';
   const params = new URLSearchParams({
     client_id: clientId,
@@ -76,13 +104,14 @@ export function getGoogleAuthUrl(): string {
     response_type: 'id_token',
     scope: 'openid profile email',
     prompt: 'select_account',
+    nonce: nonce || randomToken(),
+    state: state || randomToken(),
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 }
 
-export function getMicrosoftAuthUrl(): string {
-  const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID as string | undefined;
-  const tenant = (import.meta.env.VITE_MICROSOFT_TENANT as string | undefined) || 'common';
+export function getMicrosoftAuthUrl(nonce = '', state = ''): string {
+  const clientId = microsoftClientId();
   if (!clientId) return '';
   const params = new URLSearchParams({
     client_id: clientId,
@@ -90,12 +119,17 @@ export function getMicrosoftAuthUrl(): string {
     response_type: 'id_token',
     scope: 'openid profile email',
     prompt: 'select_account',
+    nonce: nonce || randomToken(),
+    state: state || randomToken(),
   });
-  return `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/authorize?${params.toString()}`;
+  return `https://login.microsoftonline.com/${microsoftTenant()}/oauth2/v2.0/authorize?${params.toString()}`;
 }
 
 export async function signInWithOAuth(provider: 'google' | 'microsoft', remember = true): Promise<AuthUser> {
-  const url = provider === 'google' ? getGoogleAuthUrl() : getMicrosoftAuthUrl();
+  const state = randomToken();
+  const nonce = randomToken();
+  const url =
+    provider === 'google' ? getGoogleAuthUrl(nonce, state) : getMicrosoftAuthUrl(nonce, state);
   if (!url) throw new Error(`${provider} OAuth is not configured`);
 
   const width = 500;
@@ -125,6 +159,7 @@ export async function signInWithOAuth(provider: 'google' | 'microsoft', remember
     async function handler(event: MessageEvent) {
       if (event.origin !== window.location.origin) return;
       if (event.data?.type !== 'sso-callback') return;
+      if (event.data?.state !== state) return;
       clearInterval(timer);
       window.removeEventListener('message', handler);
       popup!.close();

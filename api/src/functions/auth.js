@@ -325,9 +325,11 @@ app.http('emailStatus', {
 
 // --- OAuth SSO (Google + Microsoft) ---
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID || '';
-const MS_CLIENT_ID = process.env.MICROSOFT_OAUTH_CLIENT_ID || '';
-const MS_TENANT = process.env.MICROSOFT_OAUTH_TENANT || 'common';
+// The deploy workflow pushes the Entra spellings (GOOGLE_CLIENT_ID / AZURE_*),
+// so accept both rather than silently rejecting every token as an aud mismatch.
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '';
+const MS_CLIENT_ID = process.env.MICROSOFT_OAUTH_CLIENT_ID || process.env.AZURE_CLIENT_ID || '';
+const MS_TENANT = process.env.MICROSOFT_OAUTH_TENANT || process.env.AZURE_TENANT_ID || 'common';
 
 // POST /api/auth/oauth  { provider: 'google'|'microsoft', idToken, remember? }
 // Verifies the provider id_token, upserts the user, returns our JWT.
@@ -341,6 +343,8 @@ app.http('oauth', {
     const { provider, idToken, remember } = await readBody(req);
     const prov = String(provider || '').toLowerCase();
     if (prov !== 'google' && prov !== 'microsoft') return bad('Unsupported provider', 400);
+    if (prov === 'google' && !GOOGLE_CLIENT_ID) return bad('Google sign-in is not configured', 503);
+    if (prov === 'microsoft' && !MS_CLIENT_ID) return bad('Microsoft sign-in is not configured', 503);
     if (!idToken || typeof idToken !== 'string') return bad('Missing idToken', 400);
 
     let payload;
