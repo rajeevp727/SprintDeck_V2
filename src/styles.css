@@ -4167,7 +4167,6 @@ button.linkish {
   line-height: 1;
   color: var(--muted);
   margin-top: 0.3rem;
-  cursor: help;
 }
 .retro-col-hint:hover {
   color: var(--text);
