@@ -112,9 +112,19 @@ function layout({ title, bodyHtml }) {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#111a33;border:1px solid #1f2b4d;border-radius:12px;">
             <tr>
               <td style="padding:28px 32px 8px 32px;">
-                <img src="${base}/favicon.png" width="36" height="36" alt="SprintDeck"
-                     style="display:block;border:0;border-radius:8px;" />
-                <h1 style="margin:16px 0 0 0;font:600 20px/1.3 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#eaf0ff;">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="padding-right:12px;" valign="middle">
+                      <img src="${base}/apple-touch-icon.png" width="48" height="48" alt="SprintDeck"
+                           style="display:block;border:0;border-radius:10px;" />
+                    </td>
+                    <td valign="middle"
+                        style="font:700 22px/1 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#eaf0ff;">
+                      SprintDeck
+                    </td>
+                  </tr>
+                </table>
+                <h1 style="margin:22px 0 0 0;font:600 20px/1.3 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#eaf0ff;">
                   ${title}
                 </h1>
               </td>
@@ -129,8 +139,8 @@ function layout({ title, bodyHtml }) {
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="padding-right:10px;">
-                      <img src="${base}/favicon.png" width="20" height="20" alt=""
-                           style="display:block;border:0;border-radius:4px;opacity:0.85;" />
+                      <img src="${base}/apple-touch-icon.png" width="24" height="24" alt="SprintDeck"
+                           style="display:block;border:0;border-radius:6px;" />
                     </td>
                     <td style="font:400 13px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#8595b8;">
                       <strong style="color:#c3cde6;">SprintDeck</strong> — run your scrum ceremonies in one real-time room.
