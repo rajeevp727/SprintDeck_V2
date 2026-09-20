@@ -93,20 +93,94 @@ function isEmailConfigured() {
   return hasEnv('RESEND_API_KEY') || hasEnv('SENDGRID_API_KEY');
 }
 
+
+const appUrl = () => (process.env.APP_URL || 'https://sprintdeck.in').replace(/\/$/, '');
+
+/**
+ * Wraps a message in the branded shell. Table layout and inline styles because
+ * Outlook ignores most modern CSS, and a PNG logo because Gmail and Outlook do
+ * not render SVG in mail.
+ */
+function layout({ title, bodyHtml }) {
+  const base = appUrl();
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0;padding:0;background:#0b1020;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b1020;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#111a33;border:1px solid #1f2b4d;border-radius:12px;">
+            <tr>
+              <td style="padding:28px 32px 8px 32px;">
+                <img src="${base}/favicon.png" width="36" height="36" alt="SprintDeck"
+                     style="display:block;border:0;border-radius:8px;" />
+                <h1 style="margin:16px 0 0 0;font:600 20px/1.3 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#eaf0ff;">
+                  ${title}
+                </h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:8px 32px 24px 32px;font:400 15px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#c3cde6;">
+                ${bodyHtml}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 32px 28px 32px;border-top:1px solid #1f2b4d;">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="padding-right:10px;">
+                      <img src="${base}/favicon.png" width="20" height="20" alt=""
+                           style="display:block;border:0;border-radius:4px;opacity:0.85;" />
+                    </td>
+                    <td style="font:400 13px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#8595b8;">
+                      <strong style="color:#c3cde6;">SprintDeck</strong> — run your scrum ceremonies in one real-time room.
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:14px 0 0 0;font:400 12px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#6f7fa3;">
+                  <a href="${base}" style="color:#8aa6ff;text-decoration:none;">sprintdeck.in</a>
+                  &nbsp;·&nbsp;
+                  <a href="${base}/privacy" style="color:#8aa6ff;text-decoration:none;">Privacy</a>
+                  &nbsp;·&nbsp;
+                  <a href="${base}/terms" style="color:#8aa6ff;text-decoration:none;">Terms</a>
+                  &nbsp;·&nbsp;
+                  <a href="${base}/security" style="color:#8aa6ff;text-decoration:none;">Security</a>
+                </p>
+                <p style="margin:10px 0 0 0;font:400 12px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#6f7fa3;">
+                  This message was sent to you because someone asked to set a password for this address on SprintDeck.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
 async function sendPasswordResetEmail(to, resetUrl, { reason } = {}) {
   const fromSettings = reason === 'settings';
   const subject = fromSettings ? 'Change your SprintDeck password' : 'Reset your SprintDeck password';
   const intro = fromSettings
     ? 'You requested a password change from Account settings. Use this one-time link to set a new password (valid for 30 minutes):'
     : 'Reset your SprintDeck password using this link (valid for 30 minutes):';
-  const text = `${intro}\n\n${resetUrl}\n\nIf you did not request this, you can ignore this email — your password will stay the same.`;
-  const html = `
-    <p>${intro}</p>
-    <p><a href="${resetUrl}">Set a new password</a></p>
-    <p style="color:#666;font-size:13px;word-break:break-all;">${resetUrl}</p>
-    <p>If you did not request this, you can ignore this email — your password will stay the same.</p>
-  `;
-  return sendEmail({ to, subject, html, text });
+  const text = `${intro}\n\n${resetUrl}\n\nIf you did not request this, you can ignore this email — your password will stay the same.\n\nSprintDeck · ${appUrl()}`;
+  const bodyHtml = `
+    <p style="margin:0 0 20px 0;">${intro}</p>
+    <p style="margin:0 0 20px 0;">
+      <a href="${resetUrl}"
+         style="display:inline-block;padding:12px 22px;border-radius:8px;background:#5b7cfa;color:#ffffff;font-weight:600;text-decoration:none;">
+        Set a new password
+      </a>
+    </p>
+    <p style="margin:0 0 20px 0;font-size:13px;color:#8595b8;word-break:break-all;">
+      Or paste this link into your browser:<br />${resetUrl}
+    </p>
+    <p style="margin:0;font-size:13px;color:#8595b8;">
+      If you did not request this, ignore this email — your password will stay the same.
+    </p>`;
+  return sendEmail({ to, subject, html: layout({ title: subject, bodyHtml }), text });
 }
 
 module.exports = { sendEmail, sendPasswordResetEmail, isEmailConfigured };

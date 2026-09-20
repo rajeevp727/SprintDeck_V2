@@ -180,9 +180,18 @@ function uniqueNameFromBase(baseName) {
   return 'user';
 }
 
-async function pickAvailableName(preferred) {
+/** A name is free for this address when nobody holds it, or a sibling does. */
+async function nameIsFreeFor(name, email) {
+  const holder = await getByName(name);
+  if (!holder) return true;
+  return !!email && holder.email === normalizeEmail(email);
+}
+
+async function pickAvailableName(preferred, email) {
   const base = uniqueNameFromBase(preferred);
-  if (await isNameAvailable(base)) return base;
+  // Accounts on one address are the same person — Google, Microsoft and
+  // password sign-in should show one name, not Name, Name1, Name2.
+  if (await nameIsFreeFor(base, email)) return base;
   for (let i = 1; i <= 20; i++) {
     const cand = `${base.replace(/\d+$/, '')}${i}`.slice(0, 80);
     if (await isNameAvailable(cand)) return cand;
@@ -213,7 +222,7 @@ async function findOrCreateOAuthUser({ email, name, provider, providerSub }) {
     return { user: existing };
   }
 
-  const cleanName = await pickAvailableName(name || normalizedEmail.split('@')[0]);
+  const cleanName = await pickAvailableName(name || normalizedEmail.split('@')[0], normalizedEmail);
   const nameLower = normalizeName(cleanName);
   const user = {
     id,
@@ -312,7 +321,7 @@ async function upsertPasswordAccount(email, password, { name } = {}) {
   const existing = await getById(id);
   if (existing) return updatePassword(id, password);
 
-  const cleanName = await pickAvailableName(name || id.split('@')[0]);
+  const cleanName = await pickAvailableName(name || id.split('@')[0], id);
   const nameLower = normalizeName(cleanName);
   const salt = crypto.randomBytes(16).toString('hex');
   const user = {
@@ -366,7 +375,7 @@ async function updateUserName(email, name) {
   if (oldLower === nameLower) return { user };
 
   const taken = await getByName(cleanName);
-  if (taken && taken.id !== user.id) return { error: 'name-exists' };
+  if (taken && taken.id !== user.id && taken.email !== user.email) return { error: 'name-exists' };
 
   user.name = cleanName;
   user.nameLower = nameLower;
@@ -393,8 +402,9 @@ async function updateUserName(email, name) {
     try {
       await container.items.create({ id: `name:${nameLower}`, type: 'name-reservation', owner: user.id, createdAt: Date.now() });
     } catch (err) {
-      if (err && err.code === 409) return { error: 'name-exists' };
-      throw err;
+      if (!err || err.code !== 409) throw err;
+      const holder = await getByName(cleanName);
+      if (holder && holder.id !== user.id && holder.email !== user.email) return { error: 'name-exists' };
     }
   }
   return { user };

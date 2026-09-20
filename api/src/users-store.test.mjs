@@ -121,3 +121,61 @@ describe('accountsForEmail', () => {
     expect(await users.accountsForEmail('nobody@example.com')).toEqual([]);
   });
 });
+
+describe('display names across one person\'s accounts', () => {
+  beforeEach(() => {
+    delete process.env.COSMOS_CONNECTION_STRING;
+  });
+
+  it('keeps one name across provider and password accounts on the same address', async () => {
+    const google = await users.findOrCreateOAuthUser({
+      email: 'one@example.com',
+      name: 'Rajeev Reddy',
+      provider: 'google',
+      providerSub: 'g-one',
+    });
+    const microsoft = await users.findOrCreateOAuthUser({
+      email: 'one@example.com',
+      name: 'Rajeev Reddy',
+      provider: 'microsoft',
+      providerSub: 'm-one',
+    });
+    const password = await users.upsertPasswordAccount('one@example.com', 'password123', {
+      name: 'Rajeev Reddy',
+    });
+
+    expect(google.user.name).toBe('Rajeev Reddy');
+    expect(microsoft.user.name).toBe('Rajeev Reddy');
+    expect(password.name).toBe('Rajeev Reddy');
+  });
+
+  it('still keeps a different person off a taken name', async () => {
+    await users.findOrCreateOAuthUser({
+      email: 'first@example.com',
+      name: 'Taken Name',
+      provider: 'google',
+      providerSub: 'g-first',
+    });
+    const other = await users.findOrCreateOAuthUser({
+      email: 'second@example.com',
+      name: 'Taken Name',
+      provider: 'google',
+      providerSub: 'g-second',
+    });
+    expect(other.user.name).not.toBe('Taken Name');
+  });
+
+  it('lets a rename take a name a sibling account holds', async () => {
+    await users.findOrCreateOAuthUser({
+      email: 'rename@example.com',
+      name: 'Shared Name',
+      provider: 'google',
+      providerSub: 'g-rn',
+    });
+    await users.upsertPasswordAccount('rename@example.com', 'password123', { name: 'Other Name' });
+
+    const result = await users.updateUserName('rename@example.com', 'Shared Name');
+    expect(result.error).toBeUndefined();
+    expect(result.user.name).toBe('Shared Name');
+  });
+});
