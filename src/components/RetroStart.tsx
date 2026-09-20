@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { retroApi } from '../lib/retroApi';
-import { saveIdentity } from '../lib/storage';
+import { saveIdentity, getIdentity } from '../lib/storage';
 import { getSubscriptionRef } from '../lib/subscription';
 import { useProfileNamePrefill } from '../lib/useProfileName';
 import { useAuth } from '../lib/auth';
@@ -17,6 +17,9 @@ export default function RetroStart({ onEnter, onBack }: Props) {
   const [name, setName] = useProfileNamePrefill();
   const [boardName, setBoardName] = useState('');
   const [code, setCode] = useState('');
+  // Rejoining a board keeps the name that board already knows you by.
+  const priorName = code.trim() ? getIdentity(code.trim().toUpperCase())?.name || '' : '';
+  const joinName = priorName || name;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -42,8 +45,8 @@ export default function RetroStart({ onEnter, onBack }: Props) {
     setBusy(true);
     setError('');
     try {
-      const res = await retroApi.joinBoard(code.trim(), name);
-      saveIdentity(res.board.code, res.participantId, name.trim());
+      const res = await retroApi.joinBoard(code.trim(), joinName);
+      saveIdentity(res.board.code, res.participantId, joinName.trim());
       onEnter(res.board.code);
     } catch (err) {
       setError((err as Error).message);
@@ -109,9 +112,9 @@ export default function RetroStart({ onEnter, onBack }: Props) {
           </form>
         ) : (
           <form onSubmit={handleJoin} className="form">
-            {user ? (
+            {user || priorName ? (
               <p className="auth-hint">
-                Joining as <strong>{name}</strong>
+                Joining as <strong>{joinName}</strong>
               </p>
             ) : (
               <label>
