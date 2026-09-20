@@ -6,6 +6,9 @@ import { useRealtime } from '../lib/realtime';
 import { notifyPresence } from '../lib/presence';
 
 const pollMs = 1500;
+// Realtime carries the updates, but a client that missed a message would sit
+// on a stale board forever, so it keeps a slow poll as a safety net.
+const realtimePollMs = 5000;
 const maxMisses = 6;
 const typingClearMs = 2500;
 
@@ -109,8 +112,7 @@ export function useRetroBoard(code: string, onLeave: () => void, onMissingIdenti
 
   useEffect(() => {
     refresh();
-    if (rtConnected) return; 
-    const id = setInterval(refresh, pollMs);
+    const id = setInterval(refresh, rtConnected ? realtimePollMs : pollMs);
     return () => clearInterval(id);
   }, [refresh, rtConnected]);
 
@@ -118,6 +120,7 @@ export function useRetroBoard(code: string, onLeave: () => void, onMissingIdenti
     try {
       const { board: b } = await fn();
       setBoard(b);
+      send({ t: 'update', id: participantId });
     } catch (err) {
       setError((err as Error).message);
     }
