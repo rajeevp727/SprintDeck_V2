@@ -325,7 +325,13 @@ app.http('emailStatus', {
 
 // --- OAuth SSO (Google + Microsoft) ---
 
-const { configured: oauthConfigured, verifyProviderToken } = require('../oauth');
+const {
+  configured: oauthConfigured,
+  verifyProviderToken,
+  googleClientId,
+  microsoftClientId,
+  microsoftTenant,
+} = require('../oauth');
 
 // GET /api/auth/oauth-status — which providers the API can verify, and with
 // which client IDs. Client IDs are public (they ship in the browser bundle),
@@ -366,8 +372,9 @@ app.http('oauth', {
     } catch (err) {
       // Say which check failed: every cause otherwise collapses into one
       // opaque message, and none of these strings carry anything secret.
+      const claim = err?.claim ? ` (${err.claim})` : '';
       const reason = String(err?.code || err?.message || 'verification failed').slice(0, 120);
-      return bad(`Invalid token — ${reason}`, 401);
+      return bad(`Invalid token — ${reason}${claim}`, 401);
     }
 
     const email = String(payload.email || '').toLowerCase();

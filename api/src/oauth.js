@@ -111,4 +111,10 @@ async function verifyProviderToken(provider, idToken) {
   throw new Error('Unsupported sign-in provider');
 }
 
-module.exports = { configured, verifyProviderToken };
+module.exports = {
+  configured,
+  verifyProviderToken,
+  googleClientId,
+  microsoftClientId,
+  microsoftTenant,
+};
