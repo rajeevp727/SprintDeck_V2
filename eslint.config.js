@@ -5,7 +5,26 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'api', 'node_modules', 'coverage'] },
+  { ignores: ['dist', 'node_modules', 'coverage', 'api/node_modules'] },
+  {
+    // The API is CommonJS on the Functions host. It is linted for undeclared
+    // identifiers above all: an assignment to an undeclared variable throws
+    // at runtime under 'use strict', which is how a 500 shipped unnoticed.
+    files: ['api/**/*.js'],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: globals.node,
+    },
+    rules: {
+      // Pre-existing tidiness findings elsewhere in the API stay advisory so
+      // the gate keeps failing only on what actually breaks at runtime.
+      'no-unused-vars': 'warn',
+      'no-empty': 'warn',
+      'no-useless-assignment': 'warn',
+    },
+  },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],

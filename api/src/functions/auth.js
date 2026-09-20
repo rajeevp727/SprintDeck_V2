@@ -380,17 +380,24 @@ app.http('oauth', {
     const email = String(payload.email || '').toLowerCase();
     if (!emailRe.test(email)) return bad('Token does not contain a valid email', 400);
 
-    const result = await users.findOrCreateOAuthUser({
-      email,
-      name: String(payload.name || email.split('@')[0] || '').trim().slice(0, 80),
-      provider: prov,
-      providerSub: payload.providerSub,
-    });
+    let result;
+    try {
+      result = await users.findOrCreateOAuthUser({
+        email,
+        name: String(payload.name || email.split('@')[0] || '').trim().slice(0, 80),
+        provider: prov,
+        providerSub: payload.providerSub,
+      });
+    } catch (err) {
+      // An uncaught throw here reaches the browser as an empty 500.
+      console.error('[oauth] account upsert failed', err);
+      return bad(`Sign-in failed — ${String(err?.message || err).slice(0, 120)}`, 500);
+    }
     if (result.error === 'email-exists-other-provider') return bad('Email already used by another provider', 409);
     if (result.error === 'invalid-email') return bad('Invalid email', 400);
     if (result.error === 'invalid-provider') return bad('Invalid provider', 400);
     if (result.error) return bad('Could not create account — try again', 500);
-    user = result.user;
+    const user = result.user;
 
     return ok({ token: tokenFor(user, remember !== false), user: users.publicUser(user) });
   },
