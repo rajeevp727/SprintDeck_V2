@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { retroApi } from '../lib/retroApi';
 import { saveIdentity, getIdentity, getCurrentRoom } from '../lib/storage';
+import { useAuth } from '../lib/auth';
 import AdBanner from './AdBanner';
 
 interface Props {
@@ -15,11 +16,15 @@ function knownNameFromRoom(): string {
 }
 
 export default function RetroHome({ joinCode, onEnter, onExit }: Props) {
-  const knownName = knownNameFromRoom();
-  const [name, setName] = useState(knownName);
+  const { user } = useAuth();
+  // A signed-in person already told us their name; only a guest has to type one.
+  const accountName = user ? user.name?.trim() || user.email.split('@')[0] : '';
+  const autoName = knownNameFromRoom() || accountName;
+  const [name, setName] = useState(autoName);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [autoJoining, setAutoJoining] = useState(!!knownName);
+  const [autoJoinFailed, setAutoJoinFailed] = useState(false);
+  const [autoJoining, setAutoJoining] = useState(!!autoName);
 
   async function join(displayName: string) {
     const res = await retroApi.joinBoard(joinCode, displayName);
@@ -28,17 +33,23 @@ export default function RetroHome({ joinCode, onEnter, onExit }: Props) {
   }
 
   useEffect(() => {
-    if (!knownName) return;
+    setName((current) => current || autoName);
+  }, [autoName]);
+
+  useEffect(() => {
+    if (!autoName || autoJoinFailed) return;
     let cancelled = false;
-    join(knownName).catch((err) => {
+    setAutoJoining(true);
+    join(autoName).catch((err) => {
       if (cancelled) return;
       setError((err as Error).message);
       setAutoJoining(false);
+      setAutoJoinFailed(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [joinCode, knownName]);
+  }, [joinCode, autoName, autoJoinFailed]);
 
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault();

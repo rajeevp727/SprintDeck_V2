@@ -3,6 +3,7 @@ import { retroApi } from '../lib/retroApi';
 import { saveIdentity } from '../lib/storage';
 import { getSubscriptionRef } from '../lib/subscription';
 import { useProfileNamePrefill } from '../lib/useProfileName';
+import { useAuth } from '../lib/auth';
 import AdBanner from './AdBanner';
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function RetroStart({ onEnter, onBack }: Props) {
+  const { user } = useAuth();
   const [mode, setMode] = useState<'create' | 'join'>('create');
   const [name, setName] = useProfileNamePrefill();
   const [boardName, setBoardName] = useState('');
@@ -86,10 +88,16 @@ export default function RetroStart({ onEnter, onBack }: Props) {
 
         {mode === 'create' ? (
           <form onSubmit={handleCreate} className="form">
-            <label>
-              Your name
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="User Name" autoFocus maxLength={40} />
-            </label>
+            {user ? (
+              <p className="auth-hint">
+                Hosting as <strong>{name}</strong>
+              </p>
+            ) : (
+              <label>
+                Your name
+                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="User Name" autoFocus maxLength={40} />
+              </label>
+            )}
             <label>
               Board name <span className="muted">(optional)</span>
               <input value={boardName} onChange={(e) => setBoardName(e.target.value)} placeholder="Sprint {Number} Retrospective" maxLength={60} />
@@ -101,10 +109,16 @@ export default function RetroStart({ onEnter, onBack }: Props) {
           </form>
         ) : (
           <form onSubmit={handleJoin} className="form">
-            <label>
-              Your name
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="UserName" autoFocus maxLength={40} />
-            </label>
+            {user ? (
+              <p className="auth-hint">
+                Joining as <strong>{name}</strong>
+              </p>
+            ) : (
+              <label>
+                Your name
+                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="User Name" autoFocus maxLength={40} />
+              </label>
+            )}
             <label>
               Board code
               <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} className="code-input" maxLength={24} />
