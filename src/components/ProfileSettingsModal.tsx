@@ -261,10 +261,39 @@ export default function ProfileSettingsModal({ user, onClose, onUpdated }: Props
         <section className="profile-settings-section" aria-labelledby="password-heading">
           <h4 id="password-heading">Password</h4>
           {user.hasPassword === false ? (
-            <p className="auth-hint">
-              You signed in with {user.authProvider === 'microsoft' ? 'Microsoft' : 'Google'}. Password changes are
-              managed by that provider.
-            </p>
+            <>
+              <p className="auth-hint">
+                You sign in with {user.authProvider === 'microsoft' ? 'Microsoft' : 'Google'}. You can also set a
+                password, so this address works with the email and password form too.
+              </p>
+              <ul className="gdpr-list">
+                <li>We email a one-time link to {user.email}</li>
+                <li>It expires in 30 minutes and can be used once</li>
+                <li>
+                  Signing in with a password reaches a separate account on this address — your{' '}
+                  {user.authProvider === 'microsoft' ? 'Microsoft' : 'Google'} account and its plan are unchanged
+                </li>
+              </ul>
+              {pwDone ? (
+                <div className="pw-email-sent" role="status">
+                  <p className="auth-hint" style={{ color: 'var(--green)' }}>
+                    Check <strong>{pwEmailedTo || user.email}</strong> for the link.
+                  </p>
+                  <div className="profile-gdpr-actions">
+                    <button type="button" className="ghost" onClick={sendPasswordLink} disabled={pwBusy}>
+                      {pwBusy ? 'Sending…' : 'Resend link'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="profile-gdpr-actions">
+                  <button type="button" className="primary" onClick={sendPasswordLink} disabled={pwBusy}>
+                    {pwBusy ? 'Sending…' : 'Email me a link to set a password'}
+                  </button>
+                </div>
+              )}
+              {pwError ? <p className="error">{pwError}</p> : null}
+            </>
           ) : emailConfigured === null ? (
             <p className="auth-hint">Checking password options…</p>
           ) : emailConfigured === false || useDirectPw ? (
