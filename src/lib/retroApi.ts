@@ -16,6 +16,9 @@ export const retroApi = {
       'GET',
     ),
 
+  setVoting: (code: string, participantId: string, closed: boolean) =>
+    request<{ board: RetroBoard }>(`/api/retro/${code}/voting`, 'POST', { participantId, closed }),
+
   moveNote: (code: string, participantId: string, noteId: string, columnId: string) =>
     request<{ board: RetroBoard }>(`/api/retro/${code}/note/${noteId}/move`, 'POST', {
       participantId,

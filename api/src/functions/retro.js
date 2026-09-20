@@ -102,11 +102,6 @@ app.http('addRetroNote', {
     if (board.phase === 'ended') {
       return bad('This retrospective has ended — it is read-only', 403);
     }
-    
-    if (store.isFacilitator(board, participantId)) {
-      return bad('The facilitator can only view the board — notes are added by members', 403);
-    }
-
     if (!store.addNote(board, participantId, columnId, text)) {
       return bad('Could not add note — check the column and text');
     }
@@ -126,11 +121,6 @@ app.http('updateRetroNote', {
     if (board.phase === 'ended') {
       return bad('This retrospective has ended — it is read-only', 403);
     }
-    
-    if (store.isFacilitator(board, participantId)) {
-      return bad('The facilitator can only view the board — notes are added by members', 403);
-    }
-
     if (!store.updateNote(board, participantId, req.params.noteId, { text, columnId })) {
       return bad('Could not update this note', 403);
     }
@@ -150,13 +140,27 @@ app.http('deleteRetroNote', {
     if (board.phase === 'ended') {
       return bad('This retrospective has ended — it is read-only', 403);
     }
-    
-    if (store.isFacilitator(board, participantId)) {
-      return bad('The facilitator can only view the board — notes are added by members', 403);
-    }
-
     if (!store.deleteNote(board, participantId, req.params.noteId)) {
       return bad('Could not delete this note', 403);
+    }
+    await store.saveBoard(board);
+    return ok({ board: store.publicView(board, participantId) });
+  },
+});
+
+app.http('retroVoting', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'retro/{code}/voting',
+  handler: async (req) => {
+    const { participantId, closed } = await readBody(req);
+    const { board, error } = await requireParticipant(req.params.code, participantId);
+    if (error) return error;
+    if (board.phase === 'ended') {
+      return bad('This retrospective has ended — it is read-only', 403);
+    }
+    if (!store.setVotingClosed(board, participantId, closed)) {
+      return bad('Only the facilitator can close voting', 403);
     }
     await store.saveBoard(board);
     return ok({ board: store.publicView(board, participantId) });

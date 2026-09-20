@@ -202,6 +202,19 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
               {copied ? 'Copied!' : 'Invite'}
             </button>
           )}
+          {isFacilitator && board.phase !== 'ended' && (
+            <button
+              className="ghost"
+              onClick={() => run(() => retroApi.setVoting(code, participantId, !board.votingClosed))}
+              title={
+                board.votingClosed
+                  ? 'Let the team vote again'
+                  : 'Freeze the tally and sort each column by votes'
+              }
+            >
+              {board.votingClosed ? 'Reopen voting' : 'Close voting'}
+            </button>
+          )}
           {}
           {isFacilitator && board.phase === 'ended' && (
             <div className="profile">
@@ -375,10 +388,14 @@ function RetroColumnView({
 }: ColumnProps) {
   const [draft, setDraft] = useState('');
   const lastTyping = useRef(0);
-  const notes = board.notes.filter((n) => n.columnId === column.id);
   const actionColumn = board.columns.find((c) => /action items/i.test(c.title));
   const isActionColumn = actionColumn?.id === column.id;
   const live = board.phase !== 'ended';
+  const ranked = !!board.votingClosed && !isActionColumn;
+  const canWrite = live && (isActionColumn ? isFacilitator : !isFacilitator);
+  const notes = board.notes
+    .filter((n) => n.columnId === column.id)
+    .sort((a, b) => (ranked ? (b.voteCount ?? 0) - (a.voteCount ?? 0) : 0));
 
   /** Out of Action items goes back where it came from, or to the first column. */
   function moveTarget(note: (typeof notes)[number]): string {
@@ -409,7 +426,7 @@ function RetroColumnView({
         <span className="retro-col-count">{notes.length}</span>
       </div>
 
-      {!isFacilitator && board.phase !== 'ended' && (
+      {canWrite && (
         <div className="retro-col-add">
           <textarea
             value={draft}
@@ -417,16 +434,16 @@ function RetroColumnView({
             rows={2}
             maxLength={500}
             onChange={(e) => handleChange(e.target.value)}
+            onBlur={add}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 add();
               }
+              if (e.key === 'Escape') setDraft('');
             }}
           />
-          <button className="ghost" disabled={!draft.trim()} onClick={add}>
-            Add
-          </button>
+          <span className="retro-col-hint">Enter or click away to post · Esc to discard</span>
         </div>
       )}
 
@@ -435,11 +452,11 @@ function RetroColumnView({
           <RetroNote
             key={n.id}
             note={n}
-            canEdit={n.authorId === participantId && live}
-            canDelete={n.authorId === participantId && live}
-            canMove={live && !!actionColumn && (n.authorId === participantId || isFacilitator)}
+            canEdit={live && (isActionColumn ? isFacilitator : n.authorId === participantId)}
+            canDelete={live && n.authorId === participantId}
+            canMove={live && !!actionColumn && isFacilitator}
             isAction={isActionColumn}
-            canVote={live && !isActionColumn}
+            canVote={live && !isActionColumn && !board.votingClosed && n.authorId !== participantId}
             onEdit={(text) => onEdit(n.id, text)}
             onDelete={() => onDelete(n.id)}
             onMove={() => onMove(n.id, moveTarget(n))}

@@ -4125,3 +4125,10 @@ button.linkish {
 .retro-note-move:hover {
   background: rgba(0, 0, 0, 0.34);
 }
+
+.retro-col-hint {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.3rem;
+}

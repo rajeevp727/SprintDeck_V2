@@ -217,6 +217,7 @@ async function createBoard(name, facilitatorName, desiredCode, roomCode) {
     phase: 'review', 
     carryOverItems: carry.map((it) => ({ id: it.id, text: it.text, done: false })),
     columns: defaultColumns(),
+    votingClosed: false,
     notes: [], 
     participants: {
       [pid]: { id: pid, name: (facilitatorName || '').trim().slice(0, maxNameLen) || 'Facilitator', color: colorForSeq(0) },
@@ -254,10 +255,23 @@ function leaveBoard(board, participantId) {
   return true;
 }
 
+function isActionColumnId(board, columnId) {
+  const action = actionColumn(board);
+  return !!action && action.id === columnId;
+}
+
+/** Who may write in a column: the facilitator owns Action items, members own the rest. */
+function canWriteColumn(board, participantId, columnId) {
+  return isActionColumnId(board, columnId)
+    ? isFacilitator(board, participantId)
+    : !isFacilitator(board, participantId);
+}
+
 function addNote(board, participantId, columnId, text) {
   const author = board.participants[participantId];
   if (!author) return false;
   if (!board.columns.some((c) => c.id === columnId)) return false;
+  if (!canWriteColumn(board, participantId, columnId)) return false;
   if (board.notes.length >= maxNotes) return false; 
   const body = String(text || '').trim();
   if (!body) return false;
@@ -276,7 +290,11 @@ function addNote(board, participantId, columnId, text) {
 function updateNote(board, participantId, noteId, patch) {
   const note = board.notes.find((n) => n.id === noteId);
   if (!note) return false;
-  if (note.authorId !== participantId) return false; 
+  if (isActionColumnId(board, note.columnId)) {
+    if (!isFacilitator(board, participantId)) return false;
+  } else if (note.authorId !== participantId) {
+    return false;
+  }
   if (typeof patch.text === 'string') {
     const body = patch.text.trim();
     if (!body) return false;
@@ -295,13 +313,20 @@ function actionColumn(board) {
 }
 
 /**
- * Moves a note to another column. The author may move their own; the
- * facilitator may move anyone's, which is how action items get gathered.
+ * Closing voting freezes the tally so the board can be read top-down. The
+ * facilitator can reopen it if the team is not finished.
  */
+function setVotingClosed(board, participantId, closed) {
+  if (!isFacilitator(board, participantId)) return false;
+  board.votingClosed = !!closed;
+  return true;
+}
+
+/** Only the facilitator decides what becomes an action item. */
 function moveNote(board, participantId, noteId, targetColumnId) {
   const note = board.notes.find((n) => n.id === noteId);
   if (!note) return false;
-  if (note.authorId !== participantId && !isFacilitator(board, participantId)) return false;
+  if (!isFacilitator(board, participantId)) return false;
   if (!board.columns.some((c) => c.id === targetColumnId)) return false;
   if (note.columnId === targetColumnId) return true;
   note.previousColumnId = note.columnId;
@@ -309,11 +334,16 @@ function moveNote(board, participantId, noteId, targetColumnId) {
   return true;
 }
 
-/** One vote per participant per note, toggled off by voting again. */
+/**
+ * One vote per participant per note, toggled off by voting again. Nobody votes
+ * for their own note — the point is what the rest of the team thinks.
+ */
 function toggleNoteVote(board, participantId, noteId) {
   const note = board.notes.find((n) => n.id === noteId);
   if (!note) return false;
   if (!board.participants[participantId]) return false;
+  if (note.authorId === participantId) return false;
+  if (board.votingClosed) return false;
   const votes = Array.isArray(note.votes) ? note.votes : [];
   note.votes = votes.includes(participantId)
     ? votes.filter((id) => id !== participantId)
@@ -321,10 +351,11 @@ function toggleNoteVote(board, participantId, noteId) {
   return true;
 }
 
+/** You may remove what you wrote, and nothing else — the facilitator included. */
 function deleteNote(board, participantId, noteId) {
   const note = board.notes.find((n) => n.id === noteId);
   if (!note) return false;
-  if (note.authorId !== participantId && !isFacilitator(board, participantId)) return false;
+  if (note.authorId !== participantId) return false;
   board.notes = board.notes.filter((n) => n.id !== noteId);
   return true;
 }
@@ -351,14 +382,21 @@ function actionItemsFromBoard(board) {
 }
 
 function publicView(board, viewerId) {
+  const action = actionColumn(board);
+  const hideActions = !!action && !board.votingClosed && board.facilitatorId !== viewerId;
+  const columns = hideActions ? board.columns.filter((c) => c.id !== action.id) : board.columns;
+  const visibleNotes = hideActions
+    ? (board.notes || []).filter((n) => n.columnId !== action.id)
+    : board.notes || [];
   return {
     code: board.code,
     name: board.name,
     facilitatorId: board.facilitatorId,
     phase: board.phase || 'active',
+    votingClosed: !!board.votingClosed,
     carryOverItems: board.carryOverItems || [],
-    columns: board.columns,
-    notes: (board.notes || []).map((note) => {
+    columns,
+    notes: visibleNotes.map((note) => {
       const votes = Array.isArray(note.votes) ? note.votes : [];
       const { votes: _votes, ...rest } = note;
       return { ...rest, voteCount: votes.length, votedByMe: !!viewerId && votes.includes(viewerId) };
@@ -375,6 +413,9 @@ function publicView(board, viewerId) {
 }
 
 module.exports = {
+  canWriteColumn,
+  isActionColumnId,
+  setVotingClosed,
   moveNote,
   toggleNoteVote,
   actionColumn,
