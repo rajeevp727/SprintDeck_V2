@@ -9,14 +9,15 @@
 // in the URL fragment. The frontend POSTs { provider, idToken } here; we verify
 // the token server-side, upsert the user, and issue our own JWT.
 //
-// SMTP: forgot-password sends a real email via nodemailer when SMTP_* env vars
-// are configured. Falls back to console.log when SMTP is absent (dev mode).
+// Password reset: the one-time token is kept in Cosmos so it survives a
+// restart, and the link goes out through Resend/SendGrid; with neither
+// configured it is logged instead, which is the local-dev path.
 const { app } = require('@azure/functions');
 const users = require('../users-store');
 const jwt = require('../jwt');
 const { rateLimited } = require('../ratelimit');
-const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const { sendPasswordResetEmail, isEmailConfigured } = require('../email');
+const { saveResetToken, consumeResetToken } = require('../reset-token-store');
 
 const noCache = { 'Cache-Control': 'no-store' };
 function ok(body) {
@@ -34,50 +35,9 @@ async function readBody(req) {
 }
 
 const secret = () => process.env.JWT_SECRET || '';
+const appUrl = process.env.APP_URL || 'https://sprintdeck.in';
 const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const minPassword = 8;
-
-// SMTP configuration from environment variables.
-const smtpHost = process.env.SMTP_HOST || '';
-const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-const smtpSecure = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true';
-const smtpUser = process.env.SMTP_USER || '';
-const smtpPass = process.env.SMTP_PASS || '';
-const emailFrom = process.env.EMAIL_FROM || 'SprintDeck <noreply@sprintdeck.in>';
-const appUrl = process.env.APP_URL || 'https://sprintdeck.in';
-
-let mailer = null;
-function getMailer() {
-  if (!smtpHost || !smtpUser) return null;
-  if (!mailer) {
-    mailer = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpSecure,
-      auth: { user: smtpUser, pass: smtpPass },
-    });
-  }
-  return mailer;
-}
-
-async function sendResetEmail(toEmail, resetUrl) {
-  const transporter = getMailer();
-  if (!transporter) {
-    console.log(`[forgot-password] reset link for ${toEmail}: ${resetUrl}`);
-    return;
-  }
-  await transporter.sendMail({
-    from: emailFrom,
-    to: toEmail,
-    subject: 'Reset your SprintDeck password',
-    html: `
-      <p>You requested to reset your SprintDeck password.</p>
-      <p><a href="${resetUrl}">Click here to reset your password</a></p>
-      <p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
-    `,
-  });
-  console.log(`[forgot-password] sent reset email to ${toEmail}`);
-}
 
 // "Remember me" keeps you signed in for 2 sprints (a sprint is 14 days → 28
 // days); otherwise the token is a short 1-day session.
@@ -253,18 +213,6 @@ app.http('deleteAccount', {
   },
 });
 
-// In-memory reset-token store (dev/local). In production, persist these in
-// Cosmos/Redis with a TTL so they survive restarts.
-const resetTokens = new Map();
-const RESET_TTL_MS = 30 * 60 * 1000; // 30 minutes
-
-function pruneResetTokens() {
-  const now = Date.now();
-  for (const [k, v] of resetTokens) {
-    if (now - v.createdAt > RESET_TTL_MS) resetTokens.delete(k);
-  }
-}
-
 // POST /api/auth/forgot-password  { email }
 app.http('forgotPassword', {
   methods: ['POST'],
@@ -280,15 +228,10 @@ app.http('forgotPassword', {
     if (!user) {
       return bad('User not found — please check the email and try again', 404);
     }
-    pruneResetTokens();
-    const token = crypto.randomBytes(32).toString('hex');
-    resetTokens.set(token, {
-      email: user.email,
-      userId: user.id,
-      createdAt: Date.now(),
-    });
-    const resetUrl = `${req.url.replace(/\/api\/auth\/forgot-password.*/, '')}/reset-password?token=${token}`;
-    await sendResetEmail(user.email, resetUrl);
+    const token = await saveResetToken(user.email, user.id);
+    const resetUrl = `${appUrl.replace(/\/$/, '')}/reset-password?token=${token}`;
+    const sent = await sendPasswordResetEmail(user.email, resetUrl);
+    if (!sent) console.log(`[forgot-password] reset link for ${user.email}: ${resetUrl}`);
     return ok({ ok: true });
   },
 });
@@ -302,26 +245,25 @@ app.http('resetPassword', {
     if (!secret()) return bad('Auth is not configured', 503);
     if (rateLimited(req, 'resetpw', 10, 60_000)) return bad('Too many attempts — slow down', 429);
     const { token, newPassword } = await readBody(req);
-  const record = resetTokens.get(String(token || ''));
-  if (!record) return bad('Invalid or expired reset link', 400);
-  if (String(newPassword || '').length < minPassword) {
-    return bad(`New password must be at least ${minPassword} characters`);
-  }
-  const user = await users.getByEmail(record.email);
-  if (!user || user.id !== record.userId) return bad('Invalid reset link', 400);
-  await users.updatePassword(user.email, newPassword);
-  resetTokens.delete(String(token || ''));
-  return ok({ ok: true });
-},
+    if (String(newPassword || '').length < minPassword) {
+      return bad(`New password must be at least ${minPassword} characters`);
+    }
+    const record = await consumeResetToken(String(token || ''));
+    if (!record) return bad('Invalid or expired reset link', 400);
+    const user = await users.getByEmail(record.email);
+    if (!user || user.id !== record.userId) return bad('Invalid reset link', 400);
+    await users.updatePassword(user.email, newPassword);
+    return ok({ ok: true });
+  },
 });
 
-// GET /api/auth/email-status  → { configured: boolean }
+// GET /api/auth/email-status  → whether a reset email can actually be sent
 app.http('emailStatus', {
   methods: ['GET'],
   authLevel: 'anonymous',
   route: 'auth/email-status',
   handler: async () => {
-    return ok({ configured: !!secret() });
+    return ok({ configured: isEmailConfigured() });
   },
 });
 
