@@ -162,7 +162,6 @@ type PageProps = {
   route: Route;
   authLoading: boolean;
   authenticated: boolean;
-  guest: boolean;
   onRoom: (code: string) => void;
   onHome: () => void;
   onRetro: (code: string) => void;
@@ -176,8 +175,6 @@ type PageProps = {
   onTimesheet: () => void;
   onWhiteboardStart: () => void;
   onWhiteboardBoard: (code: string) => void;
-  onContinueAsGuest: () => void;
-  onExitGuest: () => void;
 };
 
 function renderExplicitRoute(props: PageProps): ReactNode | null {
@@ -214,9 +211,7 @@ function renderPage(props: PageProps): ReactNode {
   if (props.authenticated) {
     return <Dashboard onPlanning={props.onStartPlanning} onRetro={props.onRetroStart} onTimesheet={props.onTimesheet} onWhiteboard={props.onWhiteboardStart} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} />;
   }
-  return props.guest
-    ? <Home onEnter={props.onRoom} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} onSignIn={props.onAuth} onBack={props.onExitGuest} />
-    : <Landing onSignIn={props.onAuth} onGuest={props.onContinueAsGuest} />;
+  return <Landing onSignIn={props.onAuth} />;
 }
 
 function usePaymentWatcher(setRoute: Dispatch<SetStateAction<Route>>) {
@@ -258,7 +253,6 @@ function usePaymentWatcher(setRoute: Dispatch<SetStateAction<Route>>) {
 export default function App() {
   const [route, setRoute] = useState<Route>(computeRoute);
   const { user, loading: authLoading } = useAuth();
-  const [guest, setGuest] = useState(false); // "continue as guest" from the landing
 
   usePaymentWatcher(setRoute);
 
@@ -339,7 +333,6 @@ export default function App() {
     route,
     authLoading,
     authenticated: Boolean(user),
-    guest,
     onRoom: goRoom,
     onHome: goHome,
     onRetro: goRetro,
@@ -353,8 +346,6 @@ export default function App() {
     onTimesheet: goTimesheet,
     onWhiteboardStart: goWhiteboard,
     onWhiteboardBoard: goWhiteboardBoard,
-    onContinueAsGuest: () => setGuest(true),
-    onExitGuest: () => setGuest(false),
   });
 
   return (

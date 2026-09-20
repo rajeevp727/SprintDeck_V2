@@ -3,7 +3,6 @@ import BrandLogo from './BrandLogo';
 
 interface Props {
   onSignIn: () => void;
-  onGuest: () => void;
 }
 
 const features = [
@@ -35,7 +34,7 @@ const features = [
 
 type FeatureView = 'grid' | 'list';
 
-export default function Landing({ onSignIn, onGuest }: Props) {
+export default function Landing({ onSignIn }: Props) {
   const [view, setView] = useState<FeatureView>('grid');
 
   return (
@@ -51,9 +50,6 @@ export default function Landing({ onSignIn, onGuest }: Props) {
         <div className="landing-cta">
           <button className="primary" onClick={onSignIn}>
             Log in / Register
-          </button>
-          <button className="ghost" onClick={onGuest}>
-            Continue as guest →
           </button>
         </div>
       </header>
@@ -113,7 +109,7 @@ export default function Landing({ onSignIn, onGuest }: Props) {
       )}
 
       <p className="landing-footnote">
-        Daily standup timesheet and full ceremony controls unlock after you log in or continue as guest.
+        Daily standup timesheet and full ceremony controls unlock after you log in.
       </p>
     </div>
   );
