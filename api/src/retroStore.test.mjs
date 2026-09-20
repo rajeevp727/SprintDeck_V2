@@ -217,3 +217,29 @@ describe('timed voting', () => {
     expect(store.toggleNoteVote(board, 'chair', 'n1')).toBe(false);
   });
 });
+
+describe('once voting closes', () => {
+  it('stops members writing anywhere', () => {
+    const board = boardWith();
+    store.addNote(board, 'member', 'well', 'in time');
+    store.setVotingClosed(board, 'chair', true);
+
+    expect(store.addNote(board, 'member', 'well', 'too late')).toBe(false);
+    expect(store.updateNote(board, 'member', board.notes[0].id, { text: 'edited' })).toBe(false);
+  });
+
+  it('leaves the facilitator working on action items', () => {
+    const board = boardWith();
+    store.setVotingClosed(board, 'chair', true);
+    expect(store.addNote(board, 'chair', 'action', 'agreed')).toBe(true);
+    expect(store.updateNote(board, 'chair', board.notes[0].id, { text: 'reworded' })).toBe(true);
+  });
+
+  it('still lets a member remove their own note', () => {
+    const board = boardWith();
+    store.addNote(board, 'member', 'well', 'mine');
+    const mine = board.notes[0];
+    store.setVotingClosed(board, 'chair', true);
+    expect(store.deleteNote(board, 'member', mine.id)).toBe(true);
+  });
+});

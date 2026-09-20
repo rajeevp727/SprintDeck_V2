@@ -263,9 +263,9 @@ function isActionColumnId(board, columnId) {
 
 /** Who may write in a column: the facilitator owns Action items, members own the rest. */
 function canWriteColumn(board, participantId, columnId) {
-  return isActionColumnId(board, columnId)
-    ? isFacilitator(board, participantId)
-    : !isFacilitator(board, participantId);
+  if (isActionColumnId(board, columnId)) return isFacilitator(board, participantId);
+  if (isFacilitator(board, participantId)) return false;
+  return !board.votingClosed;
 }
 
 function addNote(board, participantId, columnId, text) {
@@ -294,6 +294,9 @@ function updateNote(board, participantId, noteId, patch) {
   if (isActionColumnId(board, note.columnId)) {
     if (!isFacilitator(board, participantId)) return false;
   } else if (note.authorId !== participantId) {
+    return false;
+  } else if (board.votingClosed && !patch.columnId) {
+    // The board is frozen for members once voting ends.
     return false;
   }
   if (typeof patch.text === 'string') {

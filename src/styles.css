@@ -4297,3 +4297,24 @@ button.linkish {
   padding: 0.25rem 0.6rem;
   font-size: 0.82rem;
 }
+
+/* Header, voting clock and who-is-here stay in view while the board scrolls. */
+.retro-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--bg);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+  box-shadow: 0 8px 16px -12px rgba(0, 0, 0, 0.9);
+}
+.retro-sticky .retro-voting,
+.retro-sticky .retro-legend {
+  margin-top: 0.6rem;
+}
+@media (max-width: 720px) {
+  .retro-sticky {
+    position: static;
+    box-shadow: none;
+  }
+}

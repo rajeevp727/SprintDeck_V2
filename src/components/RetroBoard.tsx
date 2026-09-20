@@ -4,7 +4,7 @@ import RetroPeople from './RetroPeople';
 import RetroHeader from './RetroHeader';
 import RetroColumnView from './RetroColumn';
 import RetroThanks from './RetroThanks';
-import RetroVoting from './RetroVoting';
+import RetroVoting, { useVotingOver } from './RetroVoting';
 import AdBanner from './AdBanner';
 import { useRetroBoard } from './useRetroBoard';
 
@@ -35,6 +35,9 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
     copyInvite,
   } = useRetroBoard(code, onLeave, onMissingIdentity);
 
+  // Hooks run before the early returns below.
+  const votingOver = useVotingOver(!!board?.votingClosed, board?.votingEndsAt);
+
   if (!participantId) return null;
   if (!board) {
     return (
@@ -60,24 +63,51 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
     );
   }
 
+  const showBoardBar = board.phase !== 'review';
+
   return (
     <div className="retro">
-      <RetroHeader
-        board={board}
-        me={me}
-        isFacilitator={isFacilitator}
-        copied={copied}
-        showProfile={showProfile}
-        showPeople={showPeople}
-        showExport={showExport}
-        onToggleProfile={() => setShowProfile((open) => !open)}
-        onTogglePeople={() => setShowPeople((open) => !open)}
-        onToggleExport={() => setShowExport((open) => !open)}
-        onCopyInvite={copyInvite}
-        onEnd={endRetro}
-        onExit={exit}
-        onLeave={leave}
-      />
+      <div className="retro-sticky">
+        <RetroHeader
+          board={board}
+          me={me}
+          isFacilitator={isFacilitator}
+          copied={copied}
+          showProfile={showProfile}
+          showPeople={showPeople}
+          showExport={showExport}
+          onToggleProfile={() => setShowProfile((open) => !open)}
+          onTogglePeople={() => setShowPeople((open) => !open)}
+          onToggleExport={() => setShowExport((open) => !open)}
+          onCopyInvite={copyInvite}
+          onEnd={endRetro}
+          onExit={exit}
+          onLeave={leave}
+        />
+
+        {showBoardBar && board.phase !== 'ended' && (
+          <RetroVoting
+            isFacilitator={isFacilitator}
+            votingClosed={!!board.votingClosed}
+            votingEndsAt={board.votingEndsAt}
+            onStart={(minutes) => run(() => retroApi.startVoting(code, participantId, minutes))}
+            onStop={() => run(() => retroApi.setVoting(code, participantId, !board.votingClosed))}
+          />
+        )}
+
+        {showBoardBar && (
+          <div className="retro-legend">
+            {board.participants.map((p) => (
+              <span key={p.id} className="retro-legend-item">
+                <span className="retro-legend-dot" style={{ background: p.color }} />
+                {p.name}
+                {p.isFacilitator && <span className="crown"> ★</span>}
+                {p.id === participantId && <span className="you"> (you)</span>}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
 
       {board.phase === 'review' ? (
         <ReviewPanel
@@ -94,27 +124,6 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
               {isFacilitator && ' Export the results from the top bar.'}
             </div>
           )}
-          {board.phase !== 'ended' && (
-            <RetroVoting
-              isFacilitator={isFacilitator}
-              votingClosed={!!board.votingClosed}
-              votingEndsAt={board.votingEndsAt}
-              onStart={(minutes) => run(() => retroApi.startVoting(code, participantId, minutes))}
-              onStop={() => run(() => retroApi.setVoting(code, participantId, !board.votingClosed))}
-            />
-          )}
-
-          <div className="retro-legend">
-            {board.participants.map((p) => (
-              <span key={p.id} className="retro-legend-item">
-                <span className="retro-legend-dot" style={{ background: p.color }} />
-                {p.name}
-                {p.isFacilitator && <span className="crown"> ★</span>}
-                {p.id === participantId && <span className="you"> (you)</span>}
-              </span>
-            ))}
-          </div>
-
           {showPeople && (
             <RetroPeople
               board={board}
@@ -136,6 +145,7 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
             {board.columns.map((col) => (
               <RetroColumnView
                 key={col.id}
+                votingOver={votingOver}
                 column={col}
                 board={board}
                 participantId={participantId}

@@ -3,6 +3,8 @@ import type { RetroBoard as RetroBoardType, RetroColumn } from '../lib/retroType
 import RetroNote from './RetroNote';
 
 interface ColumnProps {
+  /** Voting has finished: members stop writing, the facilitator carries on. */
+  votingOver: boolean;
   column: RetroColumn;
   board: RetroBoardType;
   participantId: string;
@@ -16,6 +18,7 @@ interface ColumnProps {
 }
 
 export default function RetroColumnView({
+  votingOver,
   column,
   board,
   participantId,
@@ -32,8 +35,8 @@ export default function RetroColumnView({
   const actionColumn = board.columns.find((c) => /action items/i.test(c.title));
   const isActionColumn = actionColumn?.id === column.id;
   const live = board.phase !== 'ended';
-  const ranked = !!board.votingClosed && !isActionColumn;
-  const canWrite = live && (isActionColumn ? isFacilitator : !isFacilitator);
+  const ranked = votingOver && !isActionColumn;
+  const canWrite = live && (isActionColumn ? isFacilitator : !isFacilitator && !votingOver);
   const notes = board.notes
     .filter((n) => n.columnId === column.id)
     .sort((a, b) => (ranked ? (b.voteCount ?? 0) - (a.voteCount ?? 0) : 0));
@@ -93,11 +96,11 @@ export default function RetroColumnView({
           <RetroNote
             key={n.id}
             note={n}
-            canEdit={live && (isActionColumn ? isFacilitator : n.authorId === participantId)}
+            canEdit={live && (isActionColumn ? isFacilitator : n.authorId === participantId && !votingOver)}
             canDelete={live && n.authorId === participantId}
             canMove={live && !!actionColumn && isFacilitator}
             isAction={isActionColumn}
-            canVote={live && !isActionColumn && !board.votingClosed && n.authorId !== participantId}
+            canVote={live && !isActionColumn && !votingOver && n.authorId !== participantId}
             onEdit={(text) => onEdit(n.id, text)}
             onDelete={() => onDelete(n.id)}
             onMove={() => onMove(n.id, moveTarget(n))}

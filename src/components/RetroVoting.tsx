@@ -2,6 +2,20 @@ import { useEffect, useState } from 'react';
 
 export const votingMinutes = [2, 3, 5, 8, 10];
 
+/** True once the facilitator has closed voting, or the deadline has passed. */
+export function useVotingOver(votingClosed: boolean, votingEndsAt?: number | null): boolean {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (votingClosed || !votingEndsAt) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [votingClosed, votingEndsAt]);
+
+  if (votingClosed) return true;
+  return !!votingEndsAt && now >= votingEndsAt;
+}
+
 interface Props {
   isFacilitator: boolean;
   votingClosed: boolean;
