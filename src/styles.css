@@ -4238,3 +4238,62 @@ button.linkish {
     padding: 0.15rem 0;
   }
 }
+
+.retro-thanks {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+.retro-thanks-card {
+  max-width: 460px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md, 12px);
+  padding: 2rem 1.75rem;
+}
+.retro-thanks-mark {
+  font-size: 2.4rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.retro-thanks-card h2 {
+  margin: 0 0 0.5rem;
+}
+.retro-thanks-card .primary {
+  margin-top: 1.2rem;
+  min-width: 140px;
+}
+
+.retro-voting {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.retro-voting.running {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.retro-voting.ending .retro-voting-clock {
+  color: var(--danger, #e2646a);
+}
+.retro-voting-clock {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.retro-voting-min {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.82rem;
+}

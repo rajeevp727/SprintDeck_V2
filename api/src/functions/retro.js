@@ -86,6 +86,7 @@ app.http('getRetro', {
     const participantId = req.query.get('participantId') || '';
     const board = await store.loadBoard(req.params.code);
     if (!board) return bad('Board not found', 404);
+    if (store.expireVoting(board)) await store.saveBoard(board);
     return ok({ board: store.publicView(board, participantId) });
   },
 });
@@ -158,6 +159,25 @@ app.http('removeRetroParticipant', {
     if (error) return error;
     if (!store.removeParticipant(board, participantId, targetId)) {
       return bad('Only the facilitator can remove someone from the board', 403);
+    }
+    await store.saveBoard(board);
+    return ok({ board: store.publicView(board, participantId) });
+  },
+});
+
+app.http('retroStartVoting', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'retro/{code}/voting/start',
+  handler: async (req) => {
+    const { participantId, minutes } = await readBody(req);
+    const { board, error } = await requireParticipant(req.params.code, participantId);
+    if (error) return error;
+    if (board.phase === 'ended') {
+      return bad('This retrospective has ended — it is read-only', 403);
+    }
+    if (!store.startVoting(board, participantId, minutes)) {
+      return bad('Only the facilitator can start voting, for 2, 3, 5, 8 or 10 minutes', 403);
     }
     await store.saveBoard(board);
     return ok({ board: store.publicView(board, participantId) });

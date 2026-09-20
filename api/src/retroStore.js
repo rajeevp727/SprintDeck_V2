@@ -218,6 +218,7 @@ async function createBoard(name, facilitatorName, desiredCode, roomCode) {
     carryOverItems: carry.map((it) => ({ id: it.id, text: it.text, done: false })),
     columns: defaultColumns(),
     votingClosed: false,
+    votingEndsAt: null,
     notes: [], 
     participants: {
       [pid]: { id: pid, name: (facilitatorName || '').trim().slice(0, maxNameLen) || 'Facilitator', color: colorForSeq(0) },
@@ -312,13 +313,38 @@ function actionColumn(board) {
   return (board.columns || []).find((c) => /action items/i.test(c.title)) || null;
 }
 
+const VotingMinutes = [2, 3, 5, 8, 10];
+
+/**
+ * Opens voting for a fixed number of minutes. Everyone sees the same deadline,
+ * and the board closes itself when it passes so nobody has to watch a clock.
+ */
+function startVoting(board, participantId, minutes) {
+  if (!isFacilitator(board, participantId)) return false;
+  const chosen = Number(minutes);
+  if (!VotingMinutes.includes(chosen)) return false;
+  board.votingClosed = false;
+  board.votingEndsAt = Date.now() + chosen * 60 * 1000;
+  return true;
+}
+
 /**
  * Closing voting freezes the tally so the board can be read top-down. The
- * facilitator can reopen it if the team is not finished.
+ * facilitator can stop early, or reopen if the team is not finished.
  */
 function setVotingClosed(board, participantId, closed) {
   if (!isFacilitator(board, participantId)) return false;
   board.votingClosed = !!closed;
+  board.votingEndsAt = closed ? null : board.votingEndsAt;
+  return true;
+}
+
+/** The deadline closes voting on its own, whoever loads the board next. */
+function expireVoting(board) {
+  if (board.votingClosed || !board.votingEndsAt) return false;
+  if (Date.now() < board.votingEndsAt) return false;
+  board.votingClosed = true;
+  board.votingEndsAt = null;
   return true;
 }
 
@@ -406,6 +432,7 @@ function publicView(board, viewerId) {
     facilitatorId: board.facilitatorId,
     phase: board.phase || 'active',
     votingClosed: !!board.votingClosed,
+    votingEndsAt: board.votingEndsAt || null,
     carryOverItems: board.carryOverItems || [],
     columns,
     notes: visibleNotes.map((note) => {
@@ -425,6 +452,9 @@ function publicView(board, viewerId) {
 }
 
 module.exports = {
+  VotingMinutes,
+  startVoting,
+  expireVoting,
   removeParticipant,
   canWriteColumn,
   isActionColumnId,

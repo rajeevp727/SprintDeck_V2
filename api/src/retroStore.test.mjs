@@ -173,3 +173,47 @@ describe('deleting', () => {
     expect(store.deleteNote(board, 'chair', theirs.id)).toBe(true);
   });
 });
+
+describe('timed voting', () => {
+  it('is the facilitator’s to start, for a sanctioned length', () => {
+    const board = boardWith();
+    expect(store.startVoting(board, 'member', 5)).toBe(false);
+    expect(store.startVoting(board, 'chair', 7)).toBe(false);
+    expect(store.startVoting(board, 'chair', 5)).toBe(true);
+    expect(board.votingClosed).toBe(false);
+    expect(board.votingEndsAt).toBeGreaterThan(Date.now());
+  });
+
+  it('offers 2, 3, 5, 8 and 10 minutes', () => {
+    expect(store.VotingMinutes).toEqual([2, 3, 5, 8, 10]);
+  });
+
+  it('closes itself once the deadline passes', () => {
+    const board = boardWith();
+    store.startVoting(board, 'chair', 2);
+    expect(store.expireVoting(board)).toBe(false);
+
+    board.votingEndsAt = Date.now() - 1;
+    expect(store.expireVoting(board)).toBe(true);
+    expect(board.votingClosed).toBe(true);
+    expect(board.votingEndsAt).toBeNull();
+  });
+
+  it('lets the facilitator stop early', () => {
+    const board = boardWith();
+    store.startVoting(board, 'chair', 10);
+    expect(store.setVotingClosed(board, 'chair', true)).toBe(true);
+    expect(board.votingClosed).toBe(true);
+    expect(board.votingEndsAt).toBeNull();
+  });
+
+  it('refuses votes once the clock has run out', () => {
+    const board = boardWith([note()]);
+    store.startVoting(board, 'chair', 2);
+    expect(store.toggleNoteVote(board, 'other', 'n1')).toBe(true);
+
+    board.votingEndsAt = Date.now() - 1;
+    store.expireVoting(board);
+    expect(store.toggleNoteVote(board, 'chair', 'n1')).toBe(false);
+  });
+});

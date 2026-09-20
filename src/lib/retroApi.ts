@@ -19,6 +19,9 @@ export const retroApi = {
   removeParticipant: (code: string, participantId: string, targetId: string) =>
     request<{ board: RetroBoard }>(`/api/retro/${code}/remove`, 'POST', { participantId, targetId }),
 
+  startVoting: (code: string, participantId: string, minutes: number) =>
+    request<{ board: RetroBoard }>(`/api/retro/${code}/voting/start`, 'POST', { participantId, minutes }),
+
   setVoting: (code: string, participantId: string, closed: boolean) =>
     request<{ board: RetroBoard }>(`/api/retro/${code}/voting`, 'POST', { participantId, closed }),
 

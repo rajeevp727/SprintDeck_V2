@@ -3,6 +3,8 @@ import ReviewPanel from './RetroReviewPanel';
 import RetroPeople from './RetroPeople';
 import RetroHeader from './RetroHeader';
 import RetroColumnView from './RetroColumn';
+import RetroThanks from './RetroThanks';
+import RetroVoting from './RetroVoting';
 import AdBanner from './AdBanner';
 import { useRetroBoard } from './useRetroBoard';
 
@@ -45,6 +47,19 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
   const isFacilitator = board.facilitatorId === participantId;
   const me = board.participants.find((p) => p.id === participantId);
 
+  // The facilitator ended it: members are thanked and shown out rather than
+  // left sitting on a board they can no longer use.
+  if (!isFacilitator && board.phase === 'ended') {
+    const actionColumn = board.columns.find((c) => /action items/i.test(c.title));
+    return (
+      <RetroThanks
+        boardName={board.name}
+        actionCount={actionColumn ? board.notes.filter((n) => n.columnId === actionColumn.id).length : 0}
+        onLeave={leave}
+      />
+    );
+  }
+
   return (
     <div className="retro">
       <RetroHeader
@@ -59,7 +74,6 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
         onTogglePeople={() => setShowPeople((open) => !open)}
         onToggleExport={() => setShowExport((open) => !open)}
         onCopyInvite={copyInvite}
-        onToggleVoting={() => run(() => retroApi.setVoting(code, participantId, !board.votingClosed))}
         onEnd={endRetro}
         onExit={exit}
         onLeave={leave}
@@ -80,6 +94,16 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
               {isFacilitator && ' Export the results from the top bar.'}
             </div>
           )}
+          {board.phase !== 'ended' && (
+            <RetroVoting
+              isFacilitator={isFacilitator}
+              votingClosed={!!board.votingClosed}
+              votingEndsAt={board.votingEndsAt}
+              onStart={(minutes) => run(() => retroApi.startVoting(code, participantId, minutes))}
+              onStop={() => run(() => retroApi.setVoting(code, participantId, !board.votingClosed))}
+            />
+          )}
+
           <div className="retro-legend">
             {board.participants.map((p) => (
               <span key={p.id} className="retro-legend-item">

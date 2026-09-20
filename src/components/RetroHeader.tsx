@@ -20,7 +20,6 @@ interface Props {
   onTogglePeople: () => void;
   onToggleExport: () => void;
   onCopyInvite: () => void;
-  onToggleVoting: () => void;
   onEnd: () => void;
   onExit: () => void;
   onLeave: () => void;
@@ -38,7 +37,6 @@ export default function RetroHeader({
   onTogglePeople,
   onToggleExport,
   onCopyInvite,
-  onToggleVoting,
   onEnd,
   onExit,
   onLeave,
@@ -91,19 +89,6 @@ export default function RetroHeader({
           {isFacilitator && (
             <button className="ghost" onClick={onCopyInvite}>
               {copied ? 'Copied!' : 'Invite'}
-            </button>
-          )}
-          {isFacilitator && !ended && (
-            <button
-              className="ghost"
-              onClick={onToggleVoting}
-              title={
-                board.votingClosed
-                  ? 'Let the team vote again'
-                  : 'Freeze the tally and sort each column by votes'
-              }
-            >
-              {board.votingClosed ? 'Reopen voting' : 'Close voting'}
             </button>
           )}
           {}

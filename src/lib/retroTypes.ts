@@ -32,6 +32,7 @@ export interface RetroCarryItem {
 
 export interface RetroBoard {
   votingClosed?: boolean;
+  votingEndsAt?: number | null;
   code: string;
   name: string;
   facilitatorId: string;
