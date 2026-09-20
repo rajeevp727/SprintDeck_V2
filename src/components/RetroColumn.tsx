@@ -90,7 +90,13 @@ export default function RetroColumnView({
               if (e.key === 'Escape') setDraft('');
             }}
           />
-          <span className="retro-col-hint">Enter or click away to post · Esc to discard</span>
+          <span
+            className="retro-col-hint"
+            title="Enter or click away to post · Esc to discard"
+            aria-label="Enter or click away to post, Esc to discard"
+          >
+            <span aria-hidden>ⓘ</span>
+          </span>
         </div>
       )}
 
