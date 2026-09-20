@@ -8,6 +8,7 @@
     "dev:all": "concurrently -k -n WEB,API -c cyan,magenta \"vite\" \"npm --prefix api start -- --port 7072\"",
     "dev:lan": "concurrently -k -n WEB,API -c cyan,magenta \"vite --host\" \"npm --prefix api start -- --port 7072\"",
     "build": "tsc -b && vite build",
+    "migrate": "node scripts/migrate.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run",
