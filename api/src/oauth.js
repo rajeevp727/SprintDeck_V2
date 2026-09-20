@@ -2,10 +2,24 @@
 
 const jose = require('jose');
 
+// Two spellings are in circulation: the deploy workflow syncs GOOGLE_CLIENT_ID /
+// AZURE_*, while the app settings predate it as *_OAUTH_*. Accept either.
+function googleClientId() {
+  return String(process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_OAUTH_CLIENT_ID || '').trim();
+}
+
+function microsoftClientId() {
+  return String(process.env.AZURE_CLIENT_ID || process.env.MICROSOFT_OAUTH_CLIENT_ID || '').trim();
+}
+
+function microsoftTenant() {
+  return String(process.env.AZURE_TENANT_ID || process.env.MICROSOFT_OAUTH_TENANT || '').trim() || 'common';
+}
+
 function configured() {
   return {
-    google: !!(process.env.GOOGLE_CLIENT_ID && String(process.env.GOOGLE_CLIENT_ID).trim()),
-    microsoft: !!(process.env.AZURE_CLIENT_ID && String(process.env.AZURE_CLIENT_ID).trim()),
+    google: !!googleClientId(),
+    microsoft: !!microsoftClientId(),
   };
 }
 
@@ -14,7 +28,7 @@ function looksLikeJwt(token) {
 }
 
 async function verifyGoogleIdToken(idToken) {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientId = googleClientId();
   if (!clientId) throw new Error('Google sign-in is not configured');
 
   const jwks = jose.createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'));
@@ -35,7 +49,7 @@ async function verifyGoogleIdToken(idToken) {
 }
 
 async function verifyGoogleAccessToken(accessToken) {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientId = googleClientId();
   if (!clientId) throw new Error('Google sign-in is not configured');
 
   const tokenInfoRes = await fetch(
@@ -65,10 +79,10 @@ async function verifyGoogleAccessToken(accessToken) {
 }
 
 async function verifyMicrosoftIdToken(idToken) {
-  const clientId = process.env.AZURE_CLIENT_ID;
+  const clientId = microsoftClientId();
   if (!clientId) throw new Error('Microsoft sign-in is not configured');
 
-  const tenant = process.env.AZURE_TENANT_ID || 'common';
+  const tenant = microsoftTenant();
   const jwks = jose.createRemoteJWKSet(
     new URL(`https://login.microsoftonline.com/${tenant}/discovery/v2.0/keys`),
   );

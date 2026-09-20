@@ -325,11 +325,7 @@ app.http('emailStatus', {
 
 // --- OAuth SSO (Google + Microsoft) ---
 
-// The deploy workflow pushes the Entra spellings (GOOGLE_CLIENT_ID / AZURE_*),
-// so accept both rather than silently rejecting every token as an aud mismatch.
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '';
-const MS_CLIENT_ID = process.env.MICROSOFT_OAUTH_CLIENT_ID || process.env.AZURE_CLIENT_ID || '';
-const MS_TENANT = process.env.MICROSOFT_OAUTH_TENANT || process.env.AZURE_TENANT_ID || 'common';
+const { configured: oauthConfigured, verifyProviderToken } = require('../oauth');
 
 // POST /api/auth/oauth  { provider: 'google'|'microsoft', idToken, remember? }
 // Verifies the provider id_token, upserts the user, returns our JWT.
@@ -343,17 +339,12 @@ app.http('oauth', {
     const { provider, idToken, remember } = await readBody(req);
     const prov = String(provider || '').toLowerCase();
     if (prov !== 'google' && prov !== 'microsoft') return bad('Unsupported provider', 400);
-    if (prov === 'google' && !GOOGLE_CLIENT_ID) return bad('Google sign-in is not configured', 503);
-    if (prov === 'microsoft' && !MS_CLIENT_ID) return bad('Microsoft sign-in is not configured', 503);
+    if (!oauthConfigured()[prov]) return bad(`${prov} sign-in is not configured`, 503);
     if (!idToken || typeof idToken !== 'string') return bad('Missing idToken', 400);
 
     let payload;
     try {
-      if (prov === 'google') {
-        payload = await verifyGoogle(idToken);
-      } else {
-        payload = await verifyMicrosoft(idToken);
-      }
+      payload = await verifyProviderToken(prov, idToken);
     } catch (err) {
       return bad('Invalid token', 401);
     }
@@ -365,7 +356,7 @@ app.http('oauth', {
       email,
       name: String(payload.name || email.split('@')[0] || '').trim().slice(0, 80),
       provider: prov,
-      providerSub: payload.sub,
+      providerSub: payload.providerSub,
     });
     if (result.error === 'email-exists-other-provider') return bad('Email already used by another provider', 409);
     if (result.error === 'invalid-email') return bad('Invalid email', 400);
@@ -377,49 +368,3 @@ app.http('oauth', {
   },
 });
 
-// Google token verification via tokeninfo endpoint (no JWKS library needed).
-async function verifyGoogle(idToken) {
-  const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`, {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-  });
-  if (!res.ok) throw new Error('Google token verification failed');
-  const data = await res.json();
-  if (data.aud !== GOOGLE_CLIENT_ID) throw new Error('Google token audience mismatch');
-  if (data.email_verified !== 'true') throw new Error('Google email not verified');
-  return { email: data.email, name: data.name, sub: data.sub };
-}
-
-// Microsoft JWT verification via JWKS (cached in-memory per cold-start).
-let msJwksClient = null;
-function getMsJwksClient() {
-  if (!msJwksClient) {
-    const { JwksClient } = require('jwks-rsa');
-    const tenant = MS_TENANT || 'common';
-    msJwksClient = new JwksClient({
-      jwksUri: `https://login.microsoftonline.com/${tenant}/discovery/v2.0/keys`,
-      cache: true,
-      cacheMaxAge: 600_000,
-    });
-  }
-  return msJwksClient;
-}
-
-async function verifyMicrosoft(idToken) {
-  const jose = require('jose');
-  const client = getMsJwksClient();
-  const keys = await client.getSigningKeys();
-  if (!keys.length) throw new Error('No Microsoft signing keys found');
-  const publicKey = keys[0];
-  const secret = publicKey.getPublicKey();
-  const { payload } = await jose.jwtVerify(idToken, secret, {
-    issuer: `https://login.microsoftonline.com/${MS_TENANT || 'common'}/v2.0`,
-    audience: MS_CLIENT_ID,
-  });
-  const email = payload.email || payload.preferred_username || '';
-  return {
-    email: String(email).toLowerCase(),
-    name: payload.name || String(email).split('@')[0] || '',
-    sub: String(payload.sub || ''),
-  };
-}
