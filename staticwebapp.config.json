@@ -10,6 +10,20 @@
       "headers": {
         "Cache-Control": "no-store"
       }
+    },
+    {
+      "route": "/auth/google/callback",
+      "headers": {
+        "Cross-Origin-Opener-Policy": "unsafe-none",
+        "Cache-Control": "no-store"
+      }
+    },
+    {
+      "route": "/auth/microsoft/callback",
+      "headers": {
+        "Cross-Origin-Opener-Policy": "unsafe-none",
+        "Cache-Control": "no-store"
+      }
     }
   ],
   "globalHeaders": {

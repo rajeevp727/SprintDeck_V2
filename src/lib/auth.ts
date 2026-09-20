@@ -67,6 +67,41 @@ function oauthRedirectOrigin(): string {
   return (import.meta.env.VITE_OAUTH_REDIRECT_ORIGIN as string | undefined) || window.location.origin;
 }
 
+// The popup hands its token back through localStorage as well as postMessage:
+// returning from the provider can put the popup in a fresh browsing-context
+// group, where window.opener is null and postMessage is a no-op.
+const HandoffKey = 'sso-handoff';
+const HandoffTtlMs = 5 * 60 * 1000;
+
+export function writeHandoff(state: string, idToken: string): void {
+  try {
+    localStorage.setItem(HandoffKey, JSON.stringify({ state, idToken, at: Date.now() }));
+  } catch {
+    void 0;
+  }
+}
+
+function readHandoff(state: string): string | null {
+  try {
+    const raw = localStorage.getItem(HandoffKey);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as { state?: string; idToken?: string; at?: number };
+    if (data.state !== state) return null;
+    if (!data.idToken || Date.now() - (data.at || 0) > HandoffTtlMs) return null;
+    return data.idToken;
+  } catch {
+    return null;
+  }
+}
+
+function clearHandoff(): void {
+  try {
+    localStorage.removeItem(HandoffKey);
+  } catch {
+    void 0;
+  }
+}
+
 function randomToken(): string {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
@@ -148,28 +183,22 @@ export async function signInWithOAuth(provider: 'google' | 'microsoft', remember
       return;
     }
 
-    const timer = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(timer);
-        window.removeEventListener('message', handler);
-        reject(new Error('Sign-in cancelled'));
-      }
-    }, 300);
+    let settled = false;
 
-    async function handler(event: MessageEvent) {
-      if (event.origin !== window.location.origin) return;
-      if (event.data?.type !== 'sso-callback') return;
-      if (event.data?.state !== state) return;
+    function cleanup() {
+      settled = true;
       clearInterval(timer);
       window.removeEventListener('message', handler);
-      popup!.close();
+      clearHandoff();
+    }
 
-      const idToken = event.data?.idToken;
-      if (!idToken) {
-        reject(new Error('No token received from provider'));
-        return;
+    async function exchange(idToken: string) {
+      cleanup();
+      try {
+        popup!.close();
+      } catch {
+        void 0;
       }
-
       try {
         const { token, user } = await post('/api/auth/oauth', { provider, idToken, remember });
         setToken(token);
@@ -180,6 +209,37 @@ export async function signInWithOAuth(provider: 'google' | 'microsoft', remember
       } catch (err) {
         reject(err);
       }
+    }
+
+    const timer = setInterval(() => {
+      if (settled) return;
+      // The handoff is what the popup actually leaves behind: a COOP context
+      // switch on the way back from the provider nulls its window.opener, so
+      // postMessage can reach nobody.
+      const handoff = readHandoff(state);
+      if (handoff) {
+        void exchange(handoff);
+        return;
+      }
+      if (popup.closed) {
+        cleanup();
+        reject(new Error('Sign-in cancelled'));
+      }
+    }, 300);
+
+    function handler(event: MessageEvent) {
+      if (settled) return;
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== 'sso-callback') return;
+      if (event.data?.state !== state) return;
+
+      const idToken = event.data?.idToken;
+      if (!idToken) {
+        cleanup();
+        reject(new Error('No token received from provider'));
+        return;
+      }
+      void exchange(idToken);
     }
 
     window.addEventListener('message', handler);

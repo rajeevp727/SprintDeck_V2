@@ -9,11 +9,10 @@ function SsoCallback() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.slice(1));
     const idToken = params.get('id_token') || '';
+    const state = params.get('state') || '';
     if (idToken) {
-      window.opener?.postMessage(
-        { type: 'sso-callback', idToken, state: params.get('state') || '' },
-        window.location.origin,
-      );
+      writeHandoff(state, idToken);
+      window.opener?.postMessage({ type: 'sso-callback', idToken, state }, window.location.origin);
     }
     window.history.replaceState({}, '', '/');
     window.close();
@@ -51,7 +50,7 @@ import {
   isSubscribed,
 } from './lib/subscription';
 import { getStatus } from './lib/verifier';
-import { useAuth } from './lib/auth';
+import { useAuth, writeHandoff } from './lib/auth';
 
 type Route =
   | { kind: 'room'; code: string }
