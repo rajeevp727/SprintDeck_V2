@@ -36,15 +36,32 @@ describe('board setup', () => {
 });
 
 describe('moving a note', () => {
-  it('is the facilitator’s call, not the author’s', () => {
+  /** Notes only move once the team has voted and the clock has stopped. */
+  function votedBoard() {
     const board = boardWith([note()]);
+    store.startVoting(board, 'chair', 2);
+    store.setVotingClosed(board, 'chair', true);
+    return board;
+  }
+
+  it('is the facilitator’s call, not the author’s', () => {
+    const board = votedBoard();
     expect(store.moveNote(board, 'member', 'n1', 'action')).toBe(false);
     expect(store.moveNote(board, 'chair', 'n1', 'action')).toBe(true);
     expect(board.notes[0].columnId).toBe('action');
   });
 
-  it('remembers where it came from so it can go back', () => {
+  it('waits for voting to stop', () => {
     const board = boardWith([note()]);
+    expect(store.moveNote(board, 'chair', 'n1', 'action')).toBe(false);
+    store.startVoting(board, 'chair', 2);
+    expect(store.moveNote(board, 'chair', 'n1', 'action')).toBe(false);
+    store.setVotingClosed(board, 'chair', true);
+    expect(store.moveNote(board, 'chair', 'n1', 'action')).toBe(true);
+  });
+
+  it('remembers where it came from so it can go back', () => {
+    const board = votedBoard();
     store.moveNote(board, 'chair', 'n1', 'action');
     expect(board.notes[0].previousColumnId).toBe('well');
     store.moveNote(board, 'chair', 'n1', board.notes[0].previousColumnId);
@@ -52,7 +69,7 @@ describe('moving a note', () => {
   });
 
   it('refuses a column that does not exist', () => {
-    const board = boardWith([note()]);
+    const board = votedBoard();
     expect(store.moveNote(board, 'chair', 'n1', 'nope')).toBe(false);
   });
 });

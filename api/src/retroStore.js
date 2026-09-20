@@ -379,11 +379,15 @@ function removeParticipant(board, participantId, targetId) {
   return true;
 }
 
-/** Only the facilitator decides what becomes an action item. */
+/**
+ * Only the facilitator decides what becomes an action item, and only once the
+ * clock has stopped — the team picks by voting before anything is promoted.
+ */
 function moveNote(board, participantId, noteId, targetColumnId) {
   const note = board.notes.find((n) => n.id === noteId);
   if (!note) return false;
   if (!isFacilitator(board, participantId)) return false;
+  if (!votingIsOver(board)) return false;
   if (!board.columns.some((c) => c.id === targetColumnId)) return false;
   if (note.columnId === targetColumnId) return true;
   note.previousColumnId = note.columnId;
