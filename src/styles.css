@@ -4008,36 +4008,3 @@ button.linkish {
   border-color: var(--accent);
 }
 
-.auth-sso-forget {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.6rem;
-  margin-top: 0.6rem;
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-.auth-sso-forget button {
-  background: transparent;
-  border: none;
-  padding: 0;
-  font-size: 0.8rem;
-  color: var(--muted);
-  text-decoration: underline;
-  cursor: pointer;
-  transition: color var(--transition);
-}
-.auth-sso-forget button:hover:not(:disabled) {
-  color: var(--accent);
-}
-.auth-sso-forget button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-.auth-sso-note {
-  margin-top: 0.4rem;
-  font-size: 0.8rem;
-  color: var(--muted);
-  text-align: center;
-}

@@ -25,8 +25,6 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
   const [liBusy, setLiBusy] = useState(false);
   const [ssoBusy, setSsoBusy] = useState<'google' | 'microsoft' | null>(null);
   const [ssoErr, setSsoErr] = useState('');
-  const [ssoNote, setSsoNote] = useState('');
-  const [forgetBusy, setForgetBusy] = useState<'google' | 'microsoft' | null>(null);
   const liPwRef = useRef<HTMLInputElement>(null);
 
   const [rgName, setRgName] = useState('');
@@ -57,23 +55,15 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
     setAccounts(getAccounts());
   }
 
-  /** Signs out of the provider first, so its page offers no remembered account. */
-  function doFreshSSO(provider: 'google' | 'microsoft') {
-    setForgetBusy(provider);
-    return doSSO(provider, true).finally(() => setForgetBusy(null));
-  }
-
-  async function doSSO(provider: 'google' | 'microsoft', forgetSession = false) {
+  async function doSSO(provider: 'google' | 'microsoft') {
     setSsoErr('');
-    setSsoNote(forgetSession ? 'Signing out of the current account…' : '');
     setSsoBusy(provider);
     try {
-      await signInWithOAuth(provider, { forgetSession });
+      await signInWithOAuth(provider);
       onAuthed();
     } catch (err) {
       setSsoErr((err as Error).message);
       setSsoBusy(null);
-      setSsoNote('');
     }
   }
 
@@ -315,16 +305,6 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
               {ssoBusy === 'microsoft' ? 'Signing in…' : 'Microsoft'}
             </button>
           </div>
-          <div className="auth-sso-forget">
-            <span>Wrong account?</span>
-            <button type="button" onClick={() => doFreshSSO('google')} disabled={!!ssoBusy || !!forgetBusy}>
-              {forgetBusy === 'google' ? 'Switching…' : 'Use another Google account'}
-            </button>
-            <button type="button" onClick={() => doFreshSSO('microsoft')} disabled={!!ssoBusy || !!forgetBusy}>
-              {forgetBusy === 'microsoft' ? 'Switching…' : 'Use another Microsoft account'}
-            </button>
-          </div>
-          {ssoNote && <p className="auth-sso-note">{ssoNote}</p>}
           {ssoErr && <p className="error auth-sso-error">{ssoErr}</p>}
         </section>
 

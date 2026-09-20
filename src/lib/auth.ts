@@ -168,26 +168,7 @@ export function getMicrosoftAuthUrl(nonce = '', state = ''): string {
   return `https://login.microsoftonline.com/${microsoftTenant()}/oauth2/v2.0/authorize?${params.toString()}`;
 }
 
-const ProviderSignOutUrls: Record<'google' | 'microsoft', string> = {
-  google: 'https://accounts.google.com/Logout',
-  microsoft: 'https://login.microsoftonline.com/common/oauth2/v2.0/logout',
-};
-
-// How long the provider's logout page gets before the popup moves on to the
-// sign-in URL. Nothing here can observe that page — it is a different origin.
-const SignOutSettleMs = 2500;
-
-export interface SignInOptions {
-  remember?: boolean;
-  /** Sign out of the provider first, so its page offers no remembered account. */
-  forgetSession?: boolean;
-}
-
-export async function signInWithOAuth(
-  provider: 'google' | 'microsoft',
-  options: SignInOptions = {},
-): Promise<AuthUser> {
-  const { remember = true, forgetSession = false } = options;
+export async function signInWithOAuth(provider: 'google' | 'microsoft', remember = true): Promise<AuthUser> {
   const state = randomToken();
   const nonce = randomToken();
   const url =
@@ -203,24 +184,13 @@ export async function signInWithOAuth(
 
   return new Promise<AuthUser>((resolve, reject) => {
     const popup = window.open(
-      forgetSession ? ProviderSignOutUrls[provider] : url,
+      url,
       `sso-${provider}`,
       `width=${width},height=${height},left=${left},top=${top}`
     );
     if (!popup) {
       reject(new Error('Popup blocked — please allow popups for this site'));
       return;
-    }
-
-    // The same popup carries on to the sign-in URL once the logout has landed.
-    if (forgetSession) {
-      window.setTimeout(() => {
-        try {
-          popup.location.href = url;
-        } catch {
-          void 0;
-        }
-      }, SignOutSettleMs);
     }
 
     let settled = false;
