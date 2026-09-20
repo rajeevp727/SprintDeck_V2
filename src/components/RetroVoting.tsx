@@ -5,6 +5,12 @@ export const extendMinutes = [1, 2, 3];
 /** How close to the end the extend buttons appear. */
 const extendWindowMs = 10_000;
 
+/** Whether the clock is running right now, ticking so the board reacts at 0:00. */
+export function useVotingRunning(votingClosed: boolean, votingEndsAt?: number | null): boolean {
+  const over = useVotingOver(votingClosed, votingEndsAt);
+  return !over && !!votingEndsAt;
+}
+
 /** True once the facilitator has closed voting, or the deadline has passed. */
 export function useVotingOver(votingClosed: boolean, votingEndsAt?: number | null): boolean {
   const [now, setNow] = useState(Date.now());

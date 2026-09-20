@@ -4312,10 +4312,17 @@ button.linkish {
 .retro-sticky .retro-legend {
   margin-top: 0.6rem;
 }
+/* Narrow windows keep it pinned too — a half-screen window is exactly where
+   losing sight of the clock hurts — but the bar tightens up to earn its space. */
 @media (max-width: 720px) {
   .retro-sticky {
-    position: static;
-    box-shadow: none;
+    padding-bottom: 0.35rem;
+  }
+  .retro-sticky .retro-voting,
+  .retro-sticky .retro-legend {
+    margin-top: 0.35rem;
+    padding-block: 0.35rem;
+    font-size: 0.82rem;
   }
 }
 

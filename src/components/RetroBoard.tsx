@@ -5,7 +5,7 @@ import RetroPeople from './RetroPeople';
 import RetroHeader from './RetroHeader';
 import RetroColumnView from './RetroColumn';
 import RetroThanks from './RetroThanks';
-import RetroVoting, { useVotingOver } from './RetroVoting';
+import RetroVoting, { useVotingOver, useVotingRunning } from './RetroVoting';
 import AdBanner from './AdBanner';
 import { useRetroBoard } from './useRetroBoard';
 
@@ -39,6 +39,7 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
 
   // Hooks run before the early returns below.
   const votingOver = useVotingOver(!!board?.votingClosed, board?.votingEndsAt);
+  const votingRunning = useVotingRunning(!!board?.votingClosed, board?.votingEndsAt);
 
   // The moment the clock runs out, fetch the board again: Action items are
   // withheld from members until then, so the column only arrives on a read.
@@ -155,6 +156,7 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
               <RetroColumnView
                 key={col.id}
                 votingOver={votingOver}
+                votingRunning={votingRunning}
                 column={col}
                 board={board}
                 participantId={participantId}

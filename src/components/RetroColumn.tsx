@@ -5,6 +5,8 @@ import RetroNote from './RetroNote';
 interface ColumnProps {
   /** Voting has finished: members stop writing, the facilitator carries on. */
   votingOver: boolean;
+  /** The clock is running: votes are accepted only in this window. */
+  votingRunning: boolean;
   column: RetroColumn;
   board: RetroBoardType;
   participantId: string;
@@ -19,6 +21,7 @@ interface ColumnProps {
 
 export default function RetroColumnView({
   votingOver,
+  votingRunning,
   column,
   board,
   participantId,
@@ -100,7 +103,7 @@ export default function RetroColumnView({
             canDelete={live && n.authorId === participantId}
             canMove={live && !!actionColumn && isFacilitator}
             isAction={isActionColumn}
-            canVote={live && !isActionColumn && !votingOver && n.authorId !== participantId}
+            canVote={live && !isActionColumn && votingRunning && n.authorId !== participantId}
             onEdit={(text) => onEdit(n.id, text)}
             onDelete={() => onDelete(n.id)}
             onMove={() => onMove(n.id, moveTarget(n))}

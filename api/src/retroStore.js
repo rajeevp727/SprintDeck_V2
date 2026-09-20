@@ -400,7 +400,9 @@ function toggleNoteVote(board, participantId, noteId) {
   if (!note) return false;
   if (!board.participants[participantId]) return false;
   if (note.authorId === participantId) return false;
-  if (board.votingClosed) return false;
+  // Votes count only while the clock is running: not before the facilitator
+  // starts it, and not after it stops.
+  if (!board.votingEndsAt || votingIsOver(board)) return false;
   const votes = Array.isArray(note.votes) ? note.votes : [];
   note.votes = votes.includes(participantId)
     ? votes.filter((id) => id !== participantId)

@@ -60,6 +60,7 @@ describe('moving a note', () => {
 describe('voting', () => {
   it('counts other people, never the author', () => {
     const board = boardWith([note()]);
+    store.startVoting(board, 'chair', 2);
     expect(store.toggleNoteVote(board, 'member', 'n1')).toBe(false);
     expect(store.toggleNoteVote(board, 'other', 'n1')).toBe(true);
     expect(store.toggleNoteVote(board, 'chair', 'n1')).toBe(true);
@@ -68,6 +69,7 @@ describe('voting', () => {
 
   it('toggles a vote off', () => {
     const board = boardWith([note()]);
+    store.startVoting(board, 'chair', 2);
     store.toggleNoteVote(board, 'other', 'n1');
     store.toggleNoteVote(board, 'other', 'n1');
     expect(board.notes[0].votes).toHaveLength(0);
@@ -75,6 +77,7 @@ describe('voting', () => {
 
   it('refuses a stranger', () => {
     const board = boardWith([note()]);
+    store.startVoting(board, 'chair', 2);
     expect(store.toggleNoteVote(board, 'ghost', 'n1')).toBe(false);
   });
 });
@@ -89,9 +92,15 @@ describe('closing voting', () => {
 
   it('freezes the tally', () => {
     const board = boardWith([note()]);
+    store.startVoting(board, 'chair', 2);
+    const deadline = board.votingEndsAt;
+
     store.setVotingClosed(board, 'chair', true);
     expect(store.toggleNoteVote(board, 'other', 'n1')).toBe(false);
+
+    // reopening restores the clock the vote was running against
     store.setVotingClosed(board, 'chair', false);
+    board.votingEndsAt = deadline;
     expect(store.toggleNoteVote(board, 'other', 'n1')).toBe(true);
   });
 });
@@ -99,6 +108,7 @@ describe('closing voting', () => {
 describe('what the board shows a viewer', () => {
   it('reports the count and your own vote, never who voted', () => {
     const board = boardWith([note()]);
+    store.startVoting(board, 'chair', 2);
     store.toggleNoteVote(board, 'other', 'n1');
     store.toggleNoteVote(board, 'chair', 'n1');
 
@@ -291,5 +301,22 @@ describe('extending the vote', () => {
     board.votingEndsAt = Date.now() - 30_000;
     store.extendVoting(board, 'chair', 1);
     expect(board.votingEndsAt).toBeGreaterThan(Date.now() + 55_000);
+  });
+});
+
+describe('votes need a running clock', () => {
+  it('refuses a vote before the facilitator starts one', () => {
+    const board = boardWith([note()]);
+    expect(board.votingEndsAt).toBeUndefined();
+    expect(store.toggleNoteVote(board, 'other', 'n1')).toBe(false);
+  });
+
+  it('accepts votes while it runs and refuses them after', () => {
+    const board = boardWith([note()]);
+    store.startVoting(board, 'chair', 2);
+    expect(store.toggleNoteVote(board, 'other', 'n1')).toBe(true);
+
+    board.votingEndsAt = Date.now() - 1;
+    expect(store.toggleNoteVote(board, 'chair', 'n1')).toBe(false);
   });
 });
