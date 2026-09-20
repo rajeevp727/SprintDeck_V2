@@ -179,3 +179,47 @@ describe('display names across one person\'s accounts', () => {
     expect(result.user.name).toBe('Shared Name');
   });
 });
+
+describe('account deletion', () => {
+  beforeEach(() => {
+    delete process.env.COSMOS_CONNECTION_STRING;
+  });
+
+  it('deletes the provider account by id, not by address', async () => {
+    await users.findOrCreateOAuthUser({
+      email: 'del@example.com',
+      name: 'Del User',
+      provider: 'google',
+      providerSub: 'g-del',
+    });
+    await users.upsertPasswordAccount('del@example.com', 'password123', { name: 'Del User' });
+
+    expect(await users.deleteUser('google:del@example.com')).toEqual({ deleted: true });
+    expect(await users.getById('google:del@example.com')).toBeNull();
+    // the sibling on the same address must survive
+    expect((await users.getByEmail('del@example.com')).id).toBe('del@example.com');
+  });
+
+  it('reports nothing deleted for an unknown account', async () => {
+    expect(await users.deleteUser('google:ghost@example.com')).toBeNull();
+  });
+
+  it('leaves the name reserved while a sibling still uses it', async () => {
+    await users.findOrCreateOAuthUser({
+      email: 'keep@example.com',
+      name: 'Kept Name',
+      provider: 'google',
+      providerSub: 'g-keep',
+    });
+    await users.upsertPasswordAccount('keep@example.com', 'password123', { name: 'Kept Name' });
+
+    await users.deleteUser('google:keep@example.com');
+    const stranger = await users.findOrCreateOAuthUser({
+      email: 'stranger@example.com',
+      name: 'Kept Name',
+      provider: 'google',
+      providerSub: 'g-stranger',
+    });
+    expect(stranger.user.name).not.toBe('Kept Name');
+  });
+});

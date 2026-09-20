@@ -13,6 +13,10 @@ Start here and follow the document that matches what you need to do.
 | [RELEASES.md](RELEASES.md) | Check the current version, the versioning rules, and what shipped when |
 | [OPERATIONS.md](OPERATIONS.md) | Deploy, configure an environment, grant a plan, or work through an incident |
 | [SECURITY.md](SECURITY.md) | Review the security posture, known gaps, or report a vulnerability |
+| [COMPLIANCE.md](COMPLIANCE.md) | Answer a data-protection question: what is held, why, and how rights are served |
+| [DPA.md](DPA.md) | Send a business customer a data processing addendum |
+| [RESILIENCE.md](RESILIENCE.md) | Restore a backup, work an incident, or decide about certification |
+| [LAUNCH-READINESS.md](LAUNCH-READINESS.md) | Track what is left before selling, in India and abroad — including GST and LUT |
 
 Documents outside this folder, kept for continuity:
 

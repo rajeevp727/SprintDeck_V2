@@ -34,11 +34,16 @@ Stated plainly, because a security document that claims everything is fine is no
   authorization code with PKCE is the current standard and is the intended destination.
 - **Sessions cannot be revoked.** A JWT is valid until it expires; changing a password does
   not end existing sessions.
-- **No cookie-consent banner is currently shown.**
 
 An internal review of authorization, payment integrity and data handling was carried out on
 2026-09-21 and produced findings that are being worked through before general availability.
 Those findings are tracked privately rather than in this repository, which is public.
+
+## Incident response
+
+Severity levels, containment steps, notification clocks (72 hours to an EU supervisory
+authority, 48 hours to business customers) and the contact aliases are in
+[RESILIENCE.md](RESILIENCE.md#incident-response).
 
 ## Handling of personal data
 
@@ -55,7 +60,12 @@ Payment card data is never handled: payment is a direct UPI transfer, and the se
 sees a bank credit notification.
 
 Users can export their account data and delete their account from **Account settings**
-(`GET /api/auth/export`, `POST /api/auth/delete`).
+(`GET /api/auth/export`, `POST /api/auth/delete`). The export covers the account, its plan and
+its orders; deletion removes the account and strips the personal fields from its orders,
+keeping the amounts that tax rules require.
+
+Full processing records, lawful bases, retention and transfer mechanisms are in
+[COMPLIANCE.md](COMPLIANCE.md).
 
 ## Reviewing this document
 

@@ -14,6 +14,7 @@
 // configured it is logged instead, which is the local-dev path.
 const { app } = require('@azure/functions');
 const users = require('../users-store');
+const payments = require('../payments-store');
 const jwt = require('../jwt');
 const { rateLimited } = require('../ratelimit');
 const { sendPasswordResetEmail, isEmailConfigured } = require('../email');
@@ -191,7 +192,12 @@ app.http('exportAccountData', {
   handler: async (req) => {
     const user = await authenticatedUser(req);
     if (!user) return bad('Please sign in again', 401);
-    return ok({ account: users.publicUser(user), exportedAt: new Date().toISOString() });
+    return ok({
+      account: users.publicUser(user),
+      plan: users.planFor(user),
+      orders: await payments.ordersForAccount(user.id),
+      exportedAt: new Date().toISOString(),
+    });
   },
 });
 
@@ -208,7 +214,9 @@ app.http('deleteAccount', {
     if (users.hasPassword(user) && !users.verifyPassword(user, password)) {
       return bad('Current password is incorrect', 401);
     }
-    await users.deleteUser(user.email);
+    // Orders keep their amounts for tax records, without the person attached.
+    await payments.anonymizeOrdersForAccount(user.id);
+    await users.deleteUser(user.id);
     return ok({ deleted: true });
   },
 });

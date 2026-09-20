@@ -431,24 +431,41 @@ function publicUser(user) {
   };
 }
 
-async function deleteUser(email) {
-  const user = await getByEmail(email);
+async function deleteUser(idOrEmail) {
+  // Accounts are keyed by account id, which carries the provider; an email
+  // alone would miss a Google or Microsoft account and could match a sibling.
+  const user = (await getById(idOrEmail)) || (await getByEmail(idOrEmail));
   if (!user) return null;
   const nameLower = normalizeName(user.name);
+
+  // A sibling account on the same address may still be using this name.
+  const siblings = (await accountsForEmail(user.email)).filter(
+    (account) => account.id !== user.id && normalizeName(account.name) === nameLower,
+  );
+
   const c = getContainer();
   if (!c) {
     memory.delete(user.id);
-    if (nameLower) memory.delete(`name:${nameLower}`);
+    if (nameLower && siblings.length === 0) memory.delete(`name:${nameLower}`);
+    else if (nameLower) memory.set(`name:${nameLower}`, { id: `name:${nameLower}`, owner: siblings[0].id });
     return { deleted: true };
   }
+
   const container = await c;
   await container.item(user.id, user.id).delete();
-  if (nameLower) {
+  if (nameLower && siblings.length === 0) {
     try {
       await container.item(`name:${nameLower}`, `name:${nameLower}`).delete();
     } catch (err) {
       if (err.code !== 404) throw err;
     }
+  } else if (nameLower) {
+    await container.items.upsert({
+      id: `name:${nameLower}`,
+      type: 'name-reservation',
+      owner: siblings[0].id,
+      createdAt: Date.now(),
+    });
   }
   return { deleted: true };
 }

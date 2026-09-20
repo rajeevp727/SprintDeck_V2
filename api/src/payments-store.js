@@ -137,31 +137,64 @@ function redactBankText(text) {
     .slice(0, 500);
 }
 
-async function ordersForEmail(email) {
-  const normalized = String(email || '').trim().toLowerCase();
+/** Orders belonging to one account, trimmed for a data export. */
+async function ordersForAccount(accountId) {
+  const normalized = String(accountId || '').trim().toLowerCase();
   if (!normalized) return [];
   const c = getContainer();
   if (c) {
     const query = {
-      query: "SELECT c.id, c.type, c.tier, c.status, c.createdAt, c.confirmedAt FROM c WHERE c.type = 'order' AND c.email = @email",
-      parameters: [{ name: '@email', value: normalized }],
+      query:
+        "SELECT c.id, c.type, c.tier, c.status, c.payAmount, c.createdAt, c.confirmedAt FROM c WHERE c.type = 'order' AND c.accountId = @accountId",
+      parameters: [{ name: '@accountId', value: normalized }],
     };
     const { resources } = await (await c).items.query(query).fetchAll();
     return resources;
   }
-  return [...memory.values()].filter((r) => r.type === 'order' && r.email === normalized);
+  return [...memory.values()]
+    .filter((r) => r.type === 'order' && r.accountId === normalized)
+    .map(({ id, type, tier, status, payAmount, createdAt, confirmedAt }) => ({
+      id,
+      type,
+      tier,
+      status,
+      payAmount,
+      createdAt,
+      confirmedAt,
+    }));
 }
 
-async function anonymizeOrdersForEmail(email) {
-  const normalized = String(email || '').trim().toLowerCase();
-  if (!normalized) return;
-  const orders = await ordersForEmail(normalized);
+/**
+ * Strips the personal fields from an account's orders while keeping the
+ * financial record, which tax rules require us to retain.
+ */
+async function anonymizeOrdersForAccount(accountId) {
+  const normalized = String(accountId || '').trim().toLowerCase();
+  if (!normalized) return 0;
+  const c = getContainer();
+  // Full documents, not the export projection: these are written back.
+  let orders = [];
+  if (c) {
+    const { resources } = await (await c).items
+      .query({
+        query: "SELECT * FROM c WHERE c.type = 'order' AND c.accountId = @accountId",
+        parameters: [{ name: '@accountId', value: normalized }],
+      })
+      .fetchAll();
+    orders = resources;
+  } else {
+    orders = [...memory.values()].filter((r) => r.type === 'order' && r.accountId === normalized);
+  }
+
   for (const order of orders) {
     order.email = null;
+    order.accountId = null;
     order.anonymizedAt = Date.now();
     await putRecord(order);
   }
+  return orders.length;
 }
+
 
 async function ingestCredit({ amount, utr, rawText, source }) {
   const receipt = {
@@ -267,6 +300,6 @@ module.exports = {
   getOrder,
   ingestCredit,
   activeSubscription,
-  ordersForEmail,
-  anonymizeOrdersForEmail,
+  ordersForAccount,
+  anonymizeOrdersForAccount,
 };

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import Home from './components/Home';
 import Room from './components/Room';
+import CookieConsent from './components/CookieConsent';
 import StickyAd from './components/StickyAd';
 import { ToastHost } from './components/Toast';
 
@@ -351,6 +352,7 @@ export default function App() {
   return (
     <>
       <Suspense fallback={null}>{page}</Suspense>
+      <CookieConsent onPrivacy={goPrivacy} />
       <StickyAd />
       <ToastHost />
     </>
