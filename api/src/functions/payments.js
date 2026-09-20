@@ -112,18 +112,20 @@ app.http('subscriptionStatus', {
   handler: async (req) => {
     if (rateLimited(req, 'subscription', 60, 60_000)) return bad('Too many requests — slow down', 429);
 
+    // An order id only reports on that one purchase; a stale one must not
+    // hide the plan the account actually holds, so it falls through.
     const orderId = req.query.get('orderId');
     if (orderId) {
       const sub = await store.activeSubscription(orderId);
-      return sub
-        ? ok({
-            active: true,
-            tier: sub.tier,
-            at: sub.at,
-            orderId: sub.orderId || orderId,
-            lifetime: !!sub.lifetime,
-          })
-        : ok({ active: false });
+      if (sub) {
+        return ok({
+          active: true,
+          tier: sub.tier,
+          at: sub.at,
+          orderId: sub.orderId || orderId,
+          lifetime: !!sub.lifetime,
+        });
+      }
     }
 
     const account = accountFromRequest(req);

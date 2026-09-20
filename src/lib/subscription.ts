@@ -86,6 +86,12 @@ export function setSubscriptionRef(orderId: string) {
   } catch { void 0; }
 }
 
+function clearSubscriptionRef() {
+  try {
+    localStorage.removeItem(subRefKey);
+  } catch { void 0; }
+}
+
 let cachedSub: Subscription | null = null;
 let fetched = false;
 const listeners = new Set<() => void>();
@@ -107,6 +113,9 @@ export async function refreshSubscription(): Promise<Subscription | null> {
         lifetime: !!res.lifetime,
       };
     } else {
+      // The stored order is gone or was never ours; drop it so the next check
+      // asks about the account rather than a purchase that no longer exists.
+      if (orderId) clearSubscriptionRef();
       cachedSub = null;
     }
   } catch {
