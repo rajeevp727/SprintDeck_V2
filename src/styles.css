@@ -11,6 +11,7 @@
   --green: #5ec47f;
   --green-bg: #1f4d33;
   --danger: #ef5e6e;
+  --like: #ffd76a;
   --radius: 14px;
   --radius-sm: 9px;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -49,6 +50,7 @@
   --green: #2f9e63;
   --green-bg: #dcf5e6;
   --danger: #d93a4b;
+  --like: #b8811a;
   --shadow-sm: 0 1px 2px rgba(16, 32, 58, 0.08);
   --shadow: 0 14px 34px rgba(16, 32, 58, 0.16);
   --ring: 0 0 0 3px rgba(79, 124, 255, 0.3);
@@ -2167,12 +2169,18 @@ a.room-code:hover {
   cursor: pointer;
 }
 .retro-review-like:hover {
-  border-color: var(--accent);
+  border-color: var(--like);
   color: var(--text);
 }
+/* The thumb only lights up once you have backed the item. */
+.retro-review-like:not(.liked) span[aria-hidden] {
+  filter: grayscale(1);
+  opacity: 0.65;
+}
 .retro-review-like.liked {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--like);
+  color: var(--like);
+  background: rgba(255, 215, 106, 0.14);
 }
 .retro-review-list input[type='checkbox'] {
   margin-top: 0.2rem;

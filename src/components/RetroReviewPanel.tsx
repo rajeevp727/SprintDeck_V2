@@ -37,7 +37,7 @@ export default function ReviewPanel({ board, isFacilitator, onToggle, onLike, on
                 title={it.likedByMe ? 'Remove your like' : 'This still matters'}
                 aria-pressed={!!it.likedByMe}
               >
-                <span aria-hidden>{it.likedByMe ? '♥' : '♡'}</span>
+                <span aria-hidden>{'👍'}</span>
                 <span>{it.likeCount ?? 0}</span>
               </button>
             </li>
