@@ -262,12 +262,19 @@ describe('once voting closes', () => {
     expect(store.updateNote(board, 'chair', board.notes[0].id, { text: 'reworded' })).toBe(true);
   });
 
-  it('still lets a member remove their own note', () => {
+  it('settles the discussion notes — nobody removes what was voted on', () => {
     const board = boardWith();
     store.addNote(board, 'member', 'well', 'mine');
     const mine = board.notes[0];
     store.setVotingClosed(board, 'chair', true);
-    expect(store.deleteNote(board, 'member', mine.id)).toBe(true);
+    expect(store.deleteNote(board, 'member', mine.id)).toBe(false);
+  });
+
+  it('lets the facilitator drop an action item they just wrote', () => {
+    const board = boardWith();
+    store.setVotingClosed(board, 'chair', true);
+    store.addNote(board, 'chair', 'action', 'typo');
+    expect(store.deleteNote(board, 'chair', board.notes[0].id)).toBe(true);
   });
 });
 

@@ -414,11 +414,17 @@ function toggleNoteVote(board, participantId, noteId) {
   return true;
 }
 
-/** You may remove what you wrote, and nothing else — the facilitator included. */
+/**
+ * You may remove what you wrote, and nothing else — the facilitator included.
+ * Discussion notes are settled once the clock stops: what the team voted on
+ * stays on the board. Action items are written after that, so they stay
+ * editable by their author.
+ */
 function deleteNote(board, participantId, noteId) {
   const note = board.notes.find((n) => n.id === noteId);
   if (!note) return false;
   if (note.authorId !== participantId) return false;
+  if (votingIsOver(board) && !isActionColumnId(board, note.columnId)) return false;
   board.notes = board.notes.filter((n) => n.id !== noteId);
   return true;
 }

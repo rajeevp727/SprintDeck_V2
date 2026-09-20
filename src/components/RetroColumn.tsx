@@ -100,7 +100,7 @@ export default function RetroColumnView({
             key={n.id}
             note={n}
             canEdit={live && (isActionColumn ? isFacilitator : n.authorId === participantId && !votingOver)}
-            canDelete={live && n.authorId === participantId}
+            canDelete={live && n.authorId === participantId && (isActionColumn || !votingOver)}
             canMove={live && !!actionColumn && isFacilitator && votingOver}
             isAction={isActionColumn}
             canVote={live && !isActionColumn && votingRunning && n.authorId !== participantId}
