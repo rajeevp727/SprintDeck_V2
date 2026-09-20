@@ -168,6 +168,32 @@ export function getMicrosoftAuthUrl(nonce = '', state = ''): string {
   return `https://login.microsoftonline.com/${microsoftTenant()}/oauth2/v2.0/authorize?${params.toString()}`;
 }
 
+const ProviderSignOutUrls: Record<'google' | 'microsoft', string> = {
+  google: 'https://accounts.google.com/Logout',
+  microsoft: 'https://login.microsoftonline.com/common/oauth2/v2.0/logout',
+};
+
+// Clears the provider's own browser session, which is what keeps offering the
+// last account on its sign-in page. We can't read that page cross-origin, so
+// the popup is closed on a timer once it has had time to load.
+export function signOutOfProvider(provider: 'google' | 'microsoft'): Promise<void> {
+  return new Promise((resolve) => {
+    const popup = window.open(ProviderSignOutUrls[provider], `sso-logout-${provider}`, 'width=500,height=600');
+    if (!popup) {
+      resolve();
+      return;
+    }
+    window.setTimeout(() => {
+      try {
+        popup.close();
+      } catch {
+        void 0;
+      }
+      resolve();
+    }, 3500);
+  });
+}
+
 export async function signInWithOAuth(provider: 'google' | 'microsoft', remember = true): Promise<AuthUser> {
   const state = randomToken();
   const nonce = randomToken();

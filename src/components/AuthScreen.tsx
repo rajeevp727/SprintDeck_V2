@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useAuth, checkName, peekName, forgotPassword, signInWithOAuth } from '../lib/auth';
+import { useAuth, checkName, peekName, forgotPassword, signInWithOAuth, signOutOfProvider } from '../lib/auth';
 import { getAccounts, forgetAccount, type RememberedAccount } from '../lib/rememberedAccounts';
 import { InfoIcon, CloseIcon } from './icons';
 
@@ -25,6 +25,8 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
   const [liBusy, setLiBusy] = useState(false);
   const [ssoBusy, setSsoBusy] = useState<'google' | 'microsoft' | null>(null);
   const [ssoErr, setSsoErr] = useState('');
+  const [ssoNote, setSsoNote] = useState('');
+  const [forgetBusy, setForgetBusy] = useState<'google' | 'microsoft' | null>(null);
   const liPwRef = useRef<HTMLInputElement>(null);
 
   const [rgName, setRgName] = useState('');
@@ -55,8 +57,19 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
     setAccounts(getAccounts());
   }
 
+  /** Clears the provider's session so its next sign-in page starts with no remembered account. */
+  async function forgetProviderSession(provider: 'google' | 'microsoft') {
+    setSsoErr('');
+    setSsoNote('');
+    setForgetBusy(provider);
+    await signOutOfProvider(provider);
+    setForgetBusy(null);
+    setSsoNote(`Signed out of ${provider === 'google' ? 'Google' : 'Microsoft'} — the next sign-in starts fresh.`);
+  }
+
   async function doSSO(provider: 'google' | 'microsoft') {
     setSsoErr('');
+    setSsoNote('');
     setSsoBusy(provider);
     try {
       await signInWithOAuth(provider);
@@ -305,6 +318,16 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
               {ssoBusy === 'microsoft' ? 'Signing in…' : 'Microsoft'}
             </button>
           </div>
+          <div className="auth-sso-forget">
+            <span>Wrong account?</span>
+            <button type="button" onClick={() => forgetProviderSession('google')} disabled={!!ssoBusy || !!forgetBusy}>
+              {forgetBusy === 'google' ? 'Signing out…' : 'Sign out of Google'}
+            </button>
+            <button type="button" onClick={() => forgetProviderSession('microsoft')} disabled={!!ssoBusy || !!forgetBusy}>
+              {forgetBusy === 'microsoft' ? 'Signing out…' : 'Sign out of Microsoft'}
+            </button>
+          </div>
+          {ssoNote && <p className="auth-sso-note">{ssoNote}</p>}
           {ssoErr && <p className="error auth-sso-error">{ssoErr}</p>}
         </section>
 
