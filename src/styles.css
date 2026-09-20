@@ -4132,3 +4132,109 @@ button.linkish {
   color: var(--muted);
   margin-top: 0.3rem;
 }
+
+.status-pill-button {
+  cursor: pointer;
+  font: inherit;
+}
+.retro-people {
+  margin-top: 0.75rem;
+  padding: 0.9rem 1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md, 12px);
+  max-width: 420px;
+}
+.retro-people-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+.retro-people-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.retro-people-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.retro-people-name {
+  flex: 1;
+}
+.retro-people-remove {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.55rem;
+}
+
+.cookie-details {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(4, 8, 20, 0.82);
+  backdrop-filter: blur(3px);
+  overflow-y: auto;
+  padding: 2rem 1rem;
+}
+.cookie-details-inner {
+  max-width: 880px;
+  margin: 0 auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md, 12px);
+  padding: 1.5rem 1.75rem 2rem;
+}
+.cookie-details-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+.cookie-details-inner h3 {
+  margin: 1.6rem 0 0.35rem;
+}
+.cookie-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.6rem;
+  font-size: 0.86rem;
+}
+.cookie-table th,
+.cookie-table td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.cookie-table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.cookie-table code {
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+@media (max-width: 720px) {
+  .cookie-table thead {
+    display: none;
+  }
+  .cookie-table tr {
+    display: block;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .cookie-table td {
+    display: block;
+    border: 0;
+    padding: 0.15rem 0;
+  }
+}

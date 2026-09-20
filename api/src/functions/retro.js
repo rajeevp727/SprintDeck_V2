@@ -148,6 +148,22 @@ app.http('deleteRetroNote', {
   },
 });
 
+app.http('removeRetroParticipant', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'retro/{code}/remove',
+  handler: async (req) => {
+    const { participantId, targetId } = await readBody(req);
+    const { board, error } = await requireParticipant(req.params.code, participantId);
+    if (error) return error;
+    if (!store.removeParticipant(board, participantId, targetId)) {
+      return bad('Only the facilitator can remove someone from the board', 403);
+    }
+    await store.saveBoard(board);
+    return ok({ board: store.publicView(board, participantId) });
+  },
+});
+
 app.http('retroVoting', {
   methods: ['POST'],
   authLevel: 'anonymous',

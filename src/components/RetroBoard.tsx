@@ -25,6 +25,7 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
   const [board, setBoard] = useState<RetroBoardType | null>(null);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [showPeople, setShowPeople] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [typingNames, setTypingNames] = useState<Record<string, string>>({});
@@ -196,7 +197,15 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
               )}
             </div>
           )}
-          <span className="status-pill">{board.participants.length} in board</span>
+          <button
+            type="button"
+            className="status-pill status-pill-button"
+            onClick={() => setShowPeople((open) => !open)}
+            title="Who is in this board"
+            aria-expanded={showPeople}
+          >
+            {board.participants.length} in board
+          </button>
           {isFacilitator && (
             <button className="ghost" onClick={copyInvite}>
               {copied ? 'Copied!' : 'Invite'}
@@ -280,6 +289,39 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
               </span>
             ))}
           </div>
+
+          {showPeople && (
+            <div className="retro-people" role="dialog" aria-label="People in this board">
+              <div className="retro-people-head">
+                <strong>In this board</strong>
+                <button type="button" className="ghost" onClick={() => setShowPeople(false)}>
+                  Close
+                </button>
+              </div>
+              <ul className="retro-people-list">
+                {board.participants.map((p) => (
+                  <li key={p.id}>
+                    <span className="retro-legend-dot" style={{ background: p.color }} />
+                    <span className="retro-people-name">
+                      {p.name}
+                      {p.isFacilitator && <span className="crown"> ★</span>}
+                      {p.id === participantId && <span className="you"> (you)</span>}
+                    </span>
+                    {isFacilitator && !p.isFacilitator && board.phase !== 'ended' && (
+                      <button
+                        type="button"
+                        className="ghost danger retro-people-remove"
+                        title={`Remove ${p.name} from the board`}
+                        onClick={() => run(() => retroApi.removeParticipant(code, participantId, p.id))}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {Object.keys(typingNames).length > 0 && (
             <div className="retro-typing">

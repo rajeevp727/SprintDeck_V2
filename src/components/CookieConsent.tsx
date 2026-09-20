@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getConsent, setConsent } from '../lib/consent';
+import CookieDetails from './CookieDetails';
 
 interface Props {
   onPrivacy: () => void;
@@ -7,6 +8,7 @@ interface Props {
 
 export default function CookieConsent({ onPrivacy }: Props) {
   const [visible, setVisible] = useState(() => getConsent() === null);
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     if (getConsent() !== null) setVisible(false);
@@ -36,6 +38,9 @@ export default function CookieConsent({ onPrivacy }: Props) {
           for details and your rights (access, erasure, portability).
         </p>
         <div className="cookie-consent-actions">
+          <button type="button" className="ghost" onClick={() => setShowDetails(true)}>
+            View cookies
+          </button>
           <button type="button" className="ghost" onClick={reject}>
             Reject non-essential
           </button>
@@ -44,6 +49,7 @@ export default function CookieConsent({ onPrivacy }: Props) {
           </button>
         </div>
       </div>
+      {showDetails && <CookieDetails onClose={() => setShowDetails(false)} />}
     </div>
   );
 }

@@ -322,6 +322,18 @@ function setVotingClosed(board, participantId, closed) {
   return true;
 }
 
+/**
+ * Removes a member from the board. Their notes stay: the retrospective is a
+ * record of what was said, not of who is still in the room.
+ */
+function removeParticipant(board, participantId, targetId) {
+  if (!isFacilitator(board, participantId)) return false;
+  if (!targetId || targetId === board.facilitatorId) return false;
+  if (!board.participants[targetId]) return false;
+  delete board.participants[targetId];
+  return true;
+}
+
 /** Only the facilitator decides what becomes an action item. */
 function moveNote(board, participantId, noteId, targetColumnId) {
   const note = board.notes.find((n) => n.id === noteId);
@@ -413,6 +425,7 @@ function publicView(board, viewerId) {
 }
 
 module.exports = {
+  removeParticipant,
   canWriteColumn,
   isActionColumnId,
   setVotingClosed,
