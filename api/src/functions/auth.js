@@ -93,7 +93,9 @@ async function authenticatedUser(req) {
   const token = req.headers.get('x-auth-token') || '';
   const payload = token && jwt.verify(token, secret());
   if (!payload) return null;
-  return users.getByEmail(payload.email);
+  // `sub` is the account id, which carries the provider; tokens issued before
+  // accounts were split per provider only carry the email.
+  return (payload.sub && (await users.getById(payload.sub))) || users.getByEmail(payload.email);
 }
 
 // Build a few available alternatives when a name is taken.

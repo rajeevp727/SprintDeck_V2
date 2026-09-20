@@ -17,7 +17,8 @@ export default function Dashboard({ onPlanning, onRetro, onTimesheet, onWhiteboa
     <div className="dash">
       <header className="dash-head">
         <div className="brand brand-with-logo">
-          <BrandLogo />
+          <BrandLogo variant="mark" className="dash-brand-mark" />
+          <span className="dash-brand-name">SprintDeck</span>
         </div>
         <div className="dash-head-actions">
           <ProfileMenu />

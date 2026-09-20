@@ -3,13 +3,14 @@
 /**
  * Grants a plan by writing the order document entitlement is read from.
  *
- * Print the document to paste into Data Explorer:
- *   node scripts/grant-plan.mjs someone@example.com master
+ * The first argument is the account id, which carries the provider — the same
+ * address signed in through Google and through Microsoft is two accounts:
+ *   node scripts/grant-plan.mjs google:someone@example.com master
+ *   node scripts/grant-plan.mjs microsoft:someone@example.com master
+ *   node scripts/grant-plan.mjs someone@example.com pro        (password account)
  *
- * Or write it straight to Cosmos:
- *   COSMOS_CONNECTION_STRING="..." node scripts/grant-plan.mjs someone@example.com master --write
- *
- * Add --lifetime for a plan that never expires (allowlisted emails only).
+ * Add --write with COSMOS_CONNECTION_STRING set to insert it, or --lifetime
+ * for a plan that never expires.
  */
 
 import { createRequire } from 'node:module';
@@ -20,16 +21,17 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const apiRequire = createRequire(path.join(repoRoot, 'api', 'package.json'));
 const { grantOrder } = apiRequire('./src/migrations/grant-order');
 
-const [email, tier = 'master'] = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
+const [accountId, tier = 'master'] = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
 const lifetime = process.argv.includes('--lifetime');
 const write = process.argv.includes('--write');
 
-if (!email) {
-  console.error('Usage: node scripts/grant-plan.mjs <email> [pro|expert|master] [--lifetime] [--write]');
+if (!accountId) {
+  console.error('Usage: node scripts/grant-plan.mjs <accountId> [pro|expert|master] [--lifetime] [--write]');
+  console.error('  accountId: google:you@example.com | microsoft:you@example.com | you@example.com');
   process.exit(1);
 }
 
-const order = grantOrder(email, tier, { lifetime });
+const order = grantOrder(accountId, tier, { lifetime });
 
 if (!write) {
   console.log(`\nPaste this into the "payments" container in Data Explorer:\n`);

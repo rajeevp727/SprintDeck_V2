@@ -32,39 +32,37 @@ describe('users-store', () => {
   });
 });
 
-describe('findOrCreateOAuthUser provider linking', () => {
+describe('findOrCreateOAuthUser account scoping', () => {
   beforeEach(() => {
     delete process.env.COSMOS_CONNECTION_STRING;
   });
 
-  it('links a second provider onto the account that owns the email', async () => {
+  it('gives each provider its own account on the same address', async () => {
     const google = await users.findOrCreateOAuthUser({
-      email: 'Linked@Example.com',
-      name: 'Linked',
+      email: 'Split@Example.com',
+      name: 'Split',
       provider: 'google',
       providerSub: 'g-1',
     });
-    expect(google.user.providers).toEqual({ google: 'g-1' });
-
     const microsoft = await users.findOrCreateOAuthUser({
-      email: 'linked@example.com',
+      email: 'split@example.com',
+      name: 'Split',
       provider: 'microsoft',
       providerSub: 'm-1',
     });
-    expect(microsoft.error).toBeUndefined();
-    expect(microsoft.user.id).toBe(google.user.id);
-    expect(microsoft.user.providers).toEqual({ google: 'g-1', microsoft: 'm-1' });
+
+    expect(google.user.id).toBe('google:split@example.com');
+    expect(microsoft.user.id).toBe('microsoft:split@example.com');
+    expect(google.user.id).not.toBe(microsoft.user.id);
+    expect(google.user.email).toBe('split@example.com');
+    expect(microsoft.user.email).toBe('split@example.com');
   });
 
-  it('is idempotent when the same provider identity signs in again', async () => {
-    await users.findOrCreateOAuthUser({ email: 'again@example.com', provider: 'google', providerSub: 'g-2' });
-    const second = await users.findOrCreateOAuthUser({
-      email: 'again@example.com',
-      provider: 'google',
-      providerSub: 'g-2',
-    });
+  it('returns the same account when one provider signs in again', async () => {
+    const first = await users.findOrCreateOAuthUser({ email: 'again@example.com', provider: 'google', providerSub: 'g-2' });
+    const second = await users.findOrCreateOAuthUser({ email: 'again@example.com', provider: 'google', providerSub: 'g-2' });
     expect(second.error).toBeUndefined();
-    expect(second.user.providers).toEqual({ google: 'g-2' });
+    expect(second.user.id).toBe(first.user.id);
   });
 
   it('refuses a different identity at the same provider', async () => {
@@ -77,14 +75,25 @@ describe('findOrCreateOAuthUser provider linking', () => {
     expect(impostor.error).toBe('email-exists');
   });
 
-  it('links a provider onto an account created with a password', async () => {
+  it('leaves a password account untouched when a provider signs in', async () => {
     await users.createUser('pw@example.com', 'password123', 'PwUser');
     const linked = await users.findOrCreateOAuthUser({
       email: 'pw@example.com',
       provider: 'microsoft',
       providerSub: 'm-3',
     });
-    expect(linked.error).toBeUndefined();
-    expect(linked.user.providers).toEqual({ microsoft: 'm-3' });
+    expect(linked.user.id).toBe('microsoft:pw@example.com');
+    const password = await users.getByEmail('pw@example.com');
+    expect(password.id).toBe('pw@example.com');
+    expect(password.authProvider).toBe('local');
+  });
+});
+
+describe('accountIdFor', () => {
+  it('scopes an oauth account by provider and leaves a password account bare', () => {
+    expect(users.accountIdFor('google', 'A@B.com')).toBe('google:a@b.com');
+    expect(users.accountIdFor('microsoft', 'a@b.com')).toBe('microsoft:a@b.com');
+    expect(users.accountIdFor('local', 'a@b.com')).toBe('a@b.com');
+    expect(users.accountIdFor('', 'a@b.com')).toBe('a@b.com');
   });
 });

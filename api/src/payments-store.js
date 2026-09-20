@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const { sameAmount } = require('./parse');
+const { parseAccountId } = require('./account-id');
 
 const conn = process.env.COSMOS_CONNECTION_STRING || '';
 const dbName = process.env.COSMOS_DB_NAME || 'sprintdeck';
@@ -78,7 +79,7 @@ async function pendingOrders() {
   return [...memory.values()].filter(fresh);
 }
 
-async function createOrder({ tier, email, baseAmount }) {
+async function createOrder({ tier, email, accountId, baseAmount }) {
   
   
   
@@ -87,6 +88,7 @@ async function createOrder({ tier, email, baseAmount }) {
     type: 'order',
     tier,
     email: email || null,
+    accountId: accountId || null,
     baseAmount,
     payAmount: baseAmount,
     status: 'pending', 
@@ -252,8 +254,13 @@ async function activeSubscription(orderId) {
   return subscriptionPayload(order);
 }
 
-async function activeSubscriptionByEmail(email) {
-  const normalized = String(email || '')
+/**
+ * Entitlement belongs to one account, not to an address: a Google sign-in and
+ * a Microsoft sign-in on the same email are separate accounts with separate
+ * plans, so the order is matched on the account id.
+ */
+async function activeSubscriptionByAccount(accountId) {
+  const normalized = String(accountId || '')
     .trim()
     .toLowerCase();
   if (!normalized) return null;
@@ -263,14 +270,14 @@ async function activeSubscriptionByEmail(email) {
   if (c) {
     const query = {
       query:
-        "SELECT * FROM c WHERE c.type = 'order' AND c.status = 'confirmed' AND c.email = @email",
-      parameters: [{ name: '@email', value: normalized }],
+        "SELECT * FROM c WHERE c.type = 'order' AND c.status = 'confirmed' AND c.accountId = @accountId",
+      parameters: [{ name: '@accountId', value: normalized }],
     };
     const { resources } = await (await c).items.query(query).fetchAll();
     candidates = resources;
   } else {
     candidates = [...memory.values()].filter(
-      (rec) => rec.type === 'order' && rec.status === 'confirmed' && rec.email === normalized,
+      (rec) => rec.type === 'order' && rec.status === 'confirmed' && rec.accountId === normalized,
     );
   }
   const active = candidates
@@ -286,8 +293,12 @@ async function activeSubscriptionByEmail(email) {
   return subscriptionPayload(order);
 }
 
-async function grantSubscription(email, tier, { lifetime = false } = {}) {
-  const normalizedEmail = email ? String(email).trim().toLowerCase() : null;
+async function grantSubscription(accountId, tier, { lifetime = false } = {}) {
+  const { provider, email } = parseAccountId(accountId);
+  const normalizedEmail = email || null;
+  const normalizedAccountId = normalizedEmail
+    ? (provider === 'local' ? normalizedEmail : `${provider}:${normalizedEmail}`)
+    : null;
   const normalizedTier = String(tier || 'pro').toLowerCase();
   if (!['pro', 'expert', 'master'].includes(normalizedTier)) {
     return { error: 'invalid-tier' };
@@ -301,6 +312,7 @@ async function grantSubscription(email, tier, { lifetime = false } = {}) {
     id: genId(),
     type: 'order',
     tier: normalizedTier,
+    accountId: normalizedAccountId,
     email: normalizedEmail,
     baseAmount: prices[normalizedTier],
     payAmount: prices[normalizedTier],
@@ -322,7 +334,7 @@ module.exports = {
   getOrder,
   ingestCredit,
   activeSubscription,
-  activeSubscriptionByEmail,
+  activeSubscriptionByAccount,
   grantSubscription,
   ordersForEmail,
   anonymizeOrdersForEmail,

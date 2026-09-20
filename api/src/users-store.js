@@ -62,6 +62,21 @@ async function getByEmail(email) {
   return memory.get(id) || null;
 }
 
+/**
+ * The account key. Each provider gets its own account on a given address, so
+ * the provider is part of the id; password accounts keep the bare email.
+ */
+function accountIdFor(provider, email) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return '';
+  const p = String(provider || '').trim().toLowerCase();
+  return !p || p === 'local' ? normalized : `${p}:${normalized}`;
+}
+
+async function getById(id) {
+  return getByEmail(id);
+}
+
 async function getByName(name) {
   const n = normalizeName(name);
   if (!n) return null;
@@ -155,33 +170,21 @@ async function pickAvailableName(preferred) {
 }
 
 async function findOrCreateOAuthUser({ email, name, provider, providerSub }) {
-  const id = normalizeEmail(email);
-  if (!id) return { error: 'invalid-email' };
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) return { error: 'invalid-email' };
   if (!providerSub) return { error: 'invalid-provider' };
+  const id = accountIdFor(provider, normalizedEmail);
 
-  const existing = await getByEmail(id);
+  const existing = await getById(id);
   if (existing) {
-    // Both providers verify ownership of the address, so a matching email is
-    // the same person: link the new provider onto the existing account rather
-    // than locking them out of whichever button they didn't sign up with.
-    const linked = { ...(existing.providers || {}) };
-    if (existing.authProvider && existing.providerSub && !linked[existing.authProvider]) {
-      linked[existing.authProvider] = existing.providerSub;
+    // Same provider, different subject: the provider itself should never issue
+    // two accounts for one address.
+    if (existing.providerSub && existing.providerSub !== providerSub) {
+      return { error: 'email-exists' };
     }
-
-    // A second identity at the same provider means two provider accounts claim
-    // one address, which the provider itself should never allow.
-    if (linked[provider] && linked[provider] !== providerSub) return { error: 'email-exists' };
-
-    const alreadyLinked = linked[provider] === providerSub && existing.providers;
-    linked[provider] = providerSub;
-    existing.providers = linked;
-    existing.authProvider = existing.authProvider || provider;
-    existing.providerSub = existing.providerSub || providerSub;
-    if (!existing.name && name) existing.name = uniqueNameFromBase(name);
-    if (!existing.nameLower && existing.name) existing.nameLower = normalizeName(existing.name);
-
-    if (!alreadyLinked) {
+    if (!existing.providerSub) {
+      existing.authProvider = provider;
+      existing.providerSub = providerSub;
       const c = getContainer();
       if (c) await (await c).items.upsert(existing);
       else memory.set(existing.id, existing);
@@ -189,16 +192,15 @@ async function findOrCreateOAuthUser({ email, name, provider, providerSub }) {
     return { user: existing };
   }
 
-  const cleanName = await pickAvailableName(name || id.split('@')[0]);
+  const cleanName = await pickAvailableName(name || normalizedEmail.split('@')[0]);
   const nameLower = normalizeName(cleanName);
   const user = {
     id,
-    email: id,
+    email: normalizedEmail,
     name: cleanName,
     nameLower,
     authProvider: provider,
     providerSub,
-    providers: { [provider]: providerSub },
     createdAt: Date.now(),
   };
 
@@ -341,6 +343,8 @@ module.exports = {
   createUser,
   findOrCreateOAuthUser,
   getByEmail,
+  getById,
+  accountIdFor,
   getByName,
   hasPassword,
   isNameAvailable,

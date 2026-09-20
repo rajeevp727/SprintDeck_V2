@@ -41,6 +41,15 @@ function rateLimited(req, bucket, max, windowMs) {
 const allowedAmounts = new Set([201, 501, 1001, 302, 502, 802]);
 const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
+/** The signed-in account, or empty when the caller is anonymous. */
+function accountFromRequest(req) {
+  const secret = process.env.JWT_SECRET || '';
+  const token = req.headers.get('x-auth-token') || '';
+  const payload = token && secret ? jwt.verify(token, secret) : null;
+  if (!payload) return { accountId: '', email: '' };
+  return { accountId: payload.sub || payload.email || '', email: payload.email || '' };
+}
+
 app.http('createOrder', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -53,7 +62,13 @@ app.http('createOrder', {
     if (!Number.isInteger(base) || !allowedAmounts.has(base)) return bad('Invalid amount');
     if (email && !emailRe.test(String(email))) return bad('Invalid email');
 
-    const { order } = await store.createOrder({ tier: String(tier || '').slice(0, 40), email, baseAmount: base });
+    const buyer = accountFromRequest(req);
+    const { order } = await store.createOrder({
+      tier: String(tier || '').slice(0, 40),
+      email: buyer.email || email,
+      accountId: buyer.accountId,
+      baseAmount: base,
+    });
     return ok({ orderId: order.id, payAmount: order.payAmount });
   },
 });
@@ -110,12 +125,10 @@ app.http('subscriptionStatus', {
         : ok({ active: false });
     }
 
-    const secret = process.env.JWT_SECRET || '';
-    const token = req.headers.get('x-auth-token') || '';
-    const payload = token && secret ? jwt.verify(token, secret) : null;
-    if (!payload?.email) return ok({ active: false });
+    const account = accountFromRequest(req);
+    if (!account.accountId) return ok({ active: false });
 
-    const sub = await store.activeSubscriptionByEmail(payload.email);
+    const sub = await store.activeSubscriptionByAccount(account.accountId);
     return sub
       ? ok({
           active: true,

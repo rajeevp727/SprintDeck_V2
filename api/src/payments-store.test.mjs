@@ -25,18 +25,18 @@ describe('payments-store', () => {
     expect(await store.activeSubscription('missing')).toBeNull();
   });
 
-  it('activeSubscriptionByEmail finds the latest active grant', async () => {
-    const first = await store.grantSubscription('owner@example.com', 'pro');
-    const second = await store.grantSubscription('owner@example.com', 'master');
-    const sub = await store.activeSubscriptionByEmail('owner@example.com');
+  it('activeSubscriptionByAccount finds the latest active grant', async () => {
+    const first = await store.grantSubscription('google:owner@example.com', 'pro');
+    const second = await store.grantSubscription('google:owner@example.com', 'master');
+    const sub = await store.activeSubscriptionByAccount('google:owner@example.com');
     expect(sub).toMatchObject({ tier: 'master', orderId: second.order.id });
     expect(sub?.orderId).not.toBe(first.order.id);
   });
 
-  it('activeSubscriptionByEmail returns null when grant is expired', async () => {
-    const { order } = await store.grantSubscription('expired@example.com', 'pro');
+  it('activeSubscriptionByAccount returns null when grant is expired', async () => {
+    const { order } = await store.grantSubscription('google:expired@example.com', 'pro');
     order.confirmedAt = Date.now() - 40 * 24 * 60 * 60 * 1000;
-    expect(await store.activeSubscriptionByEmail('expired@example.com')).toBeNull();
+    expect(await store.activeSubscriptionByAccount('google:expired@example.com')).toBeNull();
   });
 
   it('lifetime grant stays active after 30 days', async () => {

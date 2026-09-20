@@ -4008,3 +4008,23 @@ button.linkish {
   border-color: var(--accent);
 }
 
+
+.dash-brand-mark {
+  width: 40px;
+  height: 40px;
+  display: block;
+}
+.dash-brand-name {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2, var(--accent)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.brand-with-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
