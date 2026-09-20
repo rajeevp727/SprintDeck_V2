@@ -286,6 +286,8 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
                 onAdd={(text) => run(() => retroApi.addNote(code, participantId, col.id, text))}
                 onEdit={(id, text) => run(() => retroApi.updateNote(code, participantId, id, { text }))}
                 onDelete={(id) => run(() => retroApi.deleteNote(code, participantId, id))}
+                onMove={(id, columnId) => run(() => retroApi.moveNote(code, participantId, id, columnId))}
+                onVote={(id) => run(() => retroApi.voteNote(code, participantId, id))}
                 onTyping={notifyTyping}
               />
             ))}
@@ -354,6 +356,8 @@ interface ColumnProps {
   onAdd: (text: string) => void;
   onEdit: (noteId: string, text: string) => void;
   onDelete: (noteId: string) => void;
+  onMove: (noteId: string, columnId: string) => void;
+  onVote: (noteId: string) => void;
   onTyping: () => void;
 }
 
@@ -365,11 +369,22 @@ function RetroColumnView({
   onAdd,
   onEdit,
   onDelete,
+  onMove,
+  onVote,
   onTyping,
 }: ColumnProps) {
   const [draft, setDraft] = useState('');
   const lastTyping = useRef(0);
   const notes = board.notes.filter((n) => n.columnId === column.id);
+  const actionColumn = board.columns.find((c) => /action items/i.test(c.title));
+  const isActionColumn = actionColumn?.id === column.id;
+  const live = board.phase !== 'ended';
+
+  /** Out of Action items goes back where it came from, or to the first column. */
+  function moveTarget(note: (typeof notes)[number]): string {
+    if (!isActionColumn) return actionColumn?.id ?? column.id;
+    return note.previousColumnId ?? board.columns[0]?.id ?? column.id;
+  }
 
   function add() {
     const text = draft.trim();
@@ -420,10 +435,15 @@ function RetroColumnView({
           <RetroNote
             key={n.id}
             note={n}
-            canEdit={n.authorId === participantId && board.phase !== 'ended'}
-            canDelete={n.authorId === participantId && board.phase !== 'ended'}
+            canEdit={n.authorId === participantId && live}
+            canDelete={n.authorId === participantId && live}
+            canMove={live && !!actionColumn && (n.authorId === participantId || isFacilitator)}
+            isAction={isActionColumn}
+            canVote={live && !isActionColumn}
             onEdit={(text) => onEdit(n.id, text)}
             onDelete={() => onDelete(n.id)}
+            onMove={() => onMove(n.id, moveTarget(n))}
+            onVote={() => onVote(n.id)}
           />
         ))}
       </div>

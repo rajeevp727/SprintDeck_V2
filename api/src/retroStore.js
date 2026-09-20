@@ -166,6 +166,7 @@ function defaultColumns() {
   return [
     { id: genId(), title: 'What went well', color: '#5ec47f' },
     { id: genId(), title: 'What to improve', color: '#efb45e' },
+    { id: genId(), title: 'What went wrong', color: '#e2646a' },
     { id: genId(), title: 'Action items', color: '#4f7cff' },
   ];
 }
@@ -288,6 +289,38 @@ function updateNote(board, participantId, noteId, patch) {
   return true;
 }
 
+/** The Action items column, matched by title so older boards keep working. */
+function actionColumn(board) {
+  return (board.columns || []).find((c) => /action items/i.test(c.title)) || null;
+}
+
+/**
+ * Moves a note to another column. The author may move their own; the
+ * facilitator may move anyone's, which is how action items get gathered.
+ */
+function moveNote(board, participantId, noteId, targetColumnId) {
+  const note = board.notes.find((n) => n.id === noteId);
+  if (!note) return false;
+  if (note.authorId !== participantId && !isFacilitator(board, participantId)) return false;
+  if (!board.columns.some((c) => c.id === targetColumnId)) return false;
+  if (note.columnId === targetColumnId) return true;
+  note.previousColumnId = note.columnId;
+  note.columnId = targetColumnId;
+  return true;
+}
+
+/** One vote per participant per note, toggled off by voting again. */
+function toggleNoteVote(board, participantId, noteId) {
+  const note = board.notes.find((n) => n.id === noteId);
+  if (!note) return false;
+  if (!board.participants[participantId]) return false;
+  const votes = Array.isArray(note.votes) ? note.votes : [];
+  note.votes = votes.includes(participantId)
+    ? votes.filter((id) => id !== participantId)
+    : [...votes, participantId];
+  return true;
+}
+
 function deleteNote(board, participantId, noteId) {
   const note = board.notes.find((n) => n.id === noteId);
   if (!note) return false;
@@ -317,7 +350,7 @@ function actionItemsFromBoard(board) {
   return board.notes.filter((n) => n.columnId === col.id).map((n) => ({ id: n.id, text: n.text }));
 }
 
-function publicView(board) {
+function publicView(board, viewerId) {
   return {
     code: board.code,
     name: board.name,
@@ -325,7 +358,11 @@ function publicView(board) {
     phase: board.phase || 'active',
     carryOverItems: board.carryOverItems || [],
     columns: board.columns,
-    notes: board.notes,
+    notes: (board.notes || []).map((note) => {
+      const votes = Array.isArray(note.votes) ? note.votes : [];
+      const { votes: _votes, ...rest } = note;
+      return { ...rest, voteCount: votes.length, votedByMe: !!viewerId && votes.includes(viewerId) };
+    }),
     participants: Object.values(board.participants)
       .map((p) => ({
         id: p.id,
@@ -338,6 +375,9 @@ function publicView(board) {
 }
 
 module.exports = {
+  moveNote,
+  toggleNoteVote,
+  actionColumn,
   maxParticipants,
   loadBoard,
   saveBoard,

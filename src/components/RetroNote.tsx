@@ -3,15 +3,33 @@ import type { RetroNote as RetroNoteType } from '../lib/retroTypes';
 
 interface Props {
   note: RetroNoteType;
-  canEdit: boolean; 
-  canDelete: boolean; 
+  canEdit: boolean;
+  canDelete: boolean;
+  /** Author or facilitator may gather a note into Action items, or send it back. */
+  canMove: boolean;
+  isAction: boolean;
+  canVote: boolean;
   onEdit: (text: string) => void;
   onDelete: () => void;
+  onMove: () => void;
+  onVote: () => void;
 }
 
-export default function RetroNote({ note, canEdit, canDelete, onEdit, onDelete }: Props) {
+export default function RetroNote({
+  note,
+  canEdit,
+  canDelete,
+  canMove,
+  isAction,
+  canVote,
+  onEdit,
+  onDelete,
+  onMove,
+  onVote,
+}: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(note.text);
+  const votes = note.voteCount ?? 0;
 
   function commit() {
     const next = draft.trim();
@@ -54,11 +72,38 @@ export default function RetroNote({ note, canEdit, canDelete, onEdit, onDelete }
 
       <div className="retro-note-foot">
         <span className="retro-note-author">{note.authorName}</span>
-        {canDelete && (
-          <button className="retro-note-del" title="Delete note" onClick={onDelete}>
-            ×
-          </button>
-        )}
+
+        <span className="retro-note-actions">
+          {canVote && (
+            <button
+              type="button"
+              className={`retro-note-vote${note.votedByMe ? ' voted' : ''}`}
+              onClick={onVote}
+              title={note.votedByMe ? 'Remove your vote' : 'Vote for this'}
+              aria-pressed={!!note.votedByMe}
+            >
+              ▲ {votes}
+            </button>
+          )}
+          {!canVote && votes > 0 && <span className="retro-note-vote static">▲ {votes}</span>}
+
+          {canMove && (
+            <button
+              type="button"
+              className="retro-note-move"
+              onClick={onMove}
+              title={isAction ? 'Move back out of Action items' : 'Make this an action item'}
+            >
+              {isAction ? '↩' : '→ Action'}
+            </button>
+          )}
+
+          {canDelete && (
+            <button className="retro-note-del" title="Delete note" onClick={onDelete}>
+              ×
+            </button>
+          )}
+        </span>
       </div>
     </div>
   );

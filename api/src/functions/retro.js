@@ -57,7 +57,7 @@ app.http('createRetro', {
     }
     if (result.error === 'taken') return bad('That board code is taken — pick another', 409);
     const { board, participantId } = result;
-    return ok({ participantId, board: store.publicView(board) });
+    return ok({ participantId, board: store.publicView(board, participantId) });
   },
 });
 
@@ -74,7 +74,7 @@ app.http('joinRetro', {
       return bad(`This board is full (max ${store.maxParticipants} members)`, 409);
     }
     const { board, participantId } = result;
-    return ok({ participantId, board: store.publicView(board) });
+    return ok({ participantId, board: store.publicView(board, participantId) });
   },
 });
 
@@ -83,9 +83,10 @@ app.http('getRetro', {
   authLevel: 'anonymous',
   route: 'retro/{code}',
   handler: async (req) => {
+    const participantId = req.query.get('participantId') || '';
     const board = await store.loadBoard(req.params.code);
     if (!board) return bad('Board not found', 404);
-    return ok({ board: store.publicView(board) });
+    return ok({ board: store.publicView(board, participantId) });
   },
 });
 
@@ -110,7 +111,7 @@ app.http('addRetroNote', {
       return bad('Could not add note — check the column and text');
     }
     await store.saveBoard(board);
-    return ok({ board: store.publicView(board) });
+    return ok({ board: store.publicView(board, participantId) });
   },
 });
 
@@ -134,7 +135,7 @@ app.http('updateRetroNote', {
       return bad('Could not update this note', 403);
     }
     await store.saveBoard(board);
-    return ok({ board: store.publicView(board) });
+    return ok({ board: store.publicView(board, participantId) });
   },
 });
 
@@ -158,7 +159,45 @@ app.http('deleteRetroNote', {
       return bad('Could not delete this note', 403);
     }
     await store.saveBoard(board);
-    return ok({ board: store.publicView(board) });
+    return ok({ board: store.publicView(board, participantId) });
+  },
+});
+
+app.http('moveRetroNote', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'retro/{code}/note/{noteId}/move',
+  handler: async (req) => {
+    const { participantId, columnId } = await readBody(req);
+    const { board, error } = await requireParticipant(req.params.code, participantId);
+    if (error) return error;
+    if (board.phase === 'ended') {
+      return bad('This retrospective has ended — it is read-only', 403);
+    }
+    if (!store.moveNote(board, participantId, req.params.noteId, columnId)) {
+      return bad('Could not move this note', 403);
+    }
+    await store.saveBoard(board);
+    return ok({ board: store.publicView(board, participantId) });
+  },
+});
+
+app.http('voteRetroNote', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'retro/{code}/note/{noteId}/vote',
+  handler: async (req) => {
+    const { participantId } = await readBody(req);
+    const { board, error } = await requireParticipant(req.params.code, participantId);
+    if (error) return error;
+    if (board.phase === 'ended') {
+      return bad('This retrospective has ended — it is read-only', 403);
+    }
+    if (!store.toggleNoteVote(board, participantId, req.params.noteId)) {
+      return bad('Could not vote on this note', 403);
+    }
+    await store.saveBoard(board);
+    return ok({ board: store.publicView(board, participantId) });
   },
 });
 
@@ -175,7 +214,7 @@ app.http('toggleRetroReviewItem', {
       return bad('Could not update this item', 404);
     }
     await store.saveBoard(board);
-    return ok({ board: store.publicView(board) });
+    return ok({ board: store.publicView(board, participantId) });
   },
 });
 
@@ -190,7 +229,7 @@ app.http('openRetro', {
 
     store.openBoard(board);
     await store.saveBoard(board);
-    return ok({ board: store.publicView(board) });
+    return ok({ board: store.publicView(board, participantId) });
   },
 });
 
@@ -228,6 +267,6 @@ app.http('endRetro', {
 
     store.endBoard(board);
     await store.saveBoard(board);
-    return ok({ board: store.publicView(board) });
+    return ok({ board: store.publicView(board, participantId) });
   },
 });

@@ -4096,3 +4096,32 @@ button.linkish {
     padding-top: 0.4rem;
   }
 }
+
+.retro-note-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.retro-note-vote,
+.retro-note-move {
+  border: 0;
+  background: rgba(0, 0, 0, 0.18);
+  color: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.22rem 0.4rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.retro-note-vote.voted {
+  background: rgba(0, 0, 0, 0.42);
+}
+.retro-note-vote.static {
+  cursor: default;
+  opacity: 0.75;
+}
+.retro-note-vote:hover:not(.static),
+.retro-note-move:hover {
+  background: rgba(0, 0, 0, 0.34);
+}

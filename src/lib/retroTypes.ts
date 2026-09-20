@@ -12,6 +12,9 @@ export interface RetroNote {
   text: string;
   color: string;
   createdAt: number;
+  previousColumnId?: string;
+  voteCount?: number;
+  votedByMe?: boolean;
 }
 
 export interface RetroParticipant {

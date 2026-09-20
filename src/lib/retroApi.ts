@@ -16,6 +16,17 @@ export const retroApi = {
       'GET',
     ),
 
+  moveNote: (code: string, participantId: string, noteId: string, columnId: string) =>
+    request<{ board: RetroBoard }>(`/api/retro/${code}/note/${noteId}/move`, 'POST', {
+      participantId,
+      columnId,
+    }),
+
+  voteNote: (code: string, participantId: string, noteId: string) =>
+    request<{ board: RetroBoard }>(`/api/retro/${code}/note/${noteId}/vote`, 'POST', {
+      participantId,
+    }),
+
   addNote: (code: string, participantId: string, columnId: string, text: string) =>
     request<{ board: RetroBoard }>(`/api/retro/${code}/note`, 'POST', {
       participantId,
