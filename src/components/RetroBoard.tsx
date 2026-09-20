@@ -124,6 +124,7 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
           board={board}
           isFacilitator={isFacilitator}
           onToggle={(id) => run(() => retroApi.reviewToggle(code, participantId, id))}
+          onLike={(id) => run(() => retroApi.reviewLike(code, participantId, id))}
           onOpen={() => run(() => retroApi.openBoard(code, participantId))}
         />
       ) : (

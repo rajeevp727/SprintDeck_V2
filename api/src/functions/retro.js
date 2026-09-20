@@ -51,7 +51,13 @@ app.http('createRetro', {
     const { allowed } = await entitlement.checkTier(req, 'pro');
     if (!allowed) return bad('A Pro subscription is required to start a retrospective', 403);
 
-    const result = await store.createBoard(name, facilitatorName, code, roomCode);
+    const result = await store.createBoard(
+      name,
+      facilitatorName,
+      code,
+      roomCode,
+      entitlement.accountIdFromRequest(req),
+    );
     if (result.error === 'invalid') {
       return bad('Board code must be 3–24 letters, numbers or dashes');
     }
@@ -274,6 +280,23 @@ app.http('toggleRetroReviewItem', {
   },
 });
 
+app.http('likeRetroReviewItem', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'retro/{code}/review/{itemId}/like',
+  handler: async (req) => {
+    const { participantId } = await readBody(req);
+    const { board, error } = await requireParticipant(req.params.code, participantId);
+    if (error) return error;
+
+    if (!store.toggleCarryOverLike(board, participantId, req.params.itemId)) {
+      return bad('Could not like this item', 404);
+    }
+    await store.saveBoard(board);
+    return ok({ board: store.publicView(board, participantId) });
+  },
+});
+
 app.http('openRetro', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -312,8 +335,11 @@ app.http('endRetro', {
     const { board, error } = await requireFacilitator(req.params.code, participantId);
     if (error) return error;
 
+    const ledgerKey = board.ledgerKey || board.roomCode;
+    if (ledgerKey) {
+      await store.saveActionItems(ledgerKey, store.actionItemsFromBoard(board));
+    }
     if (board.roomCode) {
-      await store.saveActionItems(board.roomCode, store.actionItemsFromBoard(board));
       const session = await pokerStore.loadSession(board.roomCode);
       if (session && session.retroCode === board.code) {
         session.retroCode = null;

@@ -28,6 +28,8 @@ export interface RetroCarryItem {
   id: string;
   text: string;
   done: boolean;
+  likeCount?: number;
+  likedByMe?: boolean;
 }
 
 export interface RetroBoard {

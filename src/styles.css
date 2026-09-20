@@ -2136,6 +2136,9 @@ a.room-code:hover {
   gap: 0.5rem;
 }
 .retro-review-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
   background: var(--bg-2);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -2146,6 +2149,30 @@ a.room-code:hover {
   align-items: flex-start;
   gap: 0.6rem;
   cursor: pointer;
+  flex: 1;
+}
+.retro-review-like {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.28rem 0.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.retro-review-like:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.retro-review-like.liked {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .retro-review-list input[type='checkbox'] {
   margin-top: 0.2rem;
@@ -2154,7 +2181,7 @@ a.room-code:hover {
   accent-color: var(--accent);
   flex-shrink: 0;
 }
-.retro-review-list li.done span {
+.retro-review-list li.done label span {
   text-decoration: line-through;
   color: var(--muted);
 }

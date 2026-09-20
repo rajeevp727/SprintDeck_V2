@@ -4,10 +4,11 @@ interface ReviewProps {
   board: RetroBoardType;
   isFacilitator: boolean;
   onToggle: (itemId: string) => void;
+  onLike: (itemId: string) => void;
   onOpen: () => void;
 }
 
-export default function ReviewPanel({ board, isFacilitator, onToggle, onOpen }: ReviewProps) {
+export default function ReviewPanel({ board, isFacilitator, onToggle, onLike, onOpen }: ReviewProps) {
   const items = board.carryOverItems;
   return (
     <div className="retro-review">
@@ -29,6 +30,16 @@ export default function ReviewPanel({ board, isFacilitator, onToggle, onOpen }: 
                 />
                 <span>{it.text}</span>
               </label>
+              <button
+                type="button"
+                className={`retro-review-like${it.likedByMe ? ' liked' : ''}`}
+                onClick={() => onLike(it.id)}
+                title={it.likedByMe ? 'Remove your like' : 'This still matters'}
+                aria-pressed={!!it.likedByMe}
+              >
+                <span aria-hidden>{it.likedByMe ? '♥' : '♡'}</span>
+                <span>{it.likeCount ?? 0}</span>
+              </button>
             </li>
           ))}
         </ul>

@@ -66,6 +66,11 @@ export const retroApi = {
   reviewToggle: (code: string, participantId: string, itemId: string) =>
     request<{ board: RetroBoard }>(`/api/retro/${code}/review/${itemId}`, 'POST', { participantId }),
 
+  reviewLike: (code: string, participantId: string, itemId: string) =>
+    request<{ board: RetroBoard }>(`/api/retro/${code}/review/${itemId}/like`, 'POST', {
+      participantId,
+    }),
+
   openBoard: (code: string, participantId: string) =>
     request<{ board: RetroBoard }>(`/api/retro/${code}/open`, 'POST', { participantId }),
 

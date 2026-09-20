@@ -74,6 +74,49 @@ describe('moving a note', () => {
   });
 });
 
+describe("last sprint's action items", () => {
+  function reviewBoard() {
+    const board = boardWith();
+    board.phase = 'review';
+    board.carryOverItems = [{ id: 'c1', text: 'write the runbook', done: false, likes: [] }];
+    return board;
+  }
+
+  it('follows the room when there is one, and the host otherwise', () => {
+    expect(store.ledgerKeyFor('ROOM1', 'google:a@b.com')).toBe('ROOM1');
+    expect(store.ledgerKeyFor('', 'google:a@b.com')).toBe('ACCT:GOOGLE:A@B.COM');
+    expect(store.ledgerKeyFor('', '')).toBe('');
+  });
+
+  it('lets any member like one, and like it off again', () => {
+    const board = reviewBoard();
+    expect(store.toggleCarryOverLike(board, 'member', 'c1')).toBe(true);
+    expect(store.toggleCarryOverLike(board, 'chair', 'c1')).toBe(true);
+    expect(board.carryOverItems[0].likes).toHaveLength(2);
+
+    store.toggleCarryOverLike(board, 'member', 'c1');
+    expect(board.carryOverItems[0].likes).toEqual(['chair']);
+  });
+
+  it('refuses a stranger and an ended board', () => {
+    const board = reviewBoard();
+    expect(store.toggleCarryOverLike(board, 'ghost', 'c1')).toBe(false);
+    board.phase = 'ended';
+    expect(store.toggleCarryOverLike(board, 'member', 'c1')).toBe(false);
+  });
+
+  it('shows the count and your own like, never who liked', () => {
+    const board = reviewBoard();
+    store.toggleCarryOverLike(board, 'member', 'c1');
+
+    const forMember = store.publicView(board, 'member').carryOverItems[0];
+    expect(forMember.likeCount).toBe(1);
+    expect(forMember.likedByMe).toBe(true);
+    expect(forMember.likes).toBeUndefined();
+    expect(store.publicView(board, 'other').carryOverItems[0].likedByMe).toBe(false);
+  });
+});
+
 describe('voting', () => {
   it('counts other people, never the author', () => {
     const board = boardWith([note()]);

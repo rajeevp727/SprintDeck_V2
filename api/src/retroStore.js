@@ -104,6 +104,16 @@ async function removeRaw(code) {
 
 const getLedgerContainer = () => containerFor(ledgerContainerName, ledgerTtlSeconds);
 
+/**
+ * Which ledger a board's action items belong to. A retro started from a
+ * planning room follows the room; a standalone one follows the host's account,
+ * so their next retrospective opens on what they agreed last time.
+ */
+function ledgerKeyFor(roomCode, ownerKey) {
+  if (normalize(roomCode)) return normalize(roomCode);
+  return ownerKey ? 'ACCT:' + normalize(ownerKey) : '';
+}
+
 async function loadActionItems(roomCode) {
   const key = normalize(roomCode);
   if (!key) return [];
@@ -193,7 +203,7 @@ async function deleteBoard(code) {
   realtime.notifyGroup('retro:' + norm);
 }
 
-async function createBoard(name, facilitatorName, desiredCode, roomCode) {
+async function createBoard(name, facilitatorName, desiredCode, roomCode, ownerKey) {
   let code;
   const wanted = normalize(desiredCode);
   if (wanted) {
@@ -206,16 +216,18 @@ async function createBoard(name, facilitatorName, desiredCode, roomCode) {
   const pid = genId();
   const now = Date.now();
   
-  const carry = await loadActionItems(roomCode);
+  const ledgerKey = ledgerKeyFor(roomCode, ownerKey);
+  const carry = await loadActionItems(ledgerKey);
   const board = {
     code,
     name: (name || '').trim().slice(0, maxNameLen) || 'Sprint Retrospective',
     facilitatorId: pid,
     roomCode: normalize(roomCode) || null, 
+    ledgerKey: ledgerKey || null,
     
     
     phase: 'review', 
-    carryOverItems: carry.map((it) => ({ id: it.id, text: it.text, done: false })),
+    carryOverItems: carry.map((it) => ({ id: it.id, text: it.text, done: false, likes: [] })),
     columns: defaultColumns(),
     votingClosed: false,
     votingEndsAt: null,
@@ -429,6 +441,23 @@ function deleteNote(board, participantId, noteId) {
   return true;
 }
 
+/**
+ * Anyone in the room can back a carried-over item. Likes say which of last
+ * sprint's promises the team still cares about, so they are open to members
+ * while ticking one off stays the facilitator's call.
+ */
+function toggleCarryOverLike(board, participantId, itemId) {
+  if (!board.participants[participantId]) return false;
+  if (board.phase === 'ended') return false;
+  const item = (board.carryOverItems || []).find((i) => i.id === itemId);
+  if (!item) return false;
+  const likes = Array.isArray(item.likes) ? item.likes : [];
+  item.likes = likes.includes(participantId)
+    ? likes.filter((id) => id !== participantId)
+    : [...likes, participantId];
+  return true;
+}
+
 function toggleCarryOverItem(board, itemId) {
   const item = (board.carryOverItems || []).find((i) => i.id === itemId);
   if (!item) return false;
@@ -468,7 +497,11 @@ function publicView(board, viewerId) {
     phase: board.phase || 'active',
     votingClosed: votingIsOver(board),
     votingEndsAt: board.votingEndsAt || null,
-    carryOverItems: board.carryOverItems || [],
+    carryOverItems: (board.carryOverItems || []).map((item) => {
+      const likes = Array.isArray(item.likes) ? item.likes : [];
+      const { likes: _likes, ...rest } = item;
+      return { ...rest, likeCount: likes.length, likedByMe: !!viewerId && likes.includes(viewerId) };
+    }),
     columns,
     notes: visibleNotes.map((note) => {
       const votes = Array.isArray(note.votes) ? note.votes : [];
@@ -515,6 +548,8 @@ module.exports = {
   openBoard,
   endBoard,
   actionItemsFromBoard,
+  ledgerKeyFor,
+  toggleCarryOverLike,
   saveActionItems,
   publicView,
 };
