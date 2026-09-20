@@ -73,22 +73,30 @@ function oauthRedirectOrigin(): string {
 const HandoffKey = 'sso-handoff';
 const HandoffTtlMs = 5 * 60 * 1000;
 
-export function writeHandoff(state: string, idToken: string): void {
+export interface SsoHandoff {
+  state?: string;
+  idToken?: string;
+  error?: string;
+  at?: number;
+}
+
+export function writeHandoff(payload: SsoHandoff): void {
   try {
-    localStorage.setItem(HandoffKey, JSON.stringify({ state, idToken, at: Date.now() }));
+    localStorage.setItem(HandoffKey, JSON.stringify({ ...payload, at: Date.now() }));
   } catch {
     void 0;
   }
 }
 
-function readHandoff(state: string): string | null {
+function readHandoff(state: string): SsoHandoff | null {
   try {
     const raw = localStorage.getItem(HandoffKey);
     if (!raw) return null;
-    const data = JSON.parse(raw) as { state?: string; idToken?: string; at?: number };
+    const data = JSON.parse(raw) as SsoHandoff;
     if (data.state !== state) return null;
-    if (!data.idToken || Date.now() - (data.at || 0) > HandoffTtlMs) return null;
-    return data.idToken;
+    if (Date.now() - (data.at || 0) > HandoffTtlMs) return null;
+    if (!data.idToken && !data.error) return null;
+    return data;
   } catch {
     return null;
   }
@@ -172,6 +180,8 @@ export async function signInWithOAuth(provider: 'google' | 'microsoft', remember
   const left = window.screenX + (window.outerWidth - width) / 2;
   const top = window.screenY + (window.outerHeight - height) / 2;
 
+  clearHandoff();
+
   return new Promise<AuthUser>((resolve, reject) => {
     const popup = window.open(
       url,
@@ -188,17 +198,26 @@ export async function signInWithOAuth(provider: 'google' | 'microsoft', remember
     function cleanup() {
       settled = true;
       clearInterval(timer);
+      clearTimeout(deadline);
       window.removeEventListener('message', handler);
+      window.removeEventListener('storage', onStorage);
       clearHandoff();
-    }
-
-    async function exchange(idToken: string) {
-      cleanup();
       try {
         popup!.close();
       } catch {
         void 0;
       }
+    }
+
+    function fail(message: string) {
+      if (settled) return;
+      cleanup();
+      reject(new Error(message));
+    }
+
+    async function exchange(idToken: string) {
+      if (settled) return;
+      cleanup();
       try {
         const { token, user } = await post('/api/auth/oauth', { provider, idToken, remember });
         setToken(token);
@@ -211,38 +230,46 @@ export async function signInWithOAuth(provider: 'google' | 'microsoft', remember
       }
     }
 
-    const timer = setInterval(() => {
+    function accept(data: SsoHandoff) {
       if (settled) return;
-      // The handoff is what the popup actually leaves behind: a COOP context
-      // switch on the way back from the provider nulls its window.opener, so
-      // postMessage can reach nobody.
-      const handoff = readHandoff(state);
-      if (handoff) {
-        void exchange(handoff);
+      if (data.error) {
+        fail(data.error);
         return;
       }
-      if (popup.closed) {
-        cleanup();
-        reject(new Error('Sign-in cancelled'));
+      if (data.idToken) void exchange(data.idToken);
+    }
+
+    // Three ways the popup can reach us, because none is reliable alone:
+    // postMessage needs window.opener (a COOP context switch can null it),
+    // the storage event needs a live listener, and the poll catches the rest.
+    const timer = setInterval(() => {
+      if (settled) return;
+      const handoff = readHandoff(state);
+      if (handoff) {
+        accept(handoff);
+        return;
       }
+      if (popup.closed) fail('Sign-in cancelled');
     }, 300);
+
+    const deadline = setTimeout(() => fail('Sign-in timed out — please try again'), 5 * 60 * 1000);
 
     function handler(event: MessageEvent) {
       if (settled) return;
       if (event.origin !== window.location.origin) return;
       if (event.data?.type !== 'sso-callback') return;
       if (event.data?.state !== state) return;
+      accept(event.data as SsoHandoff);
+    }
 
-      const idToken = event.data?.idToken;
-      if (!idToken) {
-        cleanup();
-        reject(new Error('No token received from provider'));
-        return;
-      }
-      void exchange(idToken);
+    function onStorage(event: StorageEvent) {
+      if (settled || event.key !== HandoffKey) return;
+      const handoff = readHandoff(state);
+      if (handoff) accept(handoff);
     }
 
     window.addEventListener('message', handler);
+    window.addEventListener('storage', onStorage);
   });
 }
 

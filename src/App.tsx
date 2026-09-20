@@ -7,13 +7,23 @@ import { ToastHost } from './components/Toast';
 // OAuth callback pages — no lazy-load needed (tiny).
 function SsoCallback() {
   useEffect(() => {
-    const params = new URLSearchParams(window.location.hash.slice(1));
-    const idToken = params.get('id_token') || '';
-    const state = params.get('state') || '';
-    if (idToken) {
-      writeHandoff(state, idToken);
-      window.opener?.postMessage({ type: 'sso-callback', idToken, state }, window.location.origin);
-    }
+    // Providers answer in the fragment on success and sometimes in the query
+    // string on failure, so read both before deciding there is nothing here.
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const query = new URLSearchParams(window.location.search);
+    const read = (key: string) => hash.get(key) || query.get(key) || '';
+
+    const idToken = read('id_token');
+    const state = read('state');
+    const error = read('error');
+    const errorDescription = read('error_description');
+
+    const payload = idToken
+      ? { state, idToken }
+      : { state, error: errorDescription || error || 'No token received from provider' };
+
+    writeHandoff(payload);
+    window.opener?.postMessage({ type: 'sso-callback', ...payload }, window.location.origin);
     window.history.replaceState({}, '', '/');
     window.close();
   }, []);

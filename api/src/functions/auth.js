@@ -327,6 +327,24 @@ app.http('emailStatus', {
 
 const { configured: oauthConfigured, verifyProviderToken } = require('../oauth');
 
+// GET /api/auth/oauth-status — which providers the API can verify, and with
+// which client IDs. Client IDs are public (they ship in the browser bundle),
+// so this only reveals whether the server's copy matches the frontend's.
+app.http('oauthStatus', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'auth/oauth-status',
+  handler: async () => {
+    const providers = oauthConfigured();
+    return ok({
+      providers,
+      googleClientId: googleClientId(),
+      microsoftClientId: microsoftClientId(),
+      azureTenantId: microsoftTenant(),
+    });
+  },
+});
+
 // POST /api/auth/oauth  { provider: 'google'|'microsoft', idToken, remember? }
 // Verifies the provider id_token, upserts the user, returns our JWT.
 app.http('oauth', {
@@ -346,7 +364,10 @@ app.http('oauth', {
     try {
       payload = await verifyProviderToken(prov, idToken);
     } catch (err) {
-      return bad('Invalid token', 401);
+      // Say which check failed: every cause otherwise collapses into one
+      // opaque message, and none of these strings carry anything secret.
+      const reason = String(err?.code || err?.message || 'verification failed').slice(0, 120);
+      return bad(`Invalid token — ${reason}`, 401);
     }
 
     const email = String(payload.email || '').toLowerCase();
