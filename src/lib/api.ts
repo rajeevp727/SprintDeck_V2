@@ -105,8 +105,8 @@ export const api = {
     }),
 
   
-  enableChat: (code: string, participantId: string, subRef: string) =>
-    request<{ session: Session }>(`/api/session/${code}/chat/enable`, 'POST', { participantId, subRef }),
+  enableChat: (code: string, participantId: string) =>
+    request<{ session: Session }>(`/api/session/${code}/chat/enable`, 'POST', { participantId }),
 
   negotiateChat: (code: string, participantId: string) =>
     request<{ url: string }>(`/api/session/${code}/chat/negotiate`, 'POST', { participantId }),

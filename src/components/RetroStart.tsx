@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { retroApi } from '../lib/retroApi';
 import { saveIdentity, getIdentity } from '../lib/storage';
-import { getSubscriptionRef } from '../lib/subscription';
+import { useSubscription } from '../lib/subscription';
 import { useProfileNamePrefill } from '../lib/useProfileName';
 import { useAuth } from '../lib/auth';
 import AdBanner from './AdBanner';
@@ -13,6 +13,8 @@ interface Props {
 
 export default function RetroStart({ onEnter, onBack }: Props) {
   const { user } = useAuth();
+  const { subscription, loaded: planLoaded } = useSubscription();
+  const canHost = !!subscription;
   const [mode, setMode] = useState<'create' | 'join'>('create');
   const [name, setName] = useProfileNamePrefill();
   const [boardName, setBoardName] = useState('');
@@ -23,13 +25,33 @@ export default function RetroStart({ onEnter, onBack }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
+  const autoHosted = useRef(false);
+
+  useEffect(() => {
+    if (autoHosted.current || mode !== 'create') return;
+    if (!planLoaded || !canHost || !user || !name.trim()) return;
+    autoHosted.current = true;
+    setBusy(true);
+    retroApi
+      .createBoard('', name, '', '')
+      .then((res) => {
+        saveIdentity(res.board.code, res.participantId, name.trim());
+        onEnter(res.board.code);
+      })
+      .catch((err) => {
+        // Fall back to the form rather than stranding them on a spinner.
+        setError((err as Error).message);
+        setBusy(false);
+      });
+  }, [planLoaded, canHost, user, name, mode, onEnter]);
+
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
     if (!name.trim()) return setError('Enter your name');
     setBusy(true);
     setError('');
     try {
-      const res = await retroApi.createBoard(boardName, name, '', '', getSubscriptionRef() ?? '');
+      const res = await retroApi.createBoard(boardName, name, '', '');
       saveIdentity(res.board.code, res.participantId, name.trim());
       onEnter(res.board.code);
     } catch (err) {

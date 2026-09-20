@@ -4,8 +4,8 @@ import type { RetroBoard, RetroJoinResult } from './retroTypes';
 export const retroApi = {
   
   
-  createBoard: (name: string, facilitatorName: string, code: string, roomCode: string, subRef: string) =>
-    request<RetroJoinResult>('/api/retro', 'POST', { name, facilitatorName, code, roomCode, subRef }),
+  createBoard: (name: string, facilitatorName: string, code: string, roomCode: string) =>
+    request<RetroJoinResult>('/api/retro', 'POST', { name, facilitatorName, code, roomCode }),
 
   joinBoard: (code: string, name: string) =>
     request<RetroJoinResult>(`/api/retro/${code}/join`, 'POST', { name }),

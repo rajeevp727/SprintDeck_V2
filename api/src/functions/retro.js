@@ -2,8 +2,8 @@
 
 const { app } = require('@azure/functions');
 const store = require('../retroStore');
+const entitlement = require('../entitlement');
 const pokerStore = require('../store'); 
-const payments = require('../payments-store'); 
 const { rateLimited } = require('../ratelimit');
 
 const noCache = { 'Cache-Control': 'no-store' };
@@ -47,9 +47,9 @@ app.http('createRetro', {
   route: 'retro',
   handler: async (req) => {
     if (rateLimited(req, 'retrocreate', 15, 60_000)) return bad('Too many requests — slow down', 429);
-    const { name, facilitatorName, code, roomCode, subRef } = await readBody(req);
-    const sub = await payments.activeSubscription(subRef);
-    if (!sub) return bad('A Pro subscription is required to start a retrospective', 403);
+    const { name, facilitatorName, code, roomCode } = await readBody(req);
+    const { allowed } = await entitlement.checkTier(req, 'pro');
+    if (!allowed) return bad('A Pro subscription is required to start a retrospective', 403);
 
     const result = await store.createBoard(name, facilitatorName, code, roomCode);
     if (result.error === 'invalid') {

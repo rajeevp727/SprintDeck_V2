@@ -17,7 +17,7 @@ import BrandLogo from './BrandLogo';
 import AdBanner from './AdBanner';
 import { CrownIcon } from './icons';
 import { nearestDeckValue } from '../lib/estimate';
-import { useSubscription, getSubscriptionRef, tiers } from '../lib/subscription';
+import { useSubscription, tiers } from '../lib/subscription';
 import { notifyPresence } from '../lib/presence';
 
 const ResultsModal = lazy(() => import('./ResultsModal'));
@@ -163,7 +163,7 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
     if (!subscribed) return;
     chatSynced.current = true;
     api
-      .enableChat(code, participantId, getSubscriptionRef() ?? '')
+      .enableChat(code, participantId)
       .then(({ session: s }) => setSession(s))
       .catch(() => {});
   }, [isModerator, subscribed, session, code, participantId]);
@@ -288,14 +288,13 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
   
   async function startRetro() {
     if (!session) return;
-    const subRef = getSubscriptionRef();
-    if (!subRef) {
+    if (!subscribed) {
       setShowSubscribe(true);
       return;
     }
     const myName = session.participants.find((p) => p.id === participantId)?.name || 'Facilitator';
     try {
-      const res = await retroApi.createBoard(`${session.name} — Retrospective`, myName, '', code, subRef);
+      const res = await retroApi.createBoard(`${session.name} — Retrospective`, myName, '', code);
       saveIdentity(res.board.code, res.participantId, myName);
       await api.setRetro(code, participantId, res.board.code).catch(() => {});
       onGoRetro(res.board.code);
@@ -313,7 +312,6 @@ export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoR
         facilitatorName: myName,
         roomCode: code,
         roomParticipantId: participantId,
-        subRef: getSubscriptionRef() ?? '',
         access: 'room',
       });
       saveIdentity(res.whiteboard.code, res.participantId, myName);

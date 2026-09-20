@@ -2,7 +2,7 @@
 
 const { app } = require('@azure/functions');
 const store = require('../store');
-const payments = require('../payments-store'); 
+const entitlement = require('../entitlement');
 const { rateLimited } = require('../ratelimit');
 
 const noCache = { 'Cache-Control': 'no-store' };
@@ -63,14 +63,14 @@ app.http('enableChat', {
   authLevel: 'anonymous',
   route: 'session/{code}/chat/enable',
   handler: async (req) => {
-    const { participantId, subRef } = await readBody(req);
+    const { participantId } = await readBody(req);
     const session = await store.loadSession(req.params.code);
     if (!session) return bad('Session not found', 404);
     if (!store.isModerator(session, participantId)) {
       return bad('Only the moderator can enable chat', 403);
     }
-    const sub = await payments.activeSubscription(subRef);
-    if (!sub) return bad('A Pro subscription is required to enable chat', 403);
+    const { allowed } = await entitlement.checkTier(req, 'pro');
+    if (!allowed) return bad('A Pro subscription is required to enable chat', 403);
     session.chatEnabled = true;
     await store.saveSession(session);
     return ok({ session: store.publicView(session, participantId) });

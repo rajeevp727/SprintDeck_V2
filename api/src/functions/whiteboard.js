@@ -2,7 +2,7 @@
 
 const { app } = require('@azure/functions');
 const store = require('../whiteboardStore');
-const payments = require('../payments-store');
+const entitlement = require('../entitlement');
 const pokerStore = require('../store');
 const { rateLimited } = require('../ratelimit');
 
@@ -51,11 +51,9 @@ async function requireWriter(code, participantId) {
   return { board };
 }
 
-async function requirePro(subRef) {
-  
-  if (!conn) return null;
-  const sub = await payments.activeSubscription(subRef);
-  if (!sub) return bad('A Pro subscription is required to start a whiteboard', 403);
+async function requirePro(req) {
+  const { allowed } = await entitlement.checkTier(req, 'pro');
+  if (!allowed) return bad('A Pro subscription is required to start a whiteboard', 403);
   return null;
 }
 
@@ -78,12 +76,11 @@ app.http('createWhiteboard', {
       facilitatorName,
       code,
       roomCode,
-      subRef,
       roomParticipantId,
       access,
     } = body;
 
-    const proErr = await requirePro(subRef);
+    const proErr = await requirePro(req);
     if (proErr) return proErr;
 
     let seedParticipants = [];

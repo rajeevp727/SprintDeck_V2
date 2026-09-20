@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'rea
 import { whiteboardApi } from '../lib/whiteboardApi';
 import { saveIdentity, getIdentity, getCurrentRoom } from '../lib/storage';
 import { useAuth } from '../lib/auth';
-import { getSubscriptionRef, useSubscription } from '../lib/subscription';
+import { useSubscription } from '../lib/subscription';
 import { useProfileNamePrefill } from '../lib/useProfileName';
 import { bootWhiteboardForUser, joinWhiteboardForUser, WhiteboardNeedsPro } from '../lib/whiteboardBoot';
 import BrandLogo from './BrandLogo';
@@ -100,7 +100,6 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
         facilitatorName: name.trim(),
         roomCode: roomCode || undefined,
         roomParticipantId: roomIdentity?.participantId,
-        subRef: getSubscriptionRef() ?? '',
         access: roomCode ? 'room' : 'open',
       });
       saveIdentity(res.whiteboard.code, res.participantId, name.trim());
