@@ -161,7 +161,10 @@ export function getMicrosoftAuthUrl(nonce = '', state = ''): string {
     redirect_uri: `${oauthRedirectOrigin()}/auth/microsoft/callback`,
     response_type: 'id_token',
     scope: 'openid profile email',
-    prompt: 'select_account',
+    // `login` re-authenticates every time, so the popup never offers the last
+    // account it saw — `select_account` keeps suggesting it, and that card is
+    // Microsoft's own page, which nothing here can put a dismiss control on.
+    prompt: 'login',
     nonce: nonce || randomToken(),
     state: state || randomToken(),
   });
