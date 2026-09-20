@@ -1,6 +1,7 @@
 import BrandLogo from './BrandLogo';
 import DeveloperCredit from './DeveloperCredit';
 import ProfileMenu from './ProfileMenu';
+import ViewToggle, { useFeatureView } from './ViewToggle';
 
 interface Props {
   onPlanning: () => void;
@@ -13,6 +14,42 @@ interface Props {
 }
 
 export default function Dashboard({ onPlanning, onRetro, onTimesheet, onWhiteboard, onPrivacy, onTerms, onSecurity }: Props) {
+  const [view, setView] = useFeatureView();
+  const ceremonies = [
+    {
+      key: 'planning',
+      icon: '🃏',
+      title: 'Sprint Planning',
+      desc: 'Planning poker — estimate stories together with hidden votes, reveal & consensus.',
+      cta: 'Start or join →',
+      onOpen: onPlanning,
+    },
+    {
+      key: 'retro',
+      icon: '🗂️',
+      title: 'Sprint Retrospective',
+      desc: 'Review last sprint’s actions, then capture what went well, what to improve & next actions.',
+      cta: 'Start or join →',
+      onOpen: onRetro,
+    },
+    {
+      key: 'timesheet',
+      icon: '🗓️',
+      title: 'Daily Scrum & Timesheet',
+      desc: 'Log your daily standup & task hours once, then hand off to Keka / timesheets (copy or CSV).',
+      cta: 'Open →',
+      onOpen: onTimesheet,
+    },
+    {
+      key: 'whiteboard',
+      icon: '🎨',
+      title: 'Whiteboard',
+      desc: 'Shared Miro-style canvas — live multiplayer, presenter write control, room-locked or shareable link.',
+      cta: 'Open →',
+      onOpen: onWhiteboard,
+    },
+  ];
+
   return (
     <div className="dash">
       <header className="dash-head">
@@ -25,44 +62,20 @@ export default function Dashboard({ onPlanning, onRetro, onTimesheet, onWhiteboa
         </div>
       </header>
 
-      <p className="dash-lead">Choose a ceremony to run with your team.</p>
+      <div className="dash-lead-row">
+        <p className="dash-lead">Choose a ceremony to run with your team.</p>
+        <ViewToggle view={view} onChange={setView} />
+      </div>
 
-      <div className="dash-cards">
-        <button className="dash-card" onClick={onPlanning}>
-          <span className="dash-card-icon" aria-hidden>🃏</span>
-          <span className="dash-card-title">Sprint Planning</span>
-          <span className="dash-card-desc">
-            Planning poker — estimate stories together with hidden votes, reveal & consensus.
-          </span>
-          <span className="dash-card-cta">Start or join →</span>
-        </button>
-
-        <button className="dash-card" onClick={onRetro}>
-          <span className="dash-card-icon" aria-hidden>🗂️</span>
-          <span className="dash-card-title">Sprint Retrospective</span>
-          <span className="dash-card-desc">
-            Review last sprint’s actions, then capture what went well, what to improve & next actions.
-          </span>
-          <span className="dash-card-cta">Start or join →</span>
-        </button>
-
-        <button className="dash-card" onClick={onTimesheet}>
-          <span className="dash-card-icon" aria-hidden>🗓️</span>
-          <span className="dash-card-title">Daily Scrum &amp; Timesheet</span>
-          <span className="dash-card-desc">
-            Log your daily standup &amp; task hours once, then hand off to Keka / timesheets (copy or CSV).
-          </span>
-          <span className="dash-card-cta">Open →</span>
-        </button>
-
-        <button className="dash-card" onClick={onWhiteboard}>
-          <span className="dash-card-icon" aria-hidden>🎨</span>
-          <span className="dash-card-title">Whiteboard</span>
-          <span className="dash-card-desc">
-            Shared Miro-style canvas — live multiplayer, presenter write control, room-locked or shareable link.
-          </span>
-          <span className="dash-card-cta">Open →</span>
-        </button>
+      <div className={view === 'grid' ? 'dash-cards' : 'dash-rows'}>
+        {ceremonies.map((c) => (
+          <button key={c.key} className={view === 'grid' ? 'dash-card' : 'dash-row'} onClick={c.onOpen}>
+            <span className="dash-card-icon" aria-hidden>{c.icon}</span>
+            <span className="dash-card-title">{c.title}</span>
+            <span className="dash-card-desc">{c.desc}</span>
+            <span className="dash-card-cta">{c.cta}</span>
+          </button>
+        ))}
       </div>
 
       <footer className="dash-footer">

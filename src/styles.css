@@ -2295,25 +2295,31 @@ a.room-code:hover {
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.landing-view-toggle {
+.view-toggle {
   display: inline-flex;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--bg-2);
 }
-.landing-view-toggle button {
+.view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   background: transparent;
   color: var(--muted);
-  padding: 0.45rem 0.85rem;
-  font-size: 0.88rem;
-  font-weight: 500;
+  padding: 0.4rem 0.7rem;
+  line-height: 0;
   cursor: pointer;
+  transition: color var(--transition), background var(--transition);
 }
-.landing-view-toggle button.active {
-  background: var(--panel);
+.view-toggle button:hover:not(.active) {
   color: var(--text);
+}
+.view-toggle button.active {
+  background: var(--panel);
+  color: var(--accent);
   box-shadow: inset 0 0 0 1px var(--line);
 }
 .landing-shots {
@@ -4027,4 +4033,66 @@ button.linkish {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+}
+
+.dash-lead-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.dash-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.dash-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas: 'icon title cta' 'icon desc cta';
+  align-items: center;
+  gap: 0.1rem 1rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md, 12px);
+  background: var(--panel);
+  color: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition), transform var(--transition);
+}
+.dash-row:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.dash-row .dash-card-icon {
+  grid-area: icon;
+  font-size: 1.6rem;
+}
+.dash-row .dash-card-title {
+  grid-area: title;
+  font-weight: 600;
+}
+.dash-row .dash-card-desc {
+  grid-area: desc;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+.dash-row .dash-card-cta {
+  grid-area: cta;
+  color: var(--accent);
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .dash-row {
+    grid-template-columns: auto 1fr;
+    grid-template-areas: 'icon title' 'icon desc' 'cta cta';
+  }
+  .dash-row .dash-card-cta {
+    justify-self: start;
+    padding-top: 0.4rem;
+  }
 }

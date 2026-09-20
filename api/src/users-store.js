@@ -300,6 +300,50 @@ async function isNameAvailable(name) {
   return !(await getByName(name));
 }
 
+/**
+ * Sets a password on the address, creating the password account when the
+ * person has only ever signed in through a provider. Password accounts are
+ * keyed by the bare email, which is what makes email sign-in find them.
+ */
+async function upsertPasswordAccount(email, password, { name } = {}) {
+  const id = normalizeEmail(email);
+  if (!id) return null;
+
+  const existing = await getById(id);
+  if (existing) return updatePassword(id, password);
+
+  const cleanName = await pickAvailableName(name || id.split('@')[0]);
+  const nameLower = normalizeName(cleanName);
+  const salt = crypto.randomBytes(16).toString('hex');
+  const user = {
+    id,
+    email: id,
+    name: cleanName,
+    nameLower,
+    authProvider: 'local',
+    salt,
+    passwordHash: hashPassword(password, salt),
+    createdAt: Date.now(),
+  };
+
+  const c = getContainer();
+  if (!c) {
+    memory.set(id, user);
+    if (nameLower) memory.set(`name:${nameLower}`, { id: `name:${nameLower}`, owner: id });
+    return user;
+  }
+  const container = await c;
+  await container.items.upsert(user);
+  if (nameLower) {
+    try {
+      await container.items.create({ id: `name:${nameLower}`, type: 'name-reservation', owner: id, createdAt: Date.now() });
+    } catch (err) {
+      if (!err || err.code !== 409) throw err;
+    }
+  }
+  return user;
+}
+
 async function updatePassword(email, newPassword) {
   const user = await getByEmail(email);
   if (!user) return null;
@@ -412,6 +456,7 @@ module.exports = {
   hasPassword,
   isNameAvailable,
   updatePassword,
+  upsertPasswordAccount,
   updateUserName,
   verifyPassword,
   publicUser,

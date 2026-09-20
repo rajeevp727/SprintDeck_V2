@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import BrandLogo from './BrandLogo';
+import ViewToggle, { useFeatureView } from './ViewToggle';
 
 interface Props {
   onSignIn: () => void;
@@ -32,10 +32,8 @@ const features = [
   },
 ];
 
-type FeatureView = 'grid' | 'list';
-
 export default function Landing({ onSignIn }: Props) {
-  const [view, setView] = useState<FeatureView>('grid');
+  const [view, setView] = useFeatureView();
 
   return (
     <div className="landing">
@@ -56,26 +54,7 @@ export default function Landing({ onSignIn }: Props) {
 
       <div className="landing-features-head">
         <h2 className="landing-features-title">What you can run</h2>
-        <div className="landing-view-toggle" role="tablist" aria-label="Feature layout">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === 'grid'}
-            className={view === 'grid' ? 'active' : ''}
-            onClick={() => setView('grid')}
-          >
-            Cards
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === 'list'}
-            className={view === 'list' ? 'active' : ''}
-            onClick={() => setView('list')}
-          >
-            List
-          </button>
-        </div>
+        <ViewToggle view={view} onChange={setView} />
       </div>
 
       {view === 'grid' ? (

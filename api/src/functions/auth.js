@@ -35,7 +35,6 @@ async function readBody(req) {
 }
 
 const secret = () => process.env.JWT_SECRET || '';
-const providerLabel = (provider) => (provider === 'google' ? 'Google' : 'Microsoft');
 const appUrl = process.env.APP_URL || 'https://sprintdeck.in';
 const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const minPassword = 8;
@@ -225,24 +224,19 @@ app.http('forgotPassword', {
     const { email } = await readBody(req);
     const normalized = String(email || '').trim().toLowerCase();
     if (!emailRe.test(normalized)) return bad('Enter a valid email', 400);
-    // Only a password account has a password to reset. An address that signs in
-    // through a provider has no bare-email document, so say which button to use
-    // instead of claiming the account does not exist.
-    const user = await users.getByEmail(normalized);
-    if (!user || !users.hasPassword(user)) {
-      const providers = (await users.accountsForEmail(normalized))
-        .map((account) => account.authProvider)
-        .filter((provider) => provider && provider !== 'local');
-      if (providers.length) {
-        const names = [...new Set(providers)].map(providerLabel).join(' or ');
-        return bad(`This email signs in with ${names} — use that button instead.`, 409);
-      }
+    // Somebody who has only ever used Google or Microsoft still gets a link:
+    // it sets a password on the address so email sign-in works afterwards.
+    const accounts = await users.accountsForEmail(normalized);
+    if (accounts.length === 0) {
       return bad('User not found — please check the email and try again', 404);
     }
-    const token = await saveResetToken(user.email, user.id);
+
+    // A password account is keyed by the bare email, so that is what the token
+    // points at whether it exists yet or not.
+    const token = await saveResetToken(normalized, normalized);
     const resetUrl = `${appUrl.replace(/\/$/, '')}/reset-password?token=${token}`;
-    const sent = await sendPasswordResetEmail(user.email, resetUrl);
-    if (!sent) console.log(`[forgot-password] reset link for ${user.email}: ${resetUrl}`);
+    const sent = await sendPasswordResetEmail(normalized, resetUrl);
+    if (!sent) console.log('[forgot-password] link generated but email is not configured');
     return ok({ ok: true });
   },
 });
@@ -261,9 +255,14 @@ app.http('resetPassword', {
     }
     const record = await consumeResetToken(String(token || ''));
     if (!record) return bad('Invalid or expired reset link', 400);
-    const user = await users.getByEmail(record.email);
-    if (!user || user.id !== record.userId) return bad('Invalid reset link', 400);
-    await users.updatePassword(user.email, newPassword);
+
+    // Carry the name over from whichever account the person already has, so a
+    // password account created here is not called after the email prefix.
+    const existingName = (await users.accountsForEmail(record.email))
+      .map((account) => account.name)
+      .find(Boolean);
+    const user = await users.upsertPasswordAccount(record.email, newPassword, { name: existingName });
+    if (!user) return bad('Invalid reset link', 400);
     return ok({ ok: true });
   },
 });
