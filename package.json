@@ -15,10 +15,7 @@
     "postinstall": "node -e \"const fs=require('fs');const f='node_modules/gensync/index.js';if(fs.existsSync(f)){let s=fs.readFileSync(f,'utf8');s=s.replace('            cls','            (()=>{})()');fs.writeFileSync(f,s);console.log('patched gensync for Node 24');}\""
   },
   "dependencies": {
-    "@azure/msal-browser": "^5.18.0",
     "@azure/web-pubsub-client": "^1.1.0",
-    "@react-oauth/google": "^0.13.5",
-    "@rolldown/binding-linux-x64-gnu": "^1.2.5",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
@@ -40,5 +37,8 @@
     "typescript-eslint": "^8.67.0",
     "vite": "^8.2.2",
     "vitest": "^4.1.10"
+  },
+  "optionalDependencies": {
+    "@rolldown/binding-linux-x64-gnu": "^1.2.5"
   }
 }
