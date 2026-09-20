@@ -161,10 +161,7 @@ export function getMicrosoftAuthUrl(nonce = '', state = ''): string {
     redirect_uri: `${oauthRedirectOrigin()}/auth/microsoft/callback`,
     response_type: 'id_token',
     scope: 'openid profile email',
-    // `login` re-authenticates every time, so the popup never offers the last
-    // account it saw — `select_account` keeps suggesting it, and that card is
-    // Microsoft's own page, which nothing here can put a dismiss control on.
-    prompt: 'login',
+    prompt: 'select_account',
     nonce: nonce || randomToken(),
     state: state || randomToken(),
   });
@@ -176,28 +173,21 @@ const ProviderSignOutUrls: Record<'google' | 'microsoft', string> = {
   microsoft: 'https://login.microsoftonline.com/common/oauth2/v2.0/logout',
 };
 
-// Clears the provider's own browser session, which is what keeps offering the
-// last account on its sign-in page. We can't read that page cross-origin, so
-// the popup is closed on a timer once it has had time to load.
-export function signOutOfProvider(provider: 'google' | 'microsoft'): Promise<void> {
-  return new Promise((resolve) => {
-    const popup = window.open(ProviderSignOutUrls[provider], `sso-logout-${provider}`, 'width=500,height=600');
-    if (!popup) {
-      resolve();
-      return;
-    }
-    window.setTimeout(() => {
-      try {
-        popup.close();
-      } catch {
-        void 0;
-      }
-      resolve();
-    }, 3500);
-  });
+// How long the provider's logout page gets before the popup moves on to the
+// sign-in URL. Nothing here can observe that page — it is a different origin.
+const SignOutSettleMs = 2500;
+
+export interface SignInOptions {
+  remember?: boolean;
+  /** Sign out of the provider first, so its page offers no remembered account. */
+  forgetSession?: boolean;
 }
 
-export async function signInWithOAuth(provider: 'google' | 'microsoft', remember = true): Promise<AuthUser> {
+export async function signInWithOAuth(
+  provider: 'google' | 'microsoft',
+  options: SignInOptions = {},
+): Promise<AuthUser> {
+  const { remember = true, forgetSession = false } = options;
   const state = randomToken();
   const nonce = randomToken();
   const url =
@@ -213,13 +203,24 @@ export async function signInWithOAuth(provider: 'google' | 'microsoft', remember
 
   return new Promise<AuthUser>((resolve, reject) => {
     const popup = window.open(
-      url,
+      forgetSession ? ProviderSignOutUrls[provider] : url,
       `sso-${provider}`,
       `width=${width},height=${height},left=${left},top=${top}`
     );
     if (!popup) {
       reject(new Error('Popup blocked — please allow popups for this site'));
       return;
+    }
+
+    // The same popup carries on to the sign-in URL once the logout has landed.
+    if (forgetSession) {
+      window.setTimeout(() => {
+        try {
+          popup.location.href = url;
+        } catch {
+          void 0;
+        }
+      }, SignOutSettleMs);
     }
 
     let settled = false;

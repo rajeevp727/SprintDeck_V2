@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useAuth, checkName, peekName, forgotPassword, signInWithOAuth, signOutOfProvider } from '../lib/auth';
+import { useAuth, checkName, peekName, forgotPassword, signInWithOAuth } from '../lib/auth';
 import { getAccounts, forgetAccount, type RememberedAccount } from '../lib/rememberedAccounts';
 import { InfoIcon, CloseIcon } from './icons';
 
@@ -27,9 +27,6 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
   const [ssoErr, setSsoErr] = useState('');
   const [ssoNote, setSsoNote] = useState('');
   const [forgetBusy, setForgetBusy] = useState<'google' | 'microsoft' | null>(null);
-  // A page cannot ask a provider whether a session exists there, so the
-  // sign-out links appear only for a provider tried from this screen.
-  const [ssoTried, setSsoTried] = useState<Array<'google' | 'microsoft'>>([]);
   const liPwRef = useRef<HTMLInputElement>(null);
 
   const [rgName, setRgName] = useState('');
@@ -60,27 +57,23 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
     setAccounts(getAccounts());
   }
 
-  /** Clears the provider's session so its next sign-in page starts with no remembered account. */
-  async function forgetProviderSession(provider: 'google' | 'microsoft') {
-    setSsoErr('');
-    setSsoNote('');
+  /** Signs out of the provider first, so its page offers no remembered account. */
+  function doFreshSSO(provider: 'google' | 'microsoft') {
     setForgetBusy(provider);
-    await signOutOfProvider(provider);
-    setForgetBusy(null);
-    setSsoNote(`Signed out of ${provider === 'google' ? 'Google' : 'Microsoft'} — the next sign-in starts fresh.`);
+    return doSSO(provider, true).finally(() => setForgetBusy(null));
   }
 
-  async function doSSO(provider: 'google' | 'microsoft') {
+  async function doSSO(provider: 'google' | 'microsoft', forgetSession = false) {
     setSsoErr('');
-    setSsoNote('');
-    setSsoTried((tried) => (tried.includes(provider) ? tried : [...tried, provider]));
+    setSsoNote(forgetSession ? 'Signing out of the current account…' : '');
     setSsoBusy(provider);
     try {
-      await signInWithOAuth(provider);
+      await signInWithOAuth(provider, { forgetSession });
       onAuthed();
     } catch (err) {
       setSsoErr((err as Error).message);
       setSsoBusy(null);
+      setSsoNote('');
     }
   }
 
@@ -322,23 +315,15 @@ export default function AuthScreen({ onAuthed, onBack }: Props) {
               {ssoBusy === 'microsoft' ? 'Signing in…' : 'Microsoft'}
             </button>
           </div>
-          {ssoTried.length > 0 && (
-            <div className="auth-sso-forget">
-              <span>Wrong account?</span>
-              {ssoTried.map((provider) => (
-                <button
-                  key={provider}
-                  type="button"
-                  onClick={() => forgetProviderSession(provider)}
-                  disabled={!!ssoBusy || !!forgetBusy}
-                >
-                  {forgetBusy === provider
-                    ? 'Signing out…'
-                    : `Sign out of ${provider === 'google' ? 'Google' : 'Microsoft'}`}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="auth-sso-forget">
+            <span>Wrong account?</span>
+            <button type="button" onClick={() => doFreshSSO('google')} disabled={!!ssoBusy || !!forgetBusy}>
+              {forgetBusy === 'google' ? 'Switching…' : 'Use another Google account'}
+            </button>
+            <button type="button" onClick={() => doFreshSSO('microsoft')} disabled={!!ssoBusy || !!forgetBusy}>
+              {forgetBusy === 'microsoft' ? 'Switching…' : 'Use another Microsoft account'}
+            </button>
+          </div>
           {ssoNote && <p className="auth-sso-note">{ssoNote}</p>}
           {ssoErr && <p className="error auth-sso-error">{ssoErr}</p>}
         </section>
