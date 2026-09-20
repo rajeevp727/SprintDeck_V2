@@ -393,7 +393,6 @@ app.http('oauth', {
       console.error('[oauth] account upsert failed', err);
       return bad(`Sign-in failed — ${String(err?.message || err).slice(0, 120)}`, 500);
     }
-    if (result.error === 'email-exists-other-provider') return bad('Email already used by another provider', 409);
     if (result.error === 'invalid-email') return bad('Invalid email', 400);
     if (result.error === 'invalid-provider') return bad('Invalid provider', 400);
     if (result.error) return bad('Could not create account — try again', 500);

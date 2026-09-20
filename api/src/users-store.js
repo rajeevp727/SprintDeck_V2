@@ -161,17 +161,27 @@ async function findOrCreateOAuthUser({ email, name, provider, providerSub }) {
 
   const existing = await getByEmail(id);
   if (existing) {
-    if (existing.providerSub && existing.authProvider && existing.authProvider !== provider) {
-      return { error: 'email-exists-other-provider' };
+    // Both providers verify ownership of the address, so a matching email is
+    // the same person: link the new provider onto the existing account rather
+    // than locking them out of whichever button they didn't sign up with.
+    const linked = { ...(existing.providers || {}) };
+    if (existing.authProvider && existing.providerSub && !linked[existing.authProvider]) {
+      linked[existing.authProvider] = existing.providerSub;
     }
-    if (existing.providerSub && existing.providerSub !== providerSub) {
-      return { error: 'email-exists' };
-    }
-    if (!existing.providerSub) {
-      existing.authProvider = provider;
-      existing.providerSub = providerSub;
-      if (!existing.name && name) existing.name = uniqueNameFromBase(name);
-      if (!existing.nameLower && existing.name) existing.nameLower = normalizeName(existing.name);
+
+    // A second identity at the same provider means two provider accounts claim
+    // one address, which the provider itself should never allow.
+    if (linked[provider] && linked[provider] !== providerSub) return { error: 'email-exists' };
+
+    const alreadyLinked = linked[provider] === providerSub && existing.providers;
+    linked[provider] = providerSub;
+    existing.providers = linked;
+    existing.authProvider = existing.authProvider || provider;
+    existing.providerSub = existing.providerSub || providerSub;
+    if (!existing.name && name) existing.name = uniqueNameFromBase(name);
+    if (!existing.nameLower && existing.name) existing.nameLower = normalizeName(existing.name);
+
+    if (!alreadyLinked) {
       const c = getContainer();
       if (c) await (await c).items.upsert(existing);
       else memory.set(existing.id, existing);
@@ -188,6 +198,7 @@ async function findOrCreateOAuthUser({ email, name, provider, providerSub }) {
     nameLower,
     authProvider: provider,
     providerSub,
+    providers: { [provider]: providerSub },
     createdAt: Date.now(),
   };
 
