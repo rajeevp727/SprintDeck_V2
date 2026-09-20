@@ -9,7 +9,14 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     // Split the rarely-changing React runtime into its own long-cached chunk.
-    rollupOptions: { output: { manualChunks: { react: ['react', 'react-dom'] } } },
+    // Rolldown (Vite 8) dropped the object form of `manualChunks`.
+    rollupOptions: {
+      output: {
+        advancedChunks: {
+          groups: [{ name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ }],
+        },
+      },
+    },
   },
   server: {
     port: 5273,
