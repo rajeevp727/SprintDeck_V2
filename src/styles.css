@@ -4163,13 +4163,9 @@ button.linkish {
 
 .retro-col-hint {
   display: block;
-  font-size: 0.95rem;
-  line-height: 1;
+  font-size: 0.72rem;
   color: var(--muted);
   margin-top: 0.3rem;
-}
-.retro-col-hint:hover {
-  color: var(--text);
 }
 
 .status-pill-button {

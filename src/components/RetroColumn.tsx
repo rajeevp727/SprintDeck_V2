@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import type { RetroBoard as RetroBoardType, RetroColumn } from '../lib/retroTypes';
+import { hintSeen, markHintSeen } from '../lib/storage';
 import RetroNote from './RetroNote';
 
 interface ColumnProps {
@@ -34,6 +35,7 @@ export default function RetroColumnView({
   onTyping,
 }: ColumnProps) {
   const [draft, setDraft] = useState('');
+  const [showHint, setShowHint] = useState(false);
   const lastTyping = useRef(0);
   const actionColumn = board.columns.find((c) => /action items/i.test(c.title));
   const isActionColumn = actionColumn?.id === column.id;
@@ -55,6 +57,15 @@ export default function RetroColumnView({
     if (!text) return;
     setDraft('');
     onAdd(text);
+  }
+
+  /** How the box works, shown once per column and not laboured after that. */
+  function hintOnFirstHover() {
+    const key = `retro-compose:${column.title}`;
+    if (hintSeen(key)) return;
+    markHintSeen(key);
+    setShowHint(true);
+    setTimeout(() => setShowHint(false), 5000);
   }
 
   function handleChange(value: string) {
@@ -80,6 +91,7 @@ export default function RetroColumnView({
             placeholder="Add your thoughts on this…"
             rows={2}
             maxLength={500}
+            onMouseEnter={hintOnFirstHover}
             onChange={(e) => handleChange(e.target.value)}
             onBlur={add}
             onKeyDown={(e) => {
@@ -90,13 +102,11 @@ export default function RetroColumnView({
               if (e.key === 'Escape') setDraft('');
             }}
           />
-          <span
-            className="retro-col-hint"
-            title="Enter or click away to post · Esc to discard"
-            aria-label="Enter or click away to post, Esc to discard"
-          >
-            <span aria-hidden>ⓘ</span>
-          </span>
+          {showHint && (
+            <span className="retro-col-hint" role="status">
+              Enter or click away to post · Esc to discard
+            </span>
+          )}
         </div>
       )}
 
