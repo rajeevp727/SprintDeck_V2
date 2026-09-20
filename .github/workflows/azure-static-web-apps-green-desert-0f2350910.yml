@@ -39,6 +39,15 @@ jobs:
           node-version: "20"
           cache: npm
       - name: Build frontend bundle
+        # Vite inlines VITE_* at build time, so these belong on the step
+        # that runs the build: on the deploy step they reach nothing,
+        # because skip_app_build leaves that step with no build to run.
+        env:
+          # Payee VPA injected into the frontend build from the repo secret UPI_ID.
+          VITE_UPI_ID: ${{ secrets.UPI_ID }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          VITE_AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          VITE_AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
         run: |
           npm ci --legacy-peer-deps
           npm run build
@@ -46,12 +55,6 @@ jobs:
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1 # v1
-        env:
-          # Payee VPA injected into the frontend build from the repo secret UPI_ID.
-          VITE_UPI_ID: ${{ secrets.UPI_ID }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          VITE_AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          VITE_AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_GREEN_DESERT_0F2350910 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
