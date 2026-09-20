@@ -1,67 +1,61 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import store from './payments-store.js';
+import { createRequire } from 'node:module';
+
+// Both through require: the store reaches users-store the same way, and an
+// ESM import would hand this file a second instance with its own state.
+const cjs = createRequire(import.meta.url);
+const store = cjs('./payments-store.js');
+const users = cjs('./users-store.js');
 
 describe('payments-store', () => {
   beforeEach(() => {
     delete process.env.COSMOS_CONNECTION_STRING;
   });
 
-  it('grantSubscription creates a confirmed master order', async () => {
-    const { order } = await store.grantSubscription('owner@example.com', 'master');
-    expect(order.status).toBe('confirmed');
-    expect(order.tier).toBe('master');
-    expect(order.email).toBe('owner@example.com');
-    expect(order.confirmedAt).toBeTruthy();
+  it('creates a pending order keyed to the buying account', async () => {
+    const { order } = await store.createOrder({
+      tier: 'pro',
+      email: 'buyer@example.com',
+      accountId: 'google:buyer@example.com',
+      baseAmount: 199,
+    });
+    expect(order.status).toBe('pending');
+    expect(order.accountId).toBe('google:buyer@example.com');
+    expect(order.id.startsWith('order:')).toBe(true);
   });
 
-  it('activeSubscription returns tier for a granted order', async () => {
-    const { order } = await store.grantSubscription('owner@example.com', 'pro');
-    const sub = await store.activeSubscription(order.id);
-    expect(sub).toMatchObject({ tier: 'pro' });
-    expect(sub.at).toBeTruthy();
+  it('confirms the matching order when the credit arrives', async () => {
+    const { order } = await store.createOrder({ tier: 'pro', accountId: 'google:a@b.com', baseAmount: 199 });
+    const result = await store.ingestCredit({ amount: 199, utr: 'UTR-1', rawText: 'credited 199', source: 'test' });
+    expect(result.order?.id).toBe(order.id);
+    expect(result.order?.status).toBe('confirmed');
+    expect(result.receipt.id.startsWith('receipt:')).toBe(true);
   });
 
-  it('activeSubscription returns null for unknown order', async () => {
+  it('puts the purchased tier on the account, not on the order alone', async () => {
+    await users.findOrCreateOAuthUser({ email: 'pays@example.com', provider: 'google', providerSub: 'g-pay' });
+    await store.createOrder({ tier: 'expert', accountId: 'google:pays@example.com', baseAmount: 499 });
+    await store.ingestCredit({ amount: 499, utr: 'UTR-2', rawText: 'credited 499', source: 'test' });
+
+    const plan = users.planFor(await users.getById('google:pays@example.com'));
+    expect(plan).toMatchObject({ active: true, tier: 'expert', lifetime: false });
+  });
+
+  it('ignores a duplicate credit for the same reference', async () => {
+    await store.createOrder({ tier: 'pro', accountId: 'google:dupe@example.com', baseAmount: 199 });
+    await store.ingestCredit({ amount: 199, utr: 'UTR-3', rawText: 'credited 199', source: 'test' });
+    const second = await store.ingestCredit({ amount: 199, utr: 'UTR-3', rawText: 'credited 199', source: 'test' });
+    expect(second.duplicate).toBe(true);
+    expect(second.order).toBeNull();
+  });
+
+  it('records a credit that matches no pending order', async () => {
+    const result = await store.ingestCredit({ amount: 12345, utr: 'UTR-4', rawText: 'credited 12345', source: 'test' });
+    expect(result.order).toBeNull();
+    expect(result.receipt.amount).toBe(12345);
+  });
+
+  it('activeSubscription returns null for an unknown order', async () => {
     expect(await store.activeSubscription('missing')).toBeNull();
-  });
-
-  it('activeSubscriptionByAccount finds the latest active grant', async () => {
-    const first = await store.grantSubscription('google:owner@example.com', 'pro');
-    const second = await store.grantSubscription('google:owner@example.com', 'master');
-    const sub = await store.activeSubscriptionByAccount('google:owner@example.com');
-    expect(sub).toMatchObject({ tier: 'master', orderId: second.order.id });
-    expect(sub?.orderId).not.toBe(first.order.id);
-  });
-
-  it('activeSubscriptionByAccount returns null when grant is expired', async () => {
-    const { order } = await store.grantSubscription('google:expired@example.com', 'pro');
-    order.confirmedAt = Date.now() - 40 * 24 * 60 * 60 * 1000;
-    expect(await store.activeSubscriptionByAccount('google:expired@example.com')).toBeNull();
-  });
-
-  it('lifetime grant stays active after 30 days', async () => {
-    const { order } = await store.grantSubscription('mrrajeev18@gmail.com', 'master', { lifetime: true });
-    expect(order.lifetime).toBe(true);
-    order.confirmedAt = Date.now() - 400 * 24 * 60 * 60 * 1000;
-    const sub = await store.activeSubscription(order.id);
-    expect(sub).toMatchObject({ tier: 'master', lifetime: true, orderId: order.id });
-  });
-
-  it('rejects lifetime grant for non-allowlisted emails', async () => {
-    const result = await store.grantSubscription('other@example.com', 'master', { lifetime: true });
-    expect(result.error).toBe('lifetime-not-allowed');
-  });
-
-  it('ignores lifetime flag on non-allowlisted order emails', async () => {
-    const { order } = await store.grantSubscription('other@example.com', 'master');
-    order.lifetime = true;
-    order.grantedBy = 'admin-lifetime';
-    order.confirmedAt = Date.now() - 400 * 24 * 60 * 60 * 1000;
-    expect(await store.activeSubscription(order.id)).toBeNull();
-  });
-
-  it('grantSubscription rejects invalid tier', async () => {
-    const result = await store.grantSubscription('x@y.com', 'platinum');
-    expect(result.error).toBe('invalid-tier');
   });
 });

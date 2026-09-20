@@ -234,6 +234,45 @@ async function findOrCreateOAuthUser({ email, name, provider, providerSub }) {
   return { user };
 }
 
+const PlanDays = 30;
+
+/**
+ * The plan lives on the account: tier plus, for a timed plan, when it lapses.
+ * A lifetime plan has no expiry.
+ */
+async function setPlan(accountId, { tier, lifetime = false, days = PlanDays } = {}) {
+  const user = await getById(accountId);
+  if (!user) return null;
+  const now = Date.now();
+  user.tier = String(tier || 'free').toLowerCase();
+  user.lifetime = !!lifetime;
+  user.planGrantedAt = now;
+  user.planExpiresAt = lifetime || user.tier === 'free' ? null : now + days * 24 * 60 * 60 * 1000;
+  const c = getContainer();
+  if (c) await (await c).items.upsert(user);
+  else memory.set(user.id, user);
+  return user;
+}
+
+/** What the account is entitled to right now. */
+function planFor(user) {
+  const tier = String(user?.tier || 'free').toLowerCase();
+  if (!user || tier === 'free') return { active: false, tier: 'free', lifetime: false };
+  const at = new Date(user.planGrantedAt || user.createdAt || 0).toISOString();
+  if (user.lifetime) return { active: true, tier, lifetime: true, at, expiresAt: null };
+  const expiresAt = user.planExpiresAt || 0;
+  if (expiresAt && Date.now() > expiresAt) {
+    return { active: false, tier: 'free', lifetime: false, expiresAt: new Date(expiresAt).toISOString() };
+  }
+  return {
+    active: true,
+    tier,
+    lifetime: false,
+    at,
+    expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+  };
+}
+
 async function isNameAvailable(name) {
   const n = normalizeName(name);
   if (!n) return false;
@@ -344,6 +383,8 @@ module.exports = {
   findOrCreateOAuthUser,
   getByEmail,
   getById,
+  setPlan,
+  planFor,
   accountIdFor,
   getByName,
   hasPassword,

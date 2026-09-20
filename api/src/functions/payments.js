@@ -3,6 +3,7 @@
 const { app } = require('@azure/functions');
 const crypto = require('crypto');
 const store = require('../payments-store');
+const users = require('../users-store');
 const { parse } = require('../parse');
 const jwt = require('../jwt');
 
@@ -128,16 +129,14 @@ app.http('subscriptionStatus', {
     const account = accountFromRequest(req);
     if (!account.accountId) return ok({ active: false });
 
-    const sub = await store.activeSubscriptionByAccount(account.accountId);
-    return sub
-      ? ok({
-          active: true,
-          tier: sub.tier,
-          at: sub.at,
-          orderId: sub.orderId,
-          lifetime: !!sub.lifetime,
-        })
-      : ok({ active: false });
+    // The plan lives on the account document; payments only records what was
+    // bought, not what is held.
+    const plan = users.planFor(await users.getById(account.accountId));
+    return ok(
+      plan.active
+        ? { active: true, tier: plan.tier, at: plan.at, lifetime: plan.lifetime, expiresAt: plan.expiresAt }
+        : { active: false },
+    );
   },
 });
 

@@ -2,11 +2,13 @@
 
 const crypto = require('crypto');
 const { sameAmount } = require('./parse');
-const { parseAccountId } = require('./account-id');
 
 const conn = process.env.COSMOS_CONNECTION_STRING || '';
 const dbName = process.env.COSMOS_DB_NAME || 'sprintdeck';
-const containerName = 'payments';
+// Orders and receipts live in the users container, beside the accounts they
+// belong to and the name reservations already kept there. A `type` field keeps
+// them apart; there is no separate payments container.
+const containerName = 'users';
 
 const orderTtlMs = (Number(process.env.ORDER_TTL_MINUTES) || 30) * 60 * 1000;
 
@@ -39,8 +41,8 @@ function getContainer() {
   return containerPromise;
 }
 
-function genId() {
-  return crypto.randomUUID();
+function genId(kind) {
+  return `${kind}:${crypto.randomUUID()}`;
 }
 
 async function putRecord(rec) {
@@ -84,7 +86,7 @@ async function createOrder({ tier, email, accountId, baseAmount }) {
   
   
   const order = {
-    id: genId(),
+    id: genId('order'),
     type: 'order',
     tier,
     email: email || null,
@@ -163,7 +165,7 @@ async function anonymizeOrdersForEmail(email) {
 
 async function ingestCredit({ amount, utr, rawText, source }) {
   const receipt = {
-    id: genId(),
+    id: genId('receipt'),
     type: 'receipt',
     amount,
     utr: utr || null,
@@ -198,6 +200,12 @@ async function ingestCredit({ amount, utr, rawText, source }) {
 
   receipt.matchedOrderId = match.id;
   await putRecord(receipt);
+
+  // A confirmed payment is what moves the account onto the tier it bought.
+  if (match.accountId) {
+    const users = require('./users-store');
+    await users.setPlan(match.accountId, { tier: match.tier, lifetime: false });
+  }
 
   return { receipt, order: match };
 }
@@ -254,88 +262,11 @@ async function activeSubscription(orderId) {
   return subscriptionPayload(order);
 }
 
-/**
- * Entitlement belongs to one account, not to an address: a Google sign-in and
- * a Microsoft sign-in on the same email are separate accounts with separate
- * plans, so the order is matched on the account id.
- */
-async function activeSubscriptionByAccount(accountId) {
-  const normalized = String(accountId || '')
-    .trim()
-    .toLowerCase();
-  if (!normalized) return null;
-  const now = Date.now();
-  const c = getContainer();
-  let candidates = [];
-  if (c) {
-    const query = {
-      query:
-        "SELECT * FROM c WHERE c.type = 'order' AND c.status = 'confirmed' AND c.accountId = @accountId",
-      parameters: [{ name: '@accountId', value: normalized }],
-    };
-    const { resources } = await (await c).items.query(query).fetchAll();
-    candidates = resources;
-  } else {
-    candidates = [...memory.values()].filter(
-      (rec) => rec.type === 'order' && rec.status === 'confirmed' && rec.accountId === normalized,
-    );
-  }
-  const active = candidates
-    .filter((order) => isActiveConfirmedOrder(order, now))
-    .sort(
-      (a, b) =>
-        Number(isLifetimeOrder(b)) - Number(isLifetimeOrder(a)) ||
-        (b.confirmedAt || 0) - (a.confirmedAt || 0) ||
-        (b.seq || 0) - (a.seq || 0),
-    );
-  const order = active[0];
-  if (!order) return null;
-  return subscriptionPayload(order);
-}
-
-async function grantSubscription(accountId, tier, { lifetime = false } = {}) {
-  const { provider, email } = parseAccountId(accountId);
-  const normalizedEmail = email || null;
-  const normalizedAccountId = normalizedEmail
-    ? (provider === 'local' ? normalizedEmail : `${provider}:${normalizedEmail}`)
-    : null;
-  const normalizedTier = String(tier || 'pro').toLowerCase();
-  if (!['pro', 'expert', 'master'].includes(normalizedTier)) {
-    return { error: 'invalid-tier' };
-  }
-  if (lifetime && !isLifetimeAllowedEmail(normalizedEmail)) {
-    return { error: 'lifetime-not-allowed' };
-  }
-  const prices = { pro: 199, expert: 499, master: 999 };
-  const now = Date.now();
-  const order = {
-    id: genId(),
-    type: 'order',
-    tier: normalizedTier,
-    accountId: normalizedAccountId,
-    email: normalizedEmail,
-    baseAmount: prices[normalizedTier],
-    payAmount: prices[normalizedTier],
-    status: 'confirmed',
-    utr: lifetime ? 'admin-lifetime' : 'admin-grant',
-    receiptId: null,
-    createdAt: now,
-    seq: (seq += 1),
-    confirmedAt: now,
-    grantedBy: lifetime ? 'admin-lifetime' : 'admin',
-    lifetime: !!lifetime,
-  };
-  await putRecord(order);
-  return { order };
-}
-
 module.exports = {
   createOrder,
   getOrder,
   ingestCredit,
   activeSubscription,
-  activeSubscriptionByAccount,
-  grantSubscription,
   ordersForEmail,
   anonymizeOrdersForEmail,
 };
