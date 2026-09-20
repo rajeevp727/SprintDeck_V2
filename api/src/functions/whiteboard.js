@@ -51,9 +51,9 @@ async function requireWriter(code, participantId) {
   return { board };
 }
 
-async function requirePro(req) {
-  const { allowed } = await entitlement.checkTier(req, 'pro');
-  if (!allowed) return bad('A Pro subscription is required to start a whiteboard', 403);
+async function requireExpert(req) {
+  const { allowed } = await entitlement.checkTier(req, 'expert');
+  if (!allowed) return bad('An Expert subscription is required to start a whiteboard', 403);
   return null;
 }
 
@@ -80,8 +80,8 @@ app.http('createWhiteboard', {
       access,
     } = body;
 
-    const proErr = await requirePro(req);
-    if (proErr) return proErr;
+    const tierErr = await requireExpert(req);
+    if (tierErr) return tierErr;
 
     let seedParticipants = [];
     let resolvedAccess = access || (roomCode ? 'room' : 'open');

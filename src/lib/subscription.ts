@@ -24,6 +24,7 @@ export const tiers: Tier[] = [
     icon: '🚀',
     features: [
       'Connect one project-management tool',
+      'Retrospectives & in-room team chat',
       'Unlimited rooms · up to 20 voters',
       'Estimate & push story points back',
       'Export results (.txt / .csv / .json)',
@@ -38,6 +39,7 @@ export const tiers: Tier[] = [
     highlight: true,
     features: [
       'Everything in Pro',
+      'Shared whiteboard — live multiplayer canvas',
       'Connect multiple tools',
       'Session estimation analytics',
       'Priority updates',

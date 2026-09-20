@@ -75,3 +75,26 @@ describe('checkTier against a real account', () => {
     expect(allowed).toBe(false);
   });
 });
+
+describe('feature tiers', () => {
+  const plans = {
+    free: { active: false, tier: 'free' },
+    pro: { active: true, tier: 'pro' },
+    expert: { active: true, tier: 'expert' },
+    master: { active: true, tier: 'master' },
+  };
+
+  it('opens retrospectives and chat to pro and above', () => {
+    expect(entitlement.meetsTier(plans.free, 'pro')).toBe(false);
+    expect(entitlement.meetsTier(plans.pro, 'pro')).toBe(true);
+    expect(entitlement.meetsTier(plans.expert, 'pro')).toBe(true);
+    expect(entitlement.meetsTier(plans.master, 'pro')).toBe(true);
+  });
+
+  it('keeps the whiteboard to expert and above', () => {
+    expect(entitlement.meetsTier(plans.free, 'expert')).toBe(false);
+    expect(entitlement.meetsTier(plans.pro, 'expert')).toBe(false);
+    expect(entitlement.meetsTier(plans.expert, 'expert')).toBe(true);
+    expect(entitlement.meetsTier(plans.master, 'expert')).toBe(true);
+  });
+});

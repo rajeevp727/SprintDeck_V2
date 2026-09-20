@@ -21,7 +21,8 @@ const FEATURES = ['Live sync', 'Presenter controls', 'SVG & PDF export'] as cons
 
 export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode }: Props) {
   const { user } = useAuth();
-  const { subscribed, loaded: subLoaded } = useSubscription();
+  const { subscription, loaded: subLoaded } = useSubscription();
+  const canHost = subscription?.tier === 'expert' || subscription?.tier === 'master';
   const [mode, setMode] = useState<'create' | 'join'>(joinCode || shareToken ? 'join' : 'create');
   const [name, setName] = useProfileNamePrefill();
   const [boardName, setBoardName] = useState('');
@@ -35,7 +36,7 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
   const autoBooted = useRef(false);
   const roomCode = getCurrentRoom();
 
-  const needsPro = subLoaded && !subscribed;
+  const needsPro = subLoaded && !canHost;
   const isMemberFlow = mode === 'join';
   const showSubscriptionUpsell = !isMemberFlow && needsPro;
   const createDisabled = busy || needsPro || !name.trim();
@@ -244,7 +245,7 @@ export default function WhiteboardStart({ onEnter, onBack, shareToken, joinCode 
             </label>
             {showSubscriptionUpsell ? (
               <div className="wb-pro-notice" role="status">
-                <p>A Pro subscription is required to start a whiteboard.</p>
+                <p>An Expert subscription is required to start a whiteboard.</p>
                 <button type="button" className="ghost wb-upgrade" onClick={() => setShowSubscribe(true)}>
                   View plans →
                 </button>

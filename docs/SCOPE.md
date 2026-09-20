@@ -31,6 +31,8 @@ a per-seat licence for each of those tools separately.
 
 **Commercial**
 - Three paid tiers, ₹199 / ₹499 / ₹999
+- Retrospectives and in-room chat need **Pro** or above; the whiteboard needs **Expert** or
+  above. The tier is read from the signed-in account, server-side
 - UPI payment without a gateway, reconciled from bank credit notifications
 - Lifetime plans for allowlisted addresses
 - Manual plan grants for support and sales cases
