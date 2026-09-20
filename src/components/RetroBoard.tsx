@@ -1,16 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { retroApi } from '../lib/retroApi';
-import { clearIdentity, getIdentity } from '../lib/storage';
-import type { RetroBoard as RetroBoardType, RetroColumn } from '../lib/retroTypes';
-import RetroNote from './RetroNote';
+import ReviewPanel from './RetroReviewPanel';
+import RetroPeople from './RetroPeople';
+import RetroHeader from './RetroHeader';
+import RetroColumnView from './RetroColumn';
 import AdBanner from './AdBanner';
-import { useRealtime } from '../lib/realtime';
-import { notifyPresence } from '../lib/presence';
-import { exportDoc, retroExportDoc, exportFormats } from '../lib/retroExport';
-
-const pollMs = 1500; 
-
-const maxMisses = 6;
+import { useRetroBoard } from './useRetroBoard';
 
 interface Props {
   code: string;
@@ -19,136 +13,25 @@ interface Props {
 }
 
 export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) {
-  const identity = getIdentity(code);
-  const participantId = identity?.participantId ?? '';
-
-  const [board, setBoard] = useState<RetroBoardType | null>(null);
-  const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [showPeople, setShowPeople] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
-  const [showExport, setShowExport] = useState(false);
-  const [typingNames, setTypingNames] = useState<Record<string, string>>({});
-  const missCount = useRef(0);
-  const prevParticipants = useRef<{ id: string; name: string }[] | null>(null);
-  const typingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-
-  useEffect(() => {
-    if (!participantId) onMissingIdentity();
-  }, [participantId, onMissingIdentity]);
-
-  const refresh = useCallback(async () => {
-    if (!participantId) return;
-    try {
-      const { board: b } = await retroApi.getBoard(code, participantId);
-      missCount.current = 0;
-      if (!b.participants.some((p) => p.id === participantId)) {
-        clearIdentity(code);
-        onMissingIdentity();
-        return;
-      }
-
-      notifyPresence(b.participants, b.facilitatorId === participantId, participantId, prevParticipants, 'retrospective');
-      setBoard(b);
-      setError('');
-    } catch (err) {
-      const msg = (err as Error).message;
-      if (msg.toLowerCase().includes('not found')) {
-        missCount.current += 1;
-        if (missCount.current >= maxMisses) {
-          clearIdentity(code);
-          onMissingIdentity();
-        }
-        return;
-      }
-      setError(msg);
-    }
-  }, [code, participantId, onMissingIdentity]);
-
-  
-  const showTyping = useCallback(
-    (id: string, name: string) => {
-      if (!id || id === participantId) return; 
-      setTypingNames((prev) => (prev[id] === name ? prev : { ...prev, [id]: name }));
-      clearTimeout(typingTimers.current[id]);
-      typingTimers.current[id] = setTimeout(() => {
-        delete typingTimers.current[id];
-        setTypingNames((prev) => {
-          const next = { ...prev };
-          delete next[id];
-          return next;
-        });
-      }, 2500);
-    },
-    [participantId],
-  );
-
-  const onRealtime = useCallback(
-    (data: unknown) => {
-      const d = data as { t?: string; id?: string; name?: string } | undefined;
-      if (d?.t === 'typing') showTyping(d.id ?? '', d.name ?? 'Someone');
-      else refresh();
-    },
-    [refresh, showTyping],
-  );
-
-  const { connected: rtConnected, send } = useRealtime(`retro:${code}`, participantId, onRealtime);
-
-  
-  const notifyTyping = useCallback(() => {
-    send({ t: 'typing', id: participantId, name: getIdentity(code)?.name ?? 'Someone' });
-  }, [send, participantId, code]);
-
-  useEffect(() => {
-    refresh();
-    if (rtConnected) return; 
-    const id = setInterval(refresh, pollMs);
-    return () => clearInterval(id);
-  }, [refresh, rtConnected]);
-
-  
-  useEffect(() => {
-    const timers = typingTimers.current;
-    return () => Object.values(timers).forEach(clearTimeout);
-  }, []);
-
-  async function run(fn: () => Promise<{ board: RetroBoardType }>) {
-    try {
-      const { board: b } = await fn();
-      setBoard(b);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }
-
-  function leave() {
-    retroApi.leave(code, participantId).catch(() => {}); 
-    clearIdentity(code);
-    onLeave();
-  }
-
-  
-  async function endRetro() {
-    if (!window.confirm('End this retrospective? Notes become read-only and you can then export the results.')) return;
-    await run(() => retroApi.end(code, participantId));
-  }
-
-  
-  function exit() {
-    clearIdentity(code);
-    onLeave();
-  }
-
-  async function copyInvite() {
-    const url = `${location.origin}/retro/${code}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      window.prompt('Invite link:', url);
-    }
-  }
+  const {
+    participantId,
+    board,
+    error,
+    copied,
+    showPeople,
+    setShowPeople,
+    showProfile,
+    setShowProfile,
+    showExport,
+    setShowExport,
+    typingNames,
+    notifyTyping,
+    run,
+    leave,
+    endRetro,
+    exit,
+    copyInvite,
+  } = useRetroBoard(code, onLeave, onMissingIdentity);
 
   if (!participantId) return null;
   if (!board) {
@@ -164,105 +47,23 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
 
   return (
     <div className="retro">
-      <header className="room-header">
-        <div className="room-meta">
-          <span className="room-code" title="Board code">
-            {board.code}
-          </span>
-          <h2>{board.name}</h2>
-        </div>
-        <div className="room-actions">
-          {me && (
-            <div className="profile">
-              <button
-                className="profile-btn"
-                title="Your profile"
-                style={{ background: me.color }}
-                onClick={() => setShowProfile((s) => !s)}
-              >
-                {me.name.charAt(0).toUpperCase()}
-              </button>
-              {showProfile && (
-                <div className="profile-menu">
-                  <div className="profile-name">{me.name}</div>
-                  <div className="profile-row">
-                    <span className="muted">Role</span>
-                    <span>{me.isFacilitator ? 'Facilitator' : 'Member'}</span>
-                  </div>
-                  <div className="profile-row">
-                    <span className="muted">Colour</span>
-                    <span className="profile-swatch" style={{ background: me.color }} />
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          <button
-            type="button"
-            className="status-pill status-pill-button"
-            onClick={() => setShowPeople((open) => !open)}
-            title="Who is in this board"
-            aria-expanded={showPeople}
-          >
-            {board.participants.length} in board
-          </button>
-          {isFacilitator && (
-            <button className="ghost" onClick={copyInvite}>
-              {copied ? 'Copied!' : 'Invite'}
-            </button>
-          )}
-          {isFacilitator && board.phase !== 'ended' && (
-            <button
-              className="ghost"
-              onClick={() => run(() => retroApi.setVoting(code, participantId, !board.votingClosed))}
-              title={
-                board.votingClosed
-                  ? 'Let the team vote again'
-                  : 'Freeze the tally and sort each column by votes'
-              }
-            >
-              {board.votingClosed ? 'Reopen voting' : 'Close voting'}
-            </button>
-          )}
-          {}
-          {isFacilitator && board.phase === 'ended' && (
-            <div className="profile">
-              <button className="ghost" title="Export the retrospective" onClick={() => setShowExport((s) => !s)}>
-                Export ▾
-              </button>
-              {showExport && (
-                <div className="profile-menu export-menu">
-                  {exportFormats.map((f) => (
-                    <button
-                      key={f.format}
-                      className="export-item"
-                      onClick={() => {
-                        exportDoc(f.format, retroExportDoc(board));
-                        setShowExport(false);
-                      }}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          {!isFacilitator ? (
-            <button className="ghost danger" onClick={leave}>
-              Leave Retrospective
-            </button>
-          ) : board.phase === 'ended' ? (
-            <button className="ghost danger" onClick={exit}>
-              Exit
-            </button>
-          ) : (
-            <button className="ghost danger" onClick={endRetro}>
-              End Retrospective
-            </button>
-          )}
-        </div>
-      </header>
+      <RetroHeader
+        board={board}
+        me={me}
+        isFacilitator={isFacilitator}
+        copied={copied}
+        showProfile={showProfile}
+        showPeople={showPeople}
+        showExport={showExport}
+        onToggleProfile={() => setShowProfile((open) => !open)}
+        onTogglePeople={() => setShowPeople((open) => !open)}
+        onToggleExport={() => setShowExport((open) => !open)}
+        onCopyInvite={copyInvite}
+        onToggleVoting={() => run(() => retroApi.setVoting(code, participantId, !board.votingClosed))}
+        onEnd={endRetro}
+        onExit={exit}
+        onLeave={leave}
+      />
 
       {board.phase === 'review' ? (
         <ReviewPanel
@@ -291,36 +92,13 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
           </div>
 
           {showPeople && (
-            <div className="retro-people" role="dialog" aria-label="People in this board">
-              <div className="retro-people-head">
-                <strong>In this board</strong>
-                <button type="button" className="ghost" onClick={() => setShowPeople(false)}>
-                  Close
-                </button>
-              </div>
-              <ul className="retro-people-list">
-                {board.participants.map((p) => (
-                  <li key={p.id}>
-                    <span className="retro-legend-dot" style={{ background: p.color }} />
-                    <span className="retro-people-name">
-                      {p.name}
-                      {p.isFacilitator && <span className="crown"> ★</span>}
-                      {p.id === participantId && <span className="you"> (you)</span>}
-                    </span>
-                    {isFacilitator && !p.isFacilitator && board.phase !== 'ended' && (
-                      <button
-                        type="button"
-                        className="ghost danger retro-people-remove"
-                        title={`Remove ${p.name} from the board`}
-                        onClick={() => run(() => retroApi.removeParticipant(code, participantId, p.id))}
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <RetroPeople
+              board={board}
+              participantId={participantId}
+              isFacilitator={isFacilitator}
+              onClose={() => setShowPeople(false)}
+              onRemove={(targetId) => run(() => retroApi.removeParticipant(code, participantId, targetId))}
+            />
           )}
 
           {Object.keys(typingNames).length > 0 && (
@@ -353,159 +131,6 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
       {error && <p className="error room-error">{error}</p>}
 
       <AdBanner className="ad-page" />
-    </div>
-  );
-}
-
-interface ReviewProps {
-  board: RetroBoardType;
-  isFacilitator: boolean;
-  onToggle: (itemId: string) => void;
-  onOpen: () => void;
-}
-
-function ReviewPanel({ board, isFacilitator, onToggle, onOpen }: ReviewProps) {
-  const items = board.carryOverItems;
-  return (
-    <div className="retro-review">
-      <h3 className="retro-review-title">Last sprint's action items</h3>
-      {items.length === 0 ? (
-        <p className="retro-review-empty">
-          You're all caught up — no action items carried over from your last retrospective.
-        </p>
-      ) : (
-        <ul className="retro-review-list">
-          {items.map((it) => (
-            <li key={it.id} className={it.done ? 'done' : ''}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={it.done}
-                  disabled={!isFacilitator}
-                  onChange={() => onToggle(it.id)}
-                />
-                <span>{it.text}</span>
-              </label>
-            </li>
-          ))}
-        </ul>
-      )}
-      {isFacilitator ? (
-        <button className="primary" onClick={onOpen}>
-          Start retrospective
-        </button>
-      ) : (
-        <p className="muted retro-review-wait">
-          The facilitator is reviewing last sprint's action items…
-        </p>
-      )}
-    </div>
-  );
-}
-
-interface ColumnProps {
-  column: RetroColumn;
-  board: RetroBoardType;
-  participantId: string;
-  isFacilitator: boolean;
-  onAdd: (text: string) => void;
-  onEdit: (noteId: string, text: string) => void;
-  onDelete: (noteId: string) => void;
-  onMove: (noteId: string, columnId: string) => void;
-  onVote: (noteId: string) => void;
-  onTyping: () => void;
-}
-
-function RetroColumnView({
-  column,
-  board,
-  participantId,
-  isFacilitator,
-  onAdd,
-  onEdit,
-  onDelete,
-  onMove,
-  onVote,
-  onTyping,
-}: ColumnProps) {
-  const [draft, setDraft] = useState('');
-  const lastTyping = useRef(0);
-  const actionColumn = board.columns.find((c) => /action items/i.test(c.title));
-  const isActionColumn = actionColumn?.id === column.id;
-  const live = board.phase !== 'ended';
-  const ranked = !!board.votingClosed && !isActionColumn;
-  const canWrite = live && (isActionColumn ? isFacilitator : !isFacilitator);
-  const notes = board.notes
-    .filter((n) => n.columnId === column.id)
-    .sort((a, b) => (ranked ? (b.voteCount ?? 0) - (a.voteCount ?? 0) : 0));
-
-  /** Out of Action items goes back where it came from, or to the first column. */
-  function moveTarget(note: (typeof notes)[number]): string {
-    if (!isActionColumn) return actionColumn?.id ?? column.id;
-    return note.previousColumnId ?? board.columns[0]?.id ?? column.id;
-  }
-
-  function add() {
-    const text = draft.trim();
-    if (!text) return;
-    setDraft('');
-    onAdd(text);
-  }
-
-  function handleChange(value: string) {
-    setDraft(value);
-    const now = Date.now();
-    if (now - lastTyping.current > 1500) {
-      lastTyping.current = now;
-      onTyping();
-    }
-  }
-
-  return (
-    <div className="retro-col">
-      <div className="retro-col-head" style={{ borderColor: column.color }}>
-        <span className="retro-col-title">{column.title}</span>
-        <span className="retro-col-count">{notes.length}</span>
-      </div>
-
-      {canWrite && (
-        <div className="retro-col-add">
-          <textarea
-            value={draft}
-            placeholder="Add your thoughts on this…"
-            rows={2}
-            maxLength={500}
-            onChange={(e) => handleChange(e.target.value)}
-            onBlur={add}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                add();
-              }
-              if (e.key === 'Escape') setDraft('');
-            }}
-          />
-          <span className="retro-col-hint">Enter or click away to post · Esc to discard</span>
-        </div>
-      )}
-
-      <div className="retro-col-notes">
-        {notes.map((n) => (
-          <RetroNote
-            key={n.id}
-            note={n}
-            canEdit={live && (isActionColumn ? isFacilitator : n.authorId === participantId)}
-            canDelete={live && n.authorId === participantId}
-            canMove={live && !!actionColumn && isFacilitator}
-            isAction={isActionColumn}
-            canVote={live && !isActionColumn && !board.votingClosed && n.authorId !== participantId}
-            onEdit={(text) => onEdit(n.id, text)}
-            onDelete={() => onDelete(n.id)}
-            onMove={() => onMove(n.id, moveTarget(n))}
-            onVote={() => onVote(n.id)}
-          />
-        ))}
-      </div>
     </div>
   );
 }
