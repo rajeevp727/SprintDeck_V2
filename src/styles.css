@@ -4318,3 +4318,8 @@ button.linkish {
     box-shadow: none;
   }
 }
+
+.retro-voting-extend-label {
+  margin-left: 0.4rem;
+  color: var(--muted);
+}

@@ -152,6 +152,7 @@ export function useRetroBoard(code: string, onLeave: () => void, onMissingIdenti
     }
   }
   return {
+    refresh,
     participantId,
     board,
     error,

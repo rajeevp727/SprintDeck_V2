@@ -184,6 +184,22 @@ app.http('retroStartVoting', {
   },
 });
 
+app.http('retroExtendVoting', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'retro/{code}/voting/extend',
+  handler: async (req) => {
+    const { participantId, minutes } = await readBody(req);
+    const { board, error } = await requireParticipant(req.params.code, participantId);
+    if (error) return error;
+    if (!store.extendVoting(board, participantId, minutes)) {
+      return bad('Voting can be extended by 1, 2 or 3 minutes while it is running', 403);
+    }
+    await store.saveBoard(board);
+    return ok({ board: store.publicView(board, participantId) });
+  },
+});
+
 app.http('retroVoting', {
   methods: ['POST'],
   authLevel: 'anonymous',

@@ -22,6 +22,9 @@ export const retroApi = {
   startVoting: (code: string, participantId: string, minutes: number) =>
     request<{ board: RetroBoard }>(`/api/retro/${code}/voting/start`, 'POST', { participantId, minutes }),
 
+  extendVoting: (code: string, participantId: string, minutes: number) =>
+    request<{ board: RetroBoard }>(`/api/retro/${code}/voting/extend`, 'POST', { participantId, minutes }),
+
   setVoting: (code: string, participantId: string, closed: boolean) =>
     request<{ board: RetroBoard }>(`/api/retro/${code}/voting`, 'POST', { participantId, closed }),
 

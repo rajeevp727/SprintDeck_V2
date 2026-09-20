@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { retroApi } from '../lib/retroApi';
 import ReviewPanel from './RetroReviewPanel';
 import RetroPeople from './RetroPeople';
@@ -16,6 +17,7 @@ interface Props {
 
 export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) {
   const {
+    refresh,
     participantId,
     board,
     error,
@@ -37,6 +39,12 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
 
   // Hooks run before the early returns below.
   const votingOver = useVotingOver(!!board?.votingClosed, board?.votingEndsAt);
+
+  // The moment the clock runs out, fetch the board again: Action items are
+  // withheld from members until then, so the column only arrives on a read.
+  useEffect(() => {
+    if (votingOver) refresh();
+  }, [votingOver, refresh]);
 
   if (!participantId) return null;
   if (!board) {
@@ -92,6 +100,7 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
             votingEndsAt={board.votingEndsAt}
             onStart={(minutes) => run(() => retroApi.startVoting(code, participantId, minutes))}
             onStop={() => run(() => retroApi.setVoting(code, participantId, !board.votingClosed))}
+            onExtend={(minutes) => run(() => retroApi.extendVoting(code, participantId, minutes))}
           />
         )}
 

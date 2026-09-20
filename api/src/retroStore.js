@@ -331,6 +331,22 @@ function startVoting(board, participantId, minutes) {
   return true;
 }
 
+const ExtendMinutes = [1, 2, 3];
+
+/**
+ * Adds time to a vote already in progress, for when the room needs another
+ * minute. Extending from the deadline rather than from now keeps the clock
+ * honest if the facilitator is a second late.
+ */
+function extendVoting(board, participantId, minutes) {
+  if (!isFacilitator(board, participantId)) return false;
+  if (board.votingClosed || !board.votingEndsAt) return false;
+  const chosen = Number(minutes);
+  if (!ExtendMinutes.includes(chosen)) return false;
+  board.votingEndsAt = Math.max(Date.now(), board.votingEndsAt) + chosen * 60 * 1000;
+  return true;
+}
+
 /**
  * Closing voting freezes the tally so the board can be read top-down. The
  * facilitator can stop early, or reopen if the team is not finished.
@@ -422,9 +438,13 @@ function actionItemsFromBoard(board) {
   return board.notes.filter((n) => n.columnId === col.id).map((n) => ({ id: n.id, text: n.text }));
 }
 
+function votingIsOver(board) {
+  return !!board.votingClosed || (!!board.votingEndsAt && Date.now() >= board.votingEndsAt);
+}
+
 function publicView(board, viewerId) {
   const action = actionColumn(board);
-  const hideActions = !!action && !board.votingClosed && board.facilitatorId !== viewerId;
+  const hideActions = !!action && !votingIsOver(board) && board.facilitatorId !== viewerId;
   const columns = hideActions ? board.columns.filter((c) => c.id !== action.id) : board.columns;
   const visibleNotes = hideActions
     ? (board.notes || []).filter((n) => n.columnId !== action.id)
@@ -434,7 +454,7 @@ function publicView(board, viewerId) {
     name: board.name,
     facilitatorId: board.facilitatorId,
     phase: board.phase || 'active',
-    votingClosed: !!board.votingClosed,
+    votingClosed: votingIsOver(board),
     votingEndsAt: board.votingEndsAt || null,
     carryOverItems: board.carryOverItems || [],
     columns,
@@ -455,6 +475,9 @@ function publicView(board, viewerId) {
 }
 
 module.exports = {
+  ExtendMinutes,
+  extendVoting,
+  votingIsOver,
   VotingMinutes,
   startVoting,
   expireVoting,

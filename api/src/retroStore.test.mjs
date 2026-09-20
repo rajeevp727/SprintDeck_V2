@@ -243,3 +243,53 @@ describe('once voting closes', () => {
     expect(store.deleteNote(board, 'member', mine.id)).toBe(true);
   });
 });
+
+describe('when the clock runs out', () => {
+  it('reveals Action items to members without waiting to be written back', () => {
+    const board = boardWith();
+    store.addNote(board, 'chair', 'action', 'agreed');
+    store.startVoting(board, 'chair', 2);
+
+    expect(store.publicView(board, 'member').columns.map((c) => c.id)).not.toContain('action');
+
+    board.votingEndsAt = Date.now() - 1;
+    const view = store.publicView(board, 'member');
+    expect(view.columns.map((c) => c.id)).toContain('action');
+    expect(view.notes).toHaveLength(1);
+    expect(view.votingClosed).toBe(true);
+  });
+});
+
+describe('extending the vote', () => {
+  it('is the facilitator’s, by 1, 2 or 3 minutes, while it is running', () => {
+    const board = boardWith();
+    expect(store.extendVoting(board, 'chair', 2)).toBe(false); // nothing running yet
+
+    store.startVoting(board, 'chair', 2);
+    expect(store.extendVoting(board, 'member', 1)).toBe(false);
+    expect(store.extendVoting(board, 'chair', 5)).toBe(false);
+
+    const before = board.votingEndsAt;
+    expect(store.extendVoting(board, 'chair', 3)).toBe(true);
+    expect(board.votingEndsAt - before).toBe(3 * 60 * 1000);
+  });
+
+  it('offers 1, 2 and 3 minutes', () => {
+    expect(store.ExtendMinutes).toEqual([1, 2, 3]);
+  });
+
+  it('will not extend a vote that is already closed', () => {
+    const board = boardWith();
+    store.startVoting(board, 'chair', 2);
+    store.setVotingClosed(board, 'chair', true);
+    expect(store.extendVoting(board, 'chair', 1)).toBe(false);
+  });
+
+  it('extends from now when the deadline has just passed', () => {
+    const board = boardWith();
+    store.startVoting(board, 'chair', 2);
+    board.votingEndsAt = Date.now() - 30_000;
+    store.extendVoting(board, 'chair', 1);
+    expect(board.votingEndsAt).toBeGreaterThan(Date.now() + 55_000);
+  });
+});

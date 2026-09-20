@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 
 export const votingMinutes = [2, 3, 5, 8, 10];
+export const extendMinutes = [1, 2, 3];
+/** How close to the end the extend buttons appear. */
+const extendWindowMs = 10_000;
 
 /** True once the facilitator has closed voting, or the deadline has passed. */
 export function useVotingOver(votingClosed: boolean, votingEndsAt?: number | null): boolean {
@@ -22,6 +25,7 @@ interface Props {
   votingEndsAt?: number | null;
   onStart: (minutes: number) => void;
   onStop: () => void;
+  onExtend: (minutes: number) => void;
 }
 
 function mmss(ms: number): string {
@@ -30,7 +34,14 @@ function mmss(ms: number): string {
 }
 
 /** The voting clock: the facilitator sets it, everyone watches the same one. */
-export default function RetroVoting({ isFacilitator, votingClosed, votingEndsAt, onStart, onStop }: Props) {
+export default function RetroVoting({
+  isFacilitator,
+  votingClosed,
+  votingEndsAt,
+  onStart,
+  onStop,
+  onExtend,
+}: Props) {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -62,6 +73,16 @@ export default function RetroVoting({ isFacilitator, votingClosed, votingEndsAt,
           {mmss(remaining)}
         </span>
         <span>left to vote</span>
+        {isFacilitator && remaining <= extendWindowMs && (
+          <>
+            <span className="retro-voting-extend-label">Need longer?</span>
+            {extendMinutes.map((m) => (
+              <button key={m} type="button" className="ghost retro-voting-min" onClick={() => onExtend(m)}>
+                +{m} min
+              </button>
+            ))}
+          </>
+        )}
         {isFacilitator && (
           <button type="button" className="ghost" onClick={onStop}>
             Stop voting now
