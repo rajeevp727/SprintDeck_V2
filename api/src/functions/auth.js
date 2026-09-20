@@ -35,6 +35,7 @@ async function readBody(req) {
 }
 
 const secret = () => process.env.JWT_SECRET || '';
+const providerLabel = (provider) => (provider === 'google' ? 'Google' : 'Microsoft');
 const appUrl = process.env.APP_URL || 'https://sprintdeck.in';
 const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const minPassword = 8;
@@ -224,8 +225,18 @@ app.http('forgotPassword', {
     const { email } = await readBody(req);
     const normalized = String(email || '').trim().toLowerCase();
     if (!emailRe.test(normalized)) return bad('Enter a valid email', 400);
+    // Only a password account has a password to reset. An address that signs in
+    // through a provider has no bare-email document, so say which button to use
+    // instead of claiming the account does not exist.
     const user = await users.getByEmail(normalized);
-    if (!user) {
+    if (!user || !users.hasPassword(user)) {
+      const providers = (await users.accountsForEmail(normalized))
+        .map((account) => account.authProvider)
+        .filter((provider) => provider && provider !== 'local');
+      if (providers.length) {
+        const names = [...new Set(providers)].map(providerLabel).join(' or ');
+        return bad(`This email signs in with ${names} — use that button instead.`, 409);
+      }
       return bad('User not found — please check the email and try again', 404);
     }
     const token = await saveResetToken(user.email, user.id);

@@ -77,6 +77,27 @@ async function getById(id) {
   return getByEmail(id);
 }
 
+/**
+ * Every account registered on an address. One per provider is expected, so this
+ * answers "how does this person sign in?" — accounts are the documents with no
+ * `type`, unlike orders, receipts and name reservations.
+ */
+async function accountsForEmail(email) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return [];
+  const c = getContainer();
+  if (c) {
+    const { resources } = await (await c).items
+      .query({
+        query: 'SELECT * FROM c WHERE c.email = @email AND NOT IS_DEFINED(c.type)',
+        parameters: [{ name: '@email', value: normalized }],
+      })
+      .fetchAll();
+    return resources;
+  }
+  return [...memory.values()].filter((u) => u && !u.type && u.email === normalized);
+}
+
 async function getByName(name) {
   const n = normalizeName(name);
   if (!n) return null;
@@ -383,6 +404,7 @@ module.exports = {
   findOrCreateOAuthUser,
   getByEmail,
   getById,
+  accountsForEmail,
   setPlan,
   planFor,
   accountIdFor,

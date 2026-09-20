@@ -97,3 +97,27 @@ describe('accountIdFor', () => {
     expect(users.accountIdFor('', 'a@b.com')).toBe('a@b.com');
   });
 });
+
+describe('accountsForEmail', () => {
+  beforeEach(() => {
+    delete process.env.COSMOS_CONNECTION_STRING;
+  });
+
+  it('finds every provider an address signs in with', async () => {
+    await users.findOrCreateOAuthUser({ email: 'both@example.com', provider: 'google', providerSub: 'g-b' });
+    await users.findOrCreateOAuthUser({ email: 'both@example.com', provider: 'microsoft', providerSub: 'm-b' });
+    const providers = (await users.accountsForEmail('Both@Example.com')).map((a) => a.authProvider).sort();
+    expect(providers).toEqual(['google', 'microsoft']);
+  });
+
+  it('does not mistake an order or a name reservation for an account', async () => {
+    await users.createUser('solo@example.com', 'password123', 'Solo');
+    const accounts = await users.accountsForEmail('solo@example.com');
+    expect(accounts).toHaveLength(1);
+    expect(accounts[0].id).toBe('solo@example.com');
+  });
+
+  it('returns nothing for an address with no account', async () => {
+    expect(await users.accountsForEmail('nobody@example.com')).toEqual([]);
+  });
+});
