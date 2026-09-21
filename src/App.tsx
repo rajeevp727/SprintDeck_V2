@@ -118,6 +118,21 @@ function codeFromUrl(): string {
   return legacy ? legacy[1].toUpperCase() : '';
 }
 
+/**
+ * A bare /retro is the board you are already in — the code lives in storage so
+ * it never has to sit in the address bar. /retro/CODE is an invite link.
+ */
+function retroRouteFor(path: string): Route | null {
+  if (BARE_RETRO_RE.test(path)) {
+    const current = (getCurrentRetro() || '').toUpperCase();
+    return current && getIdentity(current) ? { kind: 'retro', code: current } : { kind: 'home' };
+  }
+  const match = path.match(RETRO_PATH_RE);
+  if (!match) return null;
+  const code = match[1].toUpperCase();
+  return getIdentity(code) ? { kind: 'retro', code } : { kind: 'retroJoin', code };
+}
+
 function computeRoute(): Route {
   const path = window.location.pathname;
   const staticRoute = STATIC_ROUTES[path];
@@ -130,18 +145,8 @@ function computeRoute(): Route {
     return { kind: 'resetPassword', token };
   }
 
-  // A bare /retro is the board you are already in: the code lives in storage
-  // so it never has to sit in the address bar.
-  if (BARE_RETRO_RE.test(path)) {
-    const current = (getCurrentRetro() || '').toUpperCase();
-    return current && getIdentity(current) ? { kind: 'retro', code: current } : { kind: 'home' };
-  }
-
-  const retroMatch = path.match(RETRO_PATH_RE);
-  if (retroMatch) {
-    const rc = retroMatch[1].toUpperCase();
-    return getIdentity(rc) ? { kind: 'retro', code: rc } : { kind: 'retroJoin', code: rc };
-  }
+  const retroRoute = retroRouteFor(path);
+  if (retroRoute) return retroRoute;
 
   const whiteboardMatch = path.match(WHITEBOARD_PATH_RE);
   if (whiteboardMatch) {
