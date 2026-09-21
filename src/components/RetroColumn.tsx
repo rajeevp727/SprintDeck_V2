@@ -61,7 +61,7 @@ export default function RetroColumnView({
 
   /** How the box works, shown once per column and not laboured after that. */
   function hintOnFirstHover() {
-    const key = `retro-compose:${column.title}`;
+    const key = `retro-compose:${board.code}:${participantId}:${column.id}`;
     if (hintSeen(key)) return;
     markHintSeen(key);
     setShowHint(true);
@@ -92,6 +92,7 @@ export default function RetroColumnView({
             rows={2}
             maxLength={500}
             onMouseEnter={hintOnFirstHover}
+            onFocus={hintOnFirstHover}
             onChange={(e) => handleChange(e.target.value)}
             onBlur={add}
             onKeyDown={(e) => {
@@ -116,7 +117,7 @@ export default function RetroColumnView({
             key={n.id}
             note={n}
             canEdit={live && (isActionColumn ? isFacilitator : n.authorId === participantId && !votingOver)}
-            canDelete={live && n.authorId === participantId && (isActionColumn || !votingOver)}
+            canDelete={live && (isActionColumn ? isFacilitator : n.authorId === participantId && !votingOver)}
             canMove={live && !!actionColumn && isFacilitator && votingOver}
             isAction={isActionColumn}
             canVote={live && !isActionColumn && votingRunning && n.authorId !== participantId}

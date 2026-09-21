@@ -427,18 +427,24 @@ function toggleNoteVote(board, participantId, noteId) {
 }
 
 /**
- * You may remove what you wrote, and nothing else — the facilitator included.
- * Discussion notes are settled once the clock stops: what the team voted on
- * stays on the board. Action items are written after that, so they stay
- * editable by their author.
+ * You may remove what you wrote, and nothing else. Discussion notes are settled
+ * once the clock stops: what the team voted on stays on the board.
  */
 function deleteNote(board, participantId, noteId) {
   const note = board.notes.find((n) => n.id === noteId);
   if (!note) return false;
-  if (note.authorId !== participantId) return false;
-  if (votingIsOver(board) && !isActionColumnId(board, note.columnId)) return false;
+  if (!canDeleteNote(board, participantId, note)) return false;
   board.notes = board.notes.filter((n) => n.id !== noteId);
   return true;
+}
+
+function canDeleteNote(board, participantId, note) {
+  // An action item is the facilitator's to drop, whoever first wrote the note
+  // it came from: a member must not be able to delete an agreed action just
+  // because it started life as theirs.
+  if (isActionColumnId(board, note.columnId)) return isFacilitator(board, participantId);
+  if (note.authorId !== participantId) return false;
+  return !votingIsOver(board);
 }
 
 /**

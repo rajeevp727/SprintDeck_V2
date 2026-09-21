@@ -234,6 +234,18 @@ describe('deleting', () => {
     expect(store.deleteNote(board, 'member', mine.id)).toBe(true);
   });
 
+  it('leaves a promoted note to the facilitator, not its author', () => {
+    const board = boardWith();
+    store.addNote(board, 'member', 'well', 'worth doing');
+    const promoted = board.notes[0];
+    store.startVoting(board, 'chair', 2);
+    store.setVotingClosed(board, 'chair', true);
+    store.moveNote(board, 'chair', promoted.id, 'action');
+
+    expect(store.deleteNote(board, 'member', promoted.id)).toBe(false);
+    expect(store.deleteNote(board, 'chair', promoted.id)).toBe(true);
+  });
+
   it('lets the facilitator remove their own action item', () => {
     const board = boardWith();
     store.addNote(board, 'chair', 'action', 'theirs');

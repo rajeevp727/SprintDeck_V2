@@ -13,35 +13,43 @@ export default function RetroPeople({ board, participantId, isFacilitator, onClo
   const canRemove = isFacilitator && board.phase !== 'ended';
 
   return (
-    <div className="retro-people" role="dialog" aria-label="People in this board">
-      <div className="retro-people-head">
-        <strong>In this board</strong>
-        <button type="button" className="ghost" onClick={onClose}>
-          Close
-        </button>
+    <div
+      className="retro-people"
+      role="dialog"
+      aria-modal="true"
+      aria-label="People in this board"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="retro-people-inner">
+        <div className="retro-people-head">
+          <strong>In this board</strong>
+          <button type="button" className="ghost" onClick={onClose} aria-label="Close">
+            Close
+          </button>
+        </div>
+        <ul className="retro-people-list">
+          {board.participants.map((p) => (
+            <li key={p.id}>
+              <span className="retro-legend-dot" style={{ background: p.color }} />
+              <span className="retro-people-name">
+                {p.name}
+                {p.isFacilitator && <span className="crown"> ★</span>}
+                {p.id === participantId && <span className="you"> (you)</span>}
+              </span>
+              {canRemove && !p.isFacilitator && (
+                <button
+                  type="button"
+                  className="ghost danger retro-people-remove"
+                  title={`Remove ${p.name} from the board`}
+                  onClick={() => onRemove(p.id)}
+                >
+                  Remove
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
-      <ul className="retro-people-list">
-        {board.participants.map((p) => (
-          <li key={p.id}>
-            <span className="retro-legend-dot" style={{ background: p.color }} />
-            <span className="retro-people-name">
-              {p.name}
-              {p.isFacilitator && <span className="crown"> ★</span>}
-              {p.id === participantId && <span className="you"> (you)</span>}
-            </span>
-            {canRemove && !p.isFacilitator && (
-              <button
-                type="button"
-                className="ghost danger retro-people-remove"
-                title={`Remove ${p.name} from the board`}
-                onClick={() => onRemove(p.id)}
-              >
-                Remove
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
