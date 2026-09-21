@@ -18,7 +18,7 @@ export default function RetroPeople({ board, participantId, isFacilitator, onClo
       <div className="retro-people-inner">
         <div className="retro-people-head">
           <strong>In this board</strong>
-          <button type="button" className="auth-close" onClick={onClose} aria-label="Close" title="Close">
+          <button type="button" className="auth-close auth-close-square" onClick={onClose} aria-label="Close" title="Close">
             <CloseIcon />
           </button>
         </div>

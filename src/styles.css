@@ -1041,6 +1041,11 @@ a.room-code:hover {
   cursor: pointer;
   transition: background var(--transition), box-shadow var(--transition);
 }
+.auth-close-square {
+  border-radius: var(--radius-sm);
+  width: 30px;
+  height: 28px;
+}
 .auth-close:hover {
   background: var(--panel-2);
 }
