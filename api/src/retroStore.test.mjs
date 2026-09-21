@@ -117,6 +117,64 @@ describe("last sprint's action items", () => {
   });
 });
 
+describe('hiding notes until the reveal', () => {
+  function hiddenBoard() {
+    const board = boardWith();
+    store.addNote(board, 'member', 'well', 'mine');
+    store.addNote(board, 'other', 'well', 'theirs');
+    store.setNotesHidden(board, 'chair', true);
+    return board;
+  }
+
+  it('is the facilitator’s switch', () => {
+    const board = boardWith();
+    expect(store.setNotesHidden(board, 'member', true)).toBe(false);
+    expect(store.setNotesHidden(board, 'chair', true)).toBe(true);
+    expect(board.notesHidden).toBe(true);
+  });
+
+  it('withholds other people’s text but never your own', () => {
+    const view = store.publicView(hiddenBoard(), 'member');
+    const mine = view.notes.find((n) => n.text === 'mine');
+    const theirs = view.notes.find((n) => n.id !== mine.id);
+
+    expect(mine.hidden).toBeUndefined();
+    expect(theirs.hidden).toBe(true);
+    expect(theirs.text).toBe('');
+  });
+
+  it('reveals when the clock starts — you cannot vote on what you cannot read', () => {
+    const board = hiddenBoard();
+    store.startVoting(board, 'chair', 2);
+    expect(board.notesHidden).toBe(false);
+    expect(store.publicView(board, 'member').notes.every((n) => !n.hidden)).toBe(true);
+  });
+});
+
+describe('archiving a finished board', () => {
+  it('keeps the notes, names and tallies under the host account', async () => {
+    const board = boardWith();
+    board.ownerKey = 'ACCT:GOOGLE:HOST@EXAMPLE.COM';
+    board.name = 'Sprint 7 Retrospective';
+    store.addNote(board, 'member', 'well', 'shipping was smooth');
+    store.startVoting(board, 'chair', 2);
+    store.toggleNoteVote(board, 'other', board.notes[0].id);
+
+    const saved = await store.archiveBoard(board);
+    expect(saved.boardCode).toBe('TEST');
+    expect(saved.notes[0]).toMatchObject({ text: 'shipping was smooth', voteCount: 1 });
+
+    const listed = await store.listArchives('ACCT:GOOGLE:HOST@EXAMPLE.COM');
+    expect(listed.map((a) => a.name)).toContain('Sprint 7 Retrospective');
+    expect(await store.getArchive('ACCT:SOMEONE@ELSE.COM', saved.id)).toBeNull();
+  });
+
+  it('skips a board with no host account', async () => {
+    const board = boardWith();
+    expect(await store.archiveBoard(board)).toBeNull();
+  });
+});
+
 describe('voting', () => {
   it('counts other people, never the author', () => {
     const board = boardWith([note()]);

@@ -15,6 +15,8 @@ export interface RetroNote {
   previousColumnId?: string;
   voteCount?: number;
   votedByMe?: boolean;
+  /** Written by someone else while the board is hidden: text is withheld. */
+  hidden?: boolean;
 }
 
 export interface RetroParticipant {
@@ -33,6 +35,7 @@ export interface RetroCarryItem {
 }
 
 export interface RetroBoard {
+  notesHidden?: boolean;
   votingClosed?: boolean;
   votingEndsAt?: number | null;
   code: string;

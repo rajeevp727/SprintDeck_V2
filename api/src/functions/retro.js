@@ -280,6 +280,36 @@ app.http('toggleRetroReviewItem', {
   },
 });
 
+// GET /api/retro-history — the signed-in account's past retrospectives. Its
+// own path, so it can never be read as a board code.
+app.http('retroHistory', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'retro-history',
+  handler: async (req) => {
+    const accountId = entitlement.accountIdFromRequest(req);
+    if (!accountId) return bad('Please sign in again', 401);
+    const id = req.query.get('id') || '';
+    const ownerKey = 'ACCT:' + accountId;
+    if (id) {
+      const archive = await store.getArchive(ownerKey, id);
+      if (!archive) return bad('Retrospective not found', 404);
+      return ok({ retro: archive });
+    }
+    const archives = await store.listArchives(ownerKey);
+    return ok({
+      retros: archives.map((a) => ({
+        id: a.id,
+        code: a.boardCode || '',
+        name: a.name,
+        endedAt: a.endedAt,
+        noteCount: (a.notes || []).length,
+        participants: (a.participants || []).length,
+      })),
+    });
+  },
+});
+
 app.http('likeRetroReviewItem', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -292,6 +322,22 @@ app.http('likeRetroReviewItem', {
     if (!store.toggleCarryOverLike(board, participantId, req.params.itemId)) {
       return bad('Could not like this item', 404);
     }
+    await store.saveBoard(board);
+    return ok({ board: store.publicView(board, participantId) });
+  },
+});
+
+// POST /api/retro/{code}/notes-hidden  { participantId, hidden }
+app.http('setRetroNotesHidden', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'retro/{code}/notes-hidden',
+  handler: async (req) => {
+    const { participantId, hidden } = await readBody(req);
+    const { board, error } = await requireFacilitator(req.params.code, participantId);
+    if (error) return error;
+
+    store.setNotesHidden(board, participantId, hidden);
     await store.saveBoard(board);
     return ok({ board: store.publicView(board, participantId) });
   },
@@ -348,6 +394,7 @@ app.http('endRetro', {
     }
 
     store.endBoard(board);
+    await store.archiveBoard(board);
     await store.saveBoard(board);
     return ok({ board: store.publicView(board, participantId) });
   },

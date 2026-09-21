@@ -2048,6 +2048,11 @@ a.room-code:hover {
   flex-direction: column;
   gap: 0.4rem;
 }
+.retro-note-masked {
+  letter-spacing: 0.18em;
+  opacity: 0.45;
+  user-select: none;
+}
 .retro-note-text {
   margin: 0;
   white-space: pre-wrap;

@@ -130,6 +130,97 @@ async function loadActionItems(roomCode) {
   return ledgerMemory.get(key) || [];
 }
 
+const maxArchives = 25;
+
+/**
+ * A board is thrown away hours after it ends, so what the team said is kept as
+ * a flat snapshot under the host's account: no participant ids, no votes by
+ * person, nothing that has to be kept in sync with a live board.
+ */
+function snapshotOf(board) {
+  const names = Object.fromEntries(
+    Object.values(board.participants || {}).map((p) => [p.id, p.name || 'Teammate']),
+  );
+  return {
+    code: board.code,
+    name: board.name,
+    endedAt: Date.now(),
+    createdAt: board.createdAt || null,
+    columns: (board.columns || []).map((c) => ({ id: c.id, title: c.title, color: c.color || null })),
+    notes: (board.notes || []).map((n) => ({
+      id: n.id,
+      columnId: n.columnId,
+      text: n.text,
+      author: names[n.authorId] || 'Teammate',
+      voteCount: Array.isArray(n.votes) ? n.votes.length : 0,
+    })),
+    carryOverItems: (board.carryOverItems || []).map((it) => ({
+      text: it.text,
+      done: !!it.done,
+      likeCount: Array.isArray(it.likes) ? it.likes.length : 0,
+    })),
+    participants: Object.values(names),
+  };
+}
+
+async function archiveBoard(board) {
+  const key = normalize(board.ownerKey);
+  if (!key) return null;
+  // `code` is the partition key, so the board's own code moves to boardCode.
+  const snapshot = {
+    ...snapshotOf(board),
+    id: `archive:${key}:${board.code}:${Date.now()}`,
+    boardCode: board.code,
+    code: key,
+    type: 'retro-archive',
+  };
+  const c = getLedgerContainer();
+  if (c) await (await c).items.upsert({ ...snapshot, ttl: ledgerTtlSeconds });
+  else ledgerMemory.set(snapshot.id, snapshot);
+  return snapshot;
+}
+
+/** The account's past retrospectives, newest first. */
+async function listArchives(ownerKey) {
+  const key = normalize(ownerKey);
+  if (!key) return [];
+  const c = getLedgerContainer();
+  if (c) {
+    const { resources } = await (await c).items
+      .query({
+        query:
+          "SELECT TOP @limit * FROM c WHERE c.code = @key AND c.type = 'retro-archive' ORDER BY c.endedAt DESC",
+        parameters: [
+          { name: '@key', value: key },
+          { name: '@limit', value: maxArchives },
+        ],
+      })
+      .fetchAll();
+    return resources;
+  }
+  return [...ledgerMemory.values()]
+    .filter((a) => a && a.type === 'retro-archive' && a.code === key)
+    .sort((a, b) => b.endedAt - a.endedAt)
+    .slice(0, maxArchives);
+}
+
+async function getArchive(ownerKey, id) {
+  const key = normalize(ownerKey);
+  if (!key || !id) return null;
+  const c = getLedgerContainer();
+  if (c) {
+    try {
+      const { resource } = await (await c).item(id, key).read();
+      return resource && resource.type === 'retro-archive' ? resource : null;
+    } catch (err) {
+      if (err.code === 404) return null;
+      throw err;
+    }
+  }
+  const found = ledgerMemory.get(id);
+  return found && found.code === key ? found : null;
+}
+
 async function saveActionItems(roomCode, items) {
   const key = normalize(roomCode);
   if (!key) return;
@@ -224,9 +315,13 @@ async function createBoard(name, facilitatorName, desiredCode, roomCode, ownerKe
     facilitatorId: pid,
     roomCode: normalize(roomCode) || null, 
     ledgerKey: ledgerKey || null,
+    // Archives belong to the host's account even when the board follows a room.
+    ownerKey: ownerKey ? 'ACCT:' + normalize(ownerKey) : null,
     
     
     phase: 'review', 
+    // Write privately, reveal together: nobody anchors on the first note in.
+    notesHidden: false,
     carryOverItems: carry.map((it) => ({ id: it.id, text: it.text, done: false, likes: [] })),
     columns: defaultColumns(),
     votingClosed: false,
@@ -340,6 +435,8 @@ function startVoting(board, participantId, minutes) {
   if (!VotingMinutes.includes(chosen)) return false;
   board.votingClosed = false;
   board.votingEndsAt = Date.now() + chosen * 60 * 1000;
+  // You cannot vote on what you cannot read.
+  board.notesHidden = false;
   return true;
 }
 
@@ -367,6 +464,17 @@ function setVotingClosed(board, participantId, closed) {
   if (!isFacilitator(board, participantId)) return false;
   board.votingClosed = !!closed;
   board.votingEndsAt = closed ? null : board.votingEndsAt;
+  return true;
+}
+
+/**
+ * Hiding notes lets the team write without reading each other first. The
+ * facilitator reveals when everyone has had their say; votes need something to
+ * vote on, so starting the clock reveals as well.
+ */
+function setNotesHidden(board, participantId, hidden) {
+  if (!isFacilitator(board, participantId)) return false;
+  board.notesHidden = !!hidden;
   return true;
 }
 
@@ -496,6 +604,10 @@ function publicView(board, viewerId) {
   const visibleNotes = hideActions
     ? (board.notes || []).filter((n) => n.columnId !== action.id)
     : board.notes || [];
+  // While notes are hidden you see your own and a placeholder for everyone
+  // else's, so the board still shows the team is writing.
+  const maskNote = (note) =>
+    board.notesHidden && note.authorId !== viewerId && note.columnId !== action?.id;
   return {
     code: board.code,
     name: board.name,
@@ -509,10 +621,12 @@ function publicView(board, viewerId) {
       return { ...rest, likeCount: likes.length, likedByMe: !!viewerId && likes.includes(viewerId) };
     }),
     columns,
+    notesHidden: !!board.notesHidden,
     notes: visibleNotes.map((note) => {
       const votes = Array.isArray(note.votes) ? note.votes : [];
       const { votes: _votes, ...rest } = note;
-      return { ...rest, voteCount: votes.length, votedByMe: !!viewerId && votes.includes(viewerId) };
+      const shown = { ...rest, voteCount: votes.length, votedByMe: !!viewerId && votes.includes(viewerId) };
+      return maskNote(note) ? { ...shown, text: '', hidden: true } : shown;
     }),
     participants: Object.values(board.participants)
       .map((p) => ({
@@ -534,6 +648,7 @@ module.exports = {
   expireVoting,
   removeParticipant,
   canWriteColumn,
+  setNotesHidden,
   isActionColumnId,
   setVotingClosed,
   moveNote,
@@ -554,6 +669,9 @@ module.exports = {
   openBoard,
   endBoard,
   actionItemsFromBoard,
+  archiveBoard,
+  listArchives,
+  getArchive,
   ledgerKeyFor,
   toggleCarryOverLike,
   saveActionItems,

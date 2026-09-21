@@ -60,6 +60,10 @@ export default function RetroNote({
             }
           }}
         />
+      ) : note.hidden ? (
+        <p className="retro-note-text retro-note-masked" title="Hidden until the facilitator reveals">
+          ▪▪▪▪▪▪▪▪▪
+        </p>
       ) : (
         <p
           className="retro-note-text"

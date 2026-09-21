@@ -99,6 +99,8 @@ export default function RetroBoard({ code, onLeave, onMissingIdentity }: Props) 
             isFacilitator={isFacilitator}
             votingClosed={!!board.votingClosed}
             votingEndsAt={board.votingEndsAt}
+            notesHidden={!!board.notesHidden}
+            onToggleHidden={() => run(() => retroApi.setNotesHidden(code, participantId, !board.notesHidden))}
             onStart={(minutes) => run(() => retroApi.startVoting(code, participantId, minutes))}
             onStop={() => run(() => retroApi.setVoting(code, participantId, !board.votingClosed))}
             onExtend={(minutes) => run(() => retroApi.extendVoting(code, participantId, minutes))}

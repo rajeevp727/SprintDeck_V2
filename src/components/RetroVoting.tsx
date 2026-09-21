@@ -29,6 +29,8 @@ interface Props {
   isFacilitator: boolean;
   votingClosed: boolean;
   votingEndsAt?: number | null;
+  notesHidden: boolean;
+  onToggleHidden: () => void;
   onStart: (minutes: number) => void;
   onStop: () => void;
   onExtend: (minutes: number) => void;
@@ -44,6 +46,8 @@ export default function RetroVoting({
   isFacilitator,
   votingClosed,
   votingEndsAt,
+  notesHidden,
+  onToggleHidden,
   onStart,
   onStop,
   onExtend,
@@ -99,7 +103,13 @@ export default function RetroVoting({
   }
 
   if (!isFacilitator) {
-    return <div className="retro-voting">Add your thoughts — voting opens when the facilitator starts it.</div>;
+    return (
+      <div className="retro-voting">
+        {notesHidden
+          ? 'Write freely — your notes stay hidden until the facilitator reveals them.'
+          : 'Add your thoughts — voting opens when the facilitator starts it.'}
+      </div>
+    );
   }
 
   return (
@@ -110,6 +120,9 @@ export default function RetroVoting({
           {m} min
         </button>
       ))}
+      <button type="button" className="ghost retro-voting-reveal" onClick={onToggleHidden}>
+        {notesHidden ? 'Reveal notes' : 'Hide notes'}
+      </button>
     </div>
   );
 }

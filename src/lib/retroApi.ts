@@ -71,6 +71,9 @@ export const retroApi = {
       participantId,
     }),
 
+  setNotesHidden: (code: string, participantId: string, hidden: boolean) =>
+    request<{ board: RetroBoard }>(`/api/retro/${code}/notes-hidden`, 'POST', { participantId, hidden }),
+
   openBoard: (code: string, participantId: string) =>
     request<{ board: RetroBoard }>(`/api/retro/${code}/open`, 'POST', { participantId }),
 
