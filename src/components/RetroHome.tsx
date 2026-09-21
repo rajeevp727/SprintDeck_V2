@@ -3,6 +3,7 @@ import { retroApi } from '../lib/retroApi';
 import { saveIdentity, getIdentity, getCurrentRoom } from '../lib/storage';
 import { useAuth } from '../lib/auth';
 import AdBanner from './AdBanner';
+import BrandLogo from './BrandLogo';
 
 interface Props {
   joinCode: string;
@@ -75,7 +76,7 @@ export default function RetroHome({ joinCode, onEnter, onExit }: Props) {
   return (
     <div className="home">
       <header className="brand">
-        <span className="brand-mark">🗂️</span>
+        <BrandLogo variant="mark" />
         <h1>SprintDeck Retro</h1>
       </header>
       <p className="tagline">Join the retrospective and add your notes.</p>

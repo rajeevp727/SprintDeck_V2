@@ -5,6 +5,7 @@ import { useSubscription } from '../lib/subscription';
 import { useProfileNamePrefill } from '../lib/useProfileName';
 import { useAuth } from '../lib/auth';
 import AdBanner from './AdBanner';
+import BrandLogo from './BrandLogo';
 
 interface Props {
   onEnter: (code: string) => void;
@@ -59,9 +60,7 @@ export default function RetroStart({ onEnter, onBack }: Props) {
       </button>
 
       <header className="brand">
-        <span className="brand-mark" aria-hidden>
-          🗂️
-        </span>
+        <BrandLogo variant="mark" />
         <h1>Retrospective</h1>
       </header>
       <p className="tagline">Reflect on the sprint together.</p>

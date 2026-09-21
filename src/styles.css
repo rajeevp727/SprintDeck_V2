@@ -11,6 +11,8 @@
   --green: #5ec47f;
   --green-bg: #1f4d33;
   --danger: #ef5e6e;
+  /* Deep enough that white label text clears 4.5:1 on the filled button. */
+  --danger-solid: #b83f4d;
   --like: #ffd76a;
   --radius: 14px;
   --radius-sm: 9px;
@@ -33,6 +35,7 @@
     --green: #2f9e63;
     --green-bg: #dcf5e6;
     --danger: #d93a4b;
+    --danger-solid: #c02234;
     --shadow-sm: 0 1px 2px rgba(16, 32, 58, 0.08);
     --shadow: 0 14px 34px rgba(16, 32, 58, 0.16);
     --ring: 0 0 0 3px rgba(79, 124, 255, 0.3);
@@ -50,6 +53,7 @@
   --green: #2f9e63;
   --green-bg: #dcf5e6;
   --danger: #d93a4b;
+  --danger-solid: #c02234;
   --like: #b8811a;
   --shadow-sm: 0 1px 2px rgba(16, 32, 58, 0.08);
   --shadow: 0 14px 34px rgba(16, 32, 58, 0.16);
@@ -124,10 +128,6 @@ button:focus-visible {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-}
-.brand-mark {
-  font-size: 1.9rem;
-  color: var(--accent);
 }
 .brand-mark-img {
   display: block;
@@ -443,15 +443,18 @@ input:focus {
   opacity: 0.4;
   cursor: not-allowed;
 }
+/* Destructive actions read as a solid button: tinted-on-tinted was too faint
+   to read against the board background. */
 .ghost.danger {
-  color: var(--danger);
-  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+  background: var(--danger-solid);
+  border-color: var(--danger-solid);
+  color: #fff;
+  font-weight: 600;
 }
 .ghost.danger:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--danger) 14%, transparent);
-  border-color: color-mix(in srgb, var(--danger) 60%, transparent);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--danger) 22%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--danger) 22%, transparent);
+  background: color-mix(in srgb, var(--danger-solid) 84%, #000);
+  border-color: color-mix(in srgb, var(--danger-solid) 84%, #000);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--danger) 26%, transparent);
 }
 
 :root[data-perf='lite'] .primary,
