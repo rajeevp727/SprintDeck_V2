@@ -4193,6 +4193,7 @@ button.linkish {
   backdrop-filter: blur(3px);
 }
 .retro-people-inner {
+  position: relative;
   width: 100%;
   max-width: 420px;
   max-height: 80vh;

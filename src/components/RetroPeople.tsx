@@ -1,4 +1,5 @@
 import type { RetroBoard as RetroBoardType } from '../lib/retroTypes';
+import { CloseIcon } from './icons';
 
 interface Props {
   board: RetroBoardType;
@@ -23,8 +24,8 @@ export default function RetroPeople({ board, participantId, isFacilitator, onClo
       <div className="retro-people-inner">
         <div className="retro-people-head">
           <strong>In this board</strong>
-          <button type="button" className="ghost" onClick={onClose} aria-label="Close">
-            Close
+          <button type="button" className="auth-close" onClick={onClose} aria-label="Close" title="Close">
+            <CloseIcon />
           </button>
         </div>
         <ul className="retro-people-list">
