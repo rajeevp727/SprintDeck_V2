@@ -42,6 +42,22 @@ export function clearCurrentRoom() {
   localStorage.removeItem(currentRoomKey);
 }
 
+const currentRetroKey = 'pp.currentRetro';
+
+// The board you are in, so the address bar can stay on /retro without the
+// code: an invite link carries the code, the browser does not have to.
+export function setCurrentRetro(code: string) {
+  localStorage.setItem(currentRetroKey, code.toUpperCase());
+}
+
+export function getCurrentRetro(): string | null {
+  return localStorage.getItem(currentRetroKey);
+}
+
+export function clearCurrentRetro() {
+  localStorage.removeItem(currentRetroKey);
+}
+
 const seenHintsKey = 'pp.seenHints';
 
 /** A one-off hint: shown the first time someone meets it, then never again. */

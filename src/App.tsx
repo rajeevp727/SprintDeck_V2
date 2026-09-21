@@ -50,6 +50,9 @@ import {
   getCurrentRoom,
   setCurrentRoom,
   clearCurrentRoom,
+  getCurrentRetro,
+  setCurrentRetro,
+  clearCurrentRetro,
 } from './lib/storage';
 import { api } from './lib/api';
 import {
@@ -81,6 +84,7 @@ type Route =
 // The retrospective board has its own real URL path: /retro/CODE (unlike poker,
 // whose code stays out of the URL) so the facilitator can share a plain link.
 const RETRO_PATH_RE = /^\/retro\/([A-Za-z0-9-]+)\/?$/;
+const BARE_RETRO_RE = /^\/retro\/?$/;
 const GOOGLE_CB_RE = /^\/auth\/google\/callback\/?$/;
 const MS_CB_RE = /^\/auth\/microsoft\/callback\/?$/;
 const RESET_PW_RE = /^\/reset-password\/?$/;
@@ -124,6 +128,13 @@ function computeRoute(): Route {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token') || '';
     return { kind: 'resetPassword', token };
+  }
+
+  // A bare /retro is the board you are already in: the code lives in storage
+  // so it never has to sit in the address bar.
+  if (BARE_RETRO_RE.test(path)) {
+    const current = (getCurrentRetro() || '').toUpperCase();
+    return current && getIdentity(current) ? { kind: 'retro', code: current } : { kind: 'home' };
   }
 
   const retroMatch = path.match(RETRO_PATH_RE);
@@ -277,11 +288,17 @@ export default function App() {
   }
   function goRetro(code: string) {
     const c = code.toUpperCase();
-    const next: Route = getIdentity(c) ? { kind: 'retro', code: c } : { kind: 'retroJoin', code: c };
-    go(`/retro/${c}`, next); // keep the code in the URL
+    // In the board, the URL stays /retro — the Invite button is what carries
+    // the code. Someone arriving on a link still lands on /retro/CODE.
+    if (getIdentity(c)) {
+      setCurrentRetro(c);
+      return go('/retro', { kind: 'retro', code: c }, true);
+    }
+    go(`/retro/${c}`, { kind: 'retroJoin', code: c });
   }
   // Leave a retro back to the poker room you're in (if any), else home.
   function exitRetro() {
+    clearCurrentRetro();
     const current = getCurrentRoom();
     const next: Route = current && getIdentity(current) ? { kind: 'room', code: current } : { kind: 'home' };
     go('/', next, true);
