@@ -284,6 +284,79 @@ async function setPlan(accountId, { tier, lifetime = false, days = PlanDays } = 
   return user;
 }
 
+// How many devices an account may be signed in on at once. A fourth sign-in
+// evicts the device that has gone longest without being used.
+const maxDevices = 3;
+
+async function saveUser(user) {
+  const c = getContainer();
+  if (c) await (await c).items.upsert(user);
+  else memory.set(user.id, user);
+  return user;
+}
+
+function sessionsOf(user) {
+  return Array.isArray(user?.sessions) ? user.sessions : [];
+}
+
+/**
+ * Records a sign-in and returns the devices that were signed out to make room.
+ * Sessions are ordered most-recently-seen first, so the tail is what goes.
+ */
+async function registerSession(user, sessionId, label) {
+  if (!user || !sessionId) return { user, evicted: [] };
+  const now = Date.now();
+  const kept = sessionsOf(user).filter((sn) => sn.id !== sessionId);
+  const next = [{ id: sessionId, label: String(label || '').slice(0, 120), signedInAt: now, lastSeenAt: now }, ...kept];
+  const evicted = next.slice(maxDevices);
+  user.sessions = next.slice(0, maxDevices);
+  await saveUser(user);
+  return { user, evicted };
+}
+
+function hasSession(user, sessionId) {
+  return !!sessionId && sessionsOf(user).some((sn) => sn.id === sessionId);
+}
+
+/** Keeps the session list ordered by use, so eviction drops the stalest device. */
+async function touchSession(user, sessionId) {
+  const session = sessionsOf(user).find((sn) => sn.id === sessionId);
+  if (!session) return user;
+  // A write per request would be wasteful; a minute's resolution is plenty.
+  if (Date.now() - (session.lastSeenAt || 0) < 60_000) return user;
+  session.lastSeenAt = Date.now();
+  user.sessions = [session, ...sessionsOf(user).filter((sn) => sn.id !== sessionId)];
+  return saveUser(user);
+}
+
+async function revokeSession(user, sessionId) {
+  if (!user) return null;
+  user.sessions = sessionsOf(user).filter((sn) => sn.id !== sessionId);
+  return saveUser(user);
+}
+
+const roomKinds = ['poker', 'retro', 'whiteboard'];
+
+/**
+ * The room this account is in, per ceremony, so their other devices can pick
+ * it up instead of asking for a code that is already known.
+ */
+async function setActiveRoom(user, kind, code) {
+  if (!user || !roomKinds.includes(kind)) return user;
+  const rooms = { ...(user.activeRooms || {}) };
+  if (code) rooms[kind] = { code: String(code).toUpperCase(), at: Date.now() };
+  else delete rooms[kind];
+  user.activeRooms = rooms;
+  return saveUser(user);
+}
+
+function activeRoomsOf(user) {
+  const rooms = user?.activeRooms || {};
+  return roomKinds
+    .filter((kind) => rooms[kind]?.code)
+    .map((kind) => ({ kind, code: rooms[kind].code, at: rooms[kind].at || 0 }));
+}
+
 /** What the account is entitled to right now. */
 function planFor(user) {
   const tier = String(user?.tier || 'free').toLowerCase();
@@ -471,6 +544,13 @@ async function deleteUser(idOrEmail) {
 }
 
 module.exports = {
+  maxDevices,
+  registerSession,
+  hasSession,
+  touchSession,
+  revokeSession,
+  setActiveRoom,
+  activeRoomsOf,
   createUser,
   findOrCreateOAuthUser,
   getByEmail,

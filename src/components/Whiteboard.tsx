@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { whiteboardApi } from '../lib/whiteboardApi';
 import { useRealtime } from '../lib/realtime';
 import { clearIdentity, getIdentity } from '../lib/storage';
+import { useActiveRoom } from '../lib/useActiveRoom';
 import type { WhiteboardElement, WhiteboardState } from '../lib/whiteboardTypes';
 import { downloadText, elementsToSvg, exportBoardPdf, importSvgToElements } from '../lib/whiteboardExport';
 
@@ -26,6 +27,8 @@ export default function Whiteboard({ code, onLeave, onMissingIdentity }: Props) 
   const identity = getIdentity(code);
   const participantId = identity?.participantId || '';
   const myName = identity?.name || 'You';
+
+  useActiveRoom('whiteboard', code);
 
   const [board, setBoard] = useState<WhiteboardState | null>(null);
   const [error, setError] = useState('');

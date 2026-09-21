@@ -1,18 +1,21 @@
 import BrandLogo from './BrandLogo';
 import DeveloperCredit from './DeveloperCredit';
 import ProfileMenu from './ProfileMenu';
+import ResumeRooms from './ResumeRooms';
 import ViewToggle, { useFeatureView } from './ViewToggle';
+import type { ActiveRoom } from '../lib/auth';
 
 interface Props {
   onPlanning: () => void;
   onRetro: () => void;
   onWhiteboard: () => void;
+  onResume: (room: ActiveRoom) => void;
   onPrivacy: () => void;
   onTerms: () => void;
   onSecurity: () => void;
 }
 
-export default function Dashboard({ onPlanning, onRetro, onWhiteboard, onPrivacy, onTerms, onSecurity }: Props) {
+export default function Dashboard({ onPlanning, onRetro, onWhiteboard, onResume, onPrivacy, onTerms, onSecurity }: Props) {
   const [view, setView] = useFeatureView();
   const ceremonies = [
     {
@@ -52,6 +55,8 @@ export default function Dashboard({ onPlanning, onRetro, onWhiteboard, onPrivacy
           <ProfileMenu />
         </div>
       </header>
+
+      <ResumeRooms onResume={onResume} />
 
       <div className="dash-lead-row">
         <p className="dash-lead">Choose a ceremony to run with your team.</p>

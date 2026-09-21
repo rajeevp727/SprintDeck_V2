@@ -60,7 +60,7 @@ import {
   isSubscribed,
 } from './lib/subscription';
 import { getStatus } from './lib/verifier';
-import { useAuth, writeHandoff } from './lib/auth';
+import { useAuth, writeHandoff, type ActiveRoom } from './lib/auth';
 
 type Route =
   | { kind: 'room'; code: string }
@@ -171,6 +171,7 @@ type PageProps = {
   onRetroStart: () => void;
   onWhiteboardStart: () => void;
   onWhiteboardBoard: (code: string) => void;
+  onResume: (room: ActiveRoom) => void;
 };
 
 function renderExplicitRoute(props: PageProps): ReactNode | null {
@@ -204,7 +205,7 @@ function renderPage(props: PageProps): ReactNode {
     return <Home initialCode={joinCode} onEnter={props.onRoom} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} onSignIn={props.onAuth} />;
   }
   if (props.authenticated) {
-    return <Dashboard onPlanning={props.onStartPlanning} onRetro={props.onRetroStart} onWhiteboard={props.onWhiteboardStart} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} />;
+    return <Dashboard onPlanning={props.onStartPlanning} onRetro={props.onRetroStart} onWhiteboard={props.onWhiteboardStart} onResume={props.onResume} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} />;
   }
   return <Landing onSignIn={props.onAuth} />;
 }
@@ -320,6 +321,12 @@ export default function App() {
   function goWhiteboardBoard(code: string) {
     go(`/whiteboard/${code}`, { kind: 'whiteboard', code });
   }
+  /** Picks up a board that is already open on another of this account's devices. */
+  function resumeRoom(room: ActiveRoom) {
+    if (room.kind === 'poker') return goRoom(room.code);
+    if (room.kind === 'retro') return goRetro(room.code);
+    goWhiteboardBoard(room.code);
+  }
 
   const page = renderPage({
     route,
@@ -337,6 +344,7 @@ export default function App() {
     onRetroStart: goRetroStart,
     onWhiteboardStart: goWhiteboard,
     onWhiteboardBoard: goWhiteboardBoard,
+    onResume: resumeRoom,
   });
 
   return (

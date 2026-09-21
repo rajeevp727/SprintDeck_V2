@@ -12,6 +12,7 @@
 // Password reset: the one-time token is kept in Cosmos so it survives a
 // restart, and the link goes out through Resend/SendGrid; with neither
 // configured it is logged instead, which is the local-dev path.
+const crypto = require('crypto');
 const { app } = require('@azure/functions');
 const users = require('../users-store');
 const payments = require('../payments-store');
@@ -46,8 +47,24 @@ const SPRINT_DAYS = 14;
 const REMEMBER_TTL = 2 * SPRINT_DAYS * 24 * 60 * 60; // 28 days
 const SESSION_TTL = 24 * 60 * 60; // 1 day
 
-function tokenFor(user, remember) {
-  return jwt.sign({ sub: user.id, email: user.email }, secret(), remember ? REMEMBER_TTL : SESSION_TTL);
+/**
+ * Signs a token and registers the device it belongs to. The session id travels
+ * in the token as `sid`, so a device that has been signed out elsewhere is
+ * refused on its next request rather than living on until the token expires.
+ */
+async function tokenFor(user, remember, req) {
+  const sessionId = crypto.randomUUID();
+  const { evicted } = await users.registerSession(user, sessionId, deviceLabel(req));
+  const token = jwt.sign(
+    { sub: user.id, email: user.email, sid: sessionId },
+    secret(),
+    remember ? REMEMBER_TTL : SESSION_TTL,
+  );
+  return { token, signedOut: evicted.length };
+}
+
+function deviceLabel(req) {
+  return (req && req.headers && req.headers.get('user-agent')) || '';
 }
 
 async function authenticatedUser(req) {
@@ -56,7 +73,18 @@ async function authenticatedUser(req) {
   if (!payload) return null;
   // `sub` is the account id, which carries the provider; tokens issued before
   // accounts were split per provider only carry the email.
-  return (payload.sub && (await users.getById(payload.sub))) || users.getByEmail(payload.email);
+  const user = (payload.sub && (await users.getById(payload.sub))) || (await users.getByEmail(payload.email));
+  if (!user) return null;
+  // A token minted before device limits existed has no session to check.
+  if (!payload.sid) return user;
+  if (!users.hasSession(user, payload.sid)) return null;
+  await users.touchSession(user, payload.sid);
+  return user;
+}
+
+function sessionIdOf(req) {
+  const payload = jwt.verify(req.headers.get('x-auth-token') || '', secret());
+  return payload?.sid || '';
 }
 
 // Build a few available alternatives when a name is taken.
@@ -91,7 +119,8 @@ app.http('register', {
     const result = await users.createUser(email, password, name);
     if (result.error === 'email-exists') return bad('An account with that email already exists', 409);
     if (result.error === 'name-exists') return bad('That name is already taken — pick another', 409);
-    return ok({ token: tokenFor(result.user, remember !== false), user: users.publicUser(result.user) });
+    const session = await tokenFor(result.user, remember !== false, req);
+    return ok({ ...session, user: users.publicUser(result.user) });
   },
 });
 
@@ -124,7 +153,8 @@ app.http('login', {
     if (!user || !users.verifyPassword(user, password)) {
       return bad('Invalid email or password', 401);
     }
-    return ok({ token: tokenFor(user, !!remember), user: users.publicUser(user) });
+    const session = await tokenFor(user, !!remember, req);
+    return ok({ ...session, user: users.publicUser(user) });
   },
 });
 
@@ -159,7 +189,43 @@ app.http('authMe', {
     if (!secret()) return ok({ user: null });
     // SWA strips Authorization, so the client sends the JWT in x-auth-token.
     const user = await authenticatedUser(req);
-    return ok({ user: user ? users.publicUser(user) : null });
+    if (!user) return ok({ user: null });
+    return ok({
+      user: users.publicUser(user),
+      devices: (user.sessions || []).length,
+      maxDevices: users.maxDevices,
+      activeRooms: users.activeRoomsOf(user),
+    });
+  },
+});
+
+// POST /api/auth/logout — drops this device's session so it cannot come back
+// on a token that has not expired yet.
+app.http('logout', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'auth/logout',
+  handler: async (req) => {
+    if (!secret()) return ok({ ok: true });
+    const user = await authenticatedUser(req);
+    if (user) await users.revokeSession(user, sessionIdOf(req));
+    return ok({ ok: true });
+  },
+});
+
+// POST /api/auth/active  { kind, code }  — code omitted clears it.
+// Where this account is right now, so its other devices can follow.
+app.http('setActiveRoom', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'auth/active',
+  handler: async (req) => {
+    if (!secret()) return ok({ activeRooms: [] });
+    const user = await authenticatedUser(req);
+    if (!user) return bad('Please sign in again', 401);
+    const { kind, code } = await readBody(req);
+    const updated = await users.setActiveRoom(user, String(kind || ''), code);
+    return ok({ activeRooms: users.activeRoomsOf(updated) });
   },
 });
 
@@ -360,7 +426,8 @@ app.http('oauth', {
     if (result.error) return bad('Could not create account — try again', 500);
     const user = result.user;
 
-    return ok({ token: tokenFor(user, remember !== false), user: users.publicUser(user) });
+    const session = await tokenFor(user, remember !== false, req);
+    return ok({ ...session, user: users.publicUser(user) });
   },
 });
 

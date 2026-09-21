@@ -6,6 +6,60 @@ describe('users-store', () => {
     delete process.env.COSMOS_CONNECTION_STRING;
   });
 
+  describe('device sessions', () => {
+    it('keeps three devices and evicts the stalest', async () => {
+      const { user } = await users.createUser('devices@example.com', 'password123', 'Devices');
+
+      for (const sid of ['one', 'two', 'three']) await users.registerSession(user, sid, sid);
+      expect(users.hasSession(user, 'one')).toBe(true);
+
+      const { evicted } = await users.registerSession(user, 'four', 'four');
+      expect(evicted.map((s) => s.id)).toEqual(['one']);
+      expect(users.hasSession(user, 'one')).toBe(false);
+      expect(users.hasSession(user, 'four')).toBe(true);
+      expect(user.sessions).toHaveLength(users.maxDevices);
+    });
+
+    it('signing in again on the same device does not take a second slot', async () => {
+      const { user } = await users.createUser('same@example.com', 'password123', 'Same');
+      await users.registerSession(user, 'dev', 'laptop');
+      await users.registerSession(user, 'dev', 'laptop');
+      expect(user.sessions).toHaveLength(1);
+    });
+
+    it('revoking drops just that device', async () => {
+      const { user } = await users.createUser('revoke@example.com', 'password123', 'Revoke');
+      await users.registerSession(user, 'a', 'a');
+      await users.registerSession(user, 'b', 'b');
+
+      await users.revokeSession(user, 'a');
+      expect(users.hasSession(user, 'a')).toBe(false);
+      expect(users.hasSession(user, 'b')).toBe(true);
+    });
+  });
+
+  describe('active rooms', () => {
+    it('remembers one room per ceremony and clears it', async () => {
+      const { user } = await users.createUser('rooms@example.com', 'password123', 'Rooms');
+
+      await users.setActiveRoom(user, 'retro', 'abc12');
+      await users.setActiveRoom(user, 'poker', 'xy9z1');
+      expect(users.activeRoomsOf(user)).toEqual([
+        expect.objectContaining({ kind: 'poker', code: 'XY9Z1' }),
+        expect.objectContaining({ kind: 'retro', code: 'ABC12' }),
+      ]);
+
+      await users.setActiveRoom(user, 'retro', null);
+      expect(users.activeRoomsOf(user).map((r) => r.kind)).toEqual(['poker']);
+    });
+
+    it('ignores a ceremony it does not know', async () => {
+      const { user } = await users.createUser('unknown@example.com', 'password123', 'Unknown');
+      await users.setActiveRoom(user, 'bingo', 'abc12');
+      expect(users.activeRoomsOf(user)).toEqual([]);
+    });
+  });
+
   it('creates and updates username', async () => {
     const created = await users.createUser('alice@example.com', 'password123', 'Alice');
     expect(created.user).toBeTruthy();

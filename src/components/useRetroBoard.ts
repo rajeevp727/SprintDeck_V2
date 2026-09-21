@@ -4,6 +4,7 @@ import { clearIdentity, getIdentity } from '../lib/storage';
 import type { RetroBoard as RetroBoardType } from '../lib/retroTypes';
 import { useRealtime } from '../lib/realtime';
 import { notifyPresence } from '../lib/presence';
+import { useActiveRoom } from '../lib/useActiveRoom';
 
 const pollMs = 1500;
 // Realtime carries the updates, but a client that missed a message would sit
@@ -50,6 +51,8 @@ function useTypingNames(participantId: string) {
 export function useRetroBoard(code: string, onLeave: () => void, onMissingIdentity: () => void) {
   const identity = getIdentity(code);
   const participantId = identity?.participantId ?? '';
+
+  useActiveRoom('retro', code);
 
   const [board, setBoard] = useState<RetroBoardType | null>(null);
   const [error, setError] = useState('');

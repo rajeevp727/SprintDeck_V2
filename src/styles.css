@@ -2480,6 +2480,19 @@ a.room-code:hover {
   margin: 0 auto;
   padding: 1rem 1.5rem 1.25rem;
 }
+.dash-resume {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.dash-resume-btn {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
+}
 .dash-head {
   display: flex;
   align-items: center;

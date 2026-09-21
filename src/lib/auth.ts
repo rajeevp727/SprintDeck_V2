@@ -297,9 +297,69 @@ export async function login(email: string, password: string, remember = false): 
 }
 
 export function logout() {
+  const token = getToken();
+  // Tell the server first: the device slot should free up now, not when the
+  // token expires. The local sign-out must not wait on it.
+  if (token) {
+    fetch('/api/auth/logout', {
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'x-auth-token': token },
+    }).catch(() => {});
+  }
   clearToken();
   cachedUser = null;
+  activeRooms = [];
   notify();
+}
+
+export interface ActiveRoom {
+  kind: 'poker' | 'retro' | 'whiteboard';
+  code: string;
+  at: number;
+}
+
+let activeRooms: ActiveRoom[] = [];
+
+export function getActiveRooms(): ActiveRoom[] {
+  return activeRooms;
+}
+
+/** Rooms this account is in on its other devices, re-rendered as they change. */
+export function useActiveRooms(): ActiveRoom[] {
+  const [, bump] = useState(0);
+  useEffect(() => {
+    const rerender = () => bump((n) => n + 1);
+    listeners.add(rerender);
+    return () => {
+      listeners.delete(rerender);
+    };
+  }, []);
+  return activeRooms;
+}
+
+/**
+ * Publishes where this account is, so its other devices can pick the room up.
+ * Called on entering a board and again with no code on leaving.
+ */
+export async function setActiveRoom(kind: ActiveRoom['kind'], code: string | null) {
+  const token = getToken();
+  if (!token) return;
+  try {
+    const res = await fetch('/api/auth/active', {
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+      body: JSON.stringify({ kind, code }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      activeRooms = (data.activeRooms as ActiveRoom[]) || [];
+      notify();
+    }
+  } catch {
+    // Following along on another device is a convenience, never a blocker.
+  }
 }
 
 export async function loginWithOAuth(
@@ -451,7 +511,8 @@ export async function refreshUser(): Promise<AuthUser | null> {
     });
     const data = await res.json().catch(() => ({}));
     cachedUser = res.ok && data?.user ? (data.user as AuthUser) : null;
-    if (!cachedUser) clearToken(); // token invalid/expired
+    activeRooms = cachedUser ? ((data.activeRooms as ActiveRoom[]) || []) : [];
+    if (!cachedUser) clearToken(); // token invalid, expired, or signed out elsewhere
   } catch {
     /* keep cache on transient error */
   }

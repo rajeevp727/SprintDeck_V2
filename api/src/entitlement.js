@@ -25,7 +25,19 @@ async function planForRequest(req) {
   const accountId = accountIdFromRequest(req);
   if (!accountId) return { active: false, tier: 'free', lifetime: false, accountId: '' };
   const user = await users.getById(accountId);
+  // A device signed out by the limit keeps a valid-looking token until it
+  // expires; its plan must not come with it.
+  if (user && !sessionValid(req, user)) {
+    return { active: false, tier: 'free', lifetime: false, accountId: '' };
+  }
   return { ...users.planFor(user), accountId };
+}
+
+function sessionValid(req, user) {
+  const secret = process.env.JWT_SECRET || '';
+  const payload = jwt.verify((req.headers && req.headers.get('x-auth-token')) || '', secret);
+  if (!payload || !payload.sid) return true;
+  return users.hasSession(user, payload.sid);
 }
 
 /** True when the plan is at or above the tier a feature needs. */

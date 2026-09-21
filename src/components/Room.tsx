@@ -19,6 +19,7 @@ import { CrownIcon } from './icons';
 import { nearestDeckValue } from '../lib/estimate';
 import { useSubscription, tiers } from '../lib/subscription';
 import { notifyPresence } from '../lib/presence';
+import { useActiveRoom } from '../lib/useActiveRoom';
 
 const ResultsModal = lazy(() => import('./ResultsModal'));
 const ToolConnectModal = lazy(() => import('./ToolConnectModal'));
@@ -41,6 +42,8 @@ interface Props {
 export default function Room({ code, onLeave, onMissingIdentity, onGoRoom, onGoRetro, onGoWhiteboard }: Props) {
   const identity = getIdentity(code);
   const participantId = identity?.participantId ?? '';
+
+  useActiveRoom('poker', code);
 
   const [session, setSession] = useState<Session | null>(null);
   const [error, setError] = useState('');
