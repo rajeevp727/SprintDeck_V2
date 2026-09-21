@@ -4533,3 +4533,80 @@ button.linkish {
   margin-left: 0.4rem;
   color: var(--muted);
 }
+
+/* Phones. The board is the screen that suffers most: one column, a header
+   that keeps its controls reachable, and dialogs that use the whole width. */
+@media (max-width: 560px) {
+  .retro-sticky .room-header {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+  .retro-sticky .room-meta {
+    flex: 1 1 100%;
+  }
+  .retro-sticky .room-actions {
+    flex: 1 1 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .retro-sticky .room-actions::-webkit-scrollbar {
+    display: none;
+  }
+  .retro-sticky .retro-legend {
+    display: none;
+  }
+
+  .retro-columns {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+  }
+  .retro-col {
+    padding: 0.7rem;
+  }
+  .retro-col-add textarea {
+    font-size: 16px; /* anything smaller makes iOS zoom the page on focus */
+  }
+  .retro-note-vote,
+  .retro-note-move,
+  .retro-note-del {
+    min-height: 32px;
+    min-width: 32px;
+  }
+
+  .retro-people,
+  .retro-history {
+    padding: 1rem 0.75rem;
+  }
+  .retro-people-inner,
+  .retro-history-inner {
+    max-height: 88vh;
+    padding: 1rem;
+  }
+
+  .dash {
+    padding: 0.75rem 1rem 1rem;
+  }
+  .dash-lead-row {
+    align-items: flex-start;
+  }
+  .dash-lead-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .dash-resume-btn,
+  .dash-history-btn {
+    min-height: 36px;
+  }
+  .dash-head .brand-with-logo .brand-logo {
+    height: 2.5rem;
+  }
+
+  .retro-review {
+    margin-top: 1rem;
+    padding: 1rem;
+  }
+  .retro-thanks-card {
+    padding: 1.5rem 1.25rem;
+  }
+}
