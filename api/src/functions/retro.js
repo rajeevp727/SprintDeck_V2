@@ -5,6 +5,8 @@ const store = require('../retroStore');
 const entitlement = require('../entitlement');
 const pokerStore = require('../store'); 
 const { rateLimited } = require('../ratelimit');
+const users = require('../users-store');
+const { sendRetroSummaryEmail } = require('../email');
 
 const noCache = { 'Cache-Control': 'no-store' };
 
@@ -372,6 +374,22 @@ app.http('leaveRetro', {
   },
 });
 
+/**
+ * The summary goes to the facilitator's account address and nowhere else:
+ * members join by link under a display name, so we hold no address for them.
+ */
+async function mailSummary(board, archived) {
+  if (!archived || !board.ownerKey) return;
+  const accountId = String(board.ownerKey).replace(/^ACCT:/i, '').toLowerCase();
+  try {
+    const host = await users.getById(accountId);
+    if (host?.email) await sendRetroSummaryEmail(host.email, archived);
+  } catch (err) {
+    // A retrospective must still end cleanly if the mail provider is down.
+    console.error('[retro] summary email failed', err);
+  }
+}
+
 app.http('endRetro', {
   methods: ['POST'],
   authLevel: 'anonymous',
@@ -394,8 +412,9 @@ app.http('endRetro', {
     }
 
     store.endBoard(board);
-    await store.archiveBoard(board);
+    const archived = await store.archiveBoard(board);
     await store.saveBoard(board);
+    await mailSummary(board, archived);
     return ok({ board: store.publicView(board, participantId) });
   },
 });

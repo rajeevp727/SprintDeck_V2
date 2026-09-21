@@ -1,7 +1,9 @@
 import BrandLogo from './BrandLogo';
 import DeveloperCredit from './DeveloperCredit';
 import ProfileMenu from './ProfileMenu';
+import { useState } from 'react';
 import ResumeRooms from './ResumeRooms';
+import RetroHistory from './RetroHistory';
 import ViewToggle, { useFeatureView } from './ViewToggle';
 import type { ActiveRoom } from '../lib/auth';
 
@@ -17,6 +19,7 @@ interface Props {
 
 export default function Dashboard({ onPlanning, onRetro, onWhiteboard, onResume, onPrivacy, onTerms, onSecurity }: Props) {
   const [view, setView] = useFeatureView();
+  const [showHistory, setShowHistory] = useState(false);
   const ceremonies = [
     {
       key: 'planning',
@@ -60,8 +63,15 @@ export default function Dashboard({ onPlanning, onRetro, onWhiteboard, onResume,
 
       <div className="dash-lead-row">
         <p className="dash-lead">Choose a ceremony to run with your team.</p>
-        <ViewToggle view={view} onChange={setView} />
+        <div className="dash-lead-actions">
+          <button type="button" className="ghost dash-history-btn" onClick={() => setShowHistory(true)}>
+            Past retrospectives
+          </button>
+          <ViewToggle view={view} onChange={setView} />
+        </div>
       </div>
+
+      {showHistory && <RetroHistory onClose={() => setShowHistory(false)} />}
 
       <div className={view === 'grid' ? 'dash-cards' : 'dash-rows'}>
         {ceremonies.map((c) => (

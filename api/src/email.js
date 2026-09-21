@@ -193,5 +193,62 @@ async function sendPasswordResetEmail(to, resetUrl, { reason } = {}) {
   return sendEmail({ to, subject, html: layout({ title: subject, bodyHtml }), text });
 }
 
-module.exports = { sendEmail, sendPasswordResetEmail, isEmailConfigured };
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[ch]);
+}
+
+function columnSection(column, notes) {
+  if (notes.length === 0) return '';
+  const rows = notes
+    .map(
+      (n) =>
+        `<li style="margin:0 0 6px 0;">${escapeHtml(n.text)}` +
+        `${n.voteCount ? ` <span style="color:#8595b8;">(${n.voteCount} vote${n.voteCount === 1 ? '' : 's'})</span>` : ''}` +
+        `<br /><span style="font-size:12px;color:#8595b8;">${escapeHtml(n.author)}</span></li>`,
+    )
+    .join('');
+  return `<h3 style="margin:22px 0 8px 0;font-size:15px;color:#ffffff;">${escapeHtml(column.title)}</h3>
+    <ul style="margin:0;padding-left:18px;color:#c9d4ec;font-size:14px;">${rows}</ul>`;
+}
+
+/**
+ * The record of a finished retrospective, sent to the facilitator alone: the
+ * board is thrown away hours later and members never gave us an address.
+ */
+async function sendRetroSummaryEmail(to, retro) {
+  const subject = `${retro.name || 'Sprint Retrospective'} — summary`;
+  const byColumn = (column) => (retro.notes || []).filter((n) => n.columnId === column.id);
+  const sections = (retro.columns || []).map((c) => columnSection(c, byColumn(c))).join('');
+  const text = (retro.columns || [])
+    .map((c) => {
+      const notes = byColumn(c);
+      if (notes.length === 0) return '';
+      const lines = notes.map((n) => `  - ${n.text} (${n.author}${n.voteCount ? `, ${n.voteCount} votes` : ''})`);
+      return [c.title, ...lines].join('\n');
+    })
+    .filter(Boolean)
+    .join('\n\n');
+
+  const bodyHtml = `
+    <p style="margin:0 0 6px 0;">Here is what your team captured in <strong>${escapeHtml(retro.name || 'the retrospective')}</strong>.</p>
+    <p style="margin:0 0 4px 0;font-size:13px;color:#8595b8;">
+      ${(retro.participants || []).length} took part · board ${escapeHtml(retro.boardCode || retro.code || '')}
+    </p>
+    ${sections}`;
+
+  return sendEmail({
+    to,
+    subject,
+    html: layout({ title: subject, bodyHtml }),
+    text: `${retro.name || 'Sprint Retrospective'}\n\n${text}\n\nSprintDeck · ${appUrl()}`,
+  });
+}
+
+module.exports = { sendEmail, sendPasswordResetEmail, sendRetroSummaryEmail, isEmailConfigured };
 
