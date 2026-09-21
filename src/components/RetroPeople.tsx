@@ -14,13 +14,7 @@ export default function RetroPeople({ board, participantId, isFacilitator, onClo
   const canRemove = isFacilitator && board.phase !== 'ended';
 
   return (
-    <div
-      className="retro-people"
-      role="dialog"
-      aria-modal="true"
-      aria-label="People in this board"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
+    <div className="retro-people" role="dialog" aria-modal="true" aria-label="People in this board">
       <div className="retro-people-inner">
         <div className="retro-people-head">
           <strong>In this board</strong>
