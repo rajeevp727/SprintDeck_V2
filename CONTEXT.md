@@ -59,7 +59,6 @@ and writes agreed story points back. No login required — share a room code.
 │   │   ├── ThemeToggle.tsx     # Light/dark mode
 │   │   ├── BrandLogo.tsx       # SVG logo
 │   │   ├── LinearLogo.tsx      # Linear logomark
-│   │   ├── StandupTimesheet.tsx # Timesheet feature
 │   │   ├── AdBanner.tsx        # Ad placements
 │   │   ├── StickyAd.tsx        # Sticky footer ad
 │   │   ├── ErrorBoundary.tsx   # React error boundary
@@ -131,7 +130,7 @@ and writes agreed story points back. No login required — share a room code.
 
 ### Routing
 - SPA router in `App.tsx` (no react-router). Route is a discriminated union:
-  `room | retro | retroJoin | privacy | terms | security | auth | plan | retroStart | timesheet | home`
+  `room | retro | retroJoin | privacy | terms | security | auth | plan | retroStart | home`
 - Room codes are **not** in the URL (stored in `localStorage`). Invite links use `?room=CODE`.
 - Retro boards keep the code in the URL: `/retro/CODE`.
 

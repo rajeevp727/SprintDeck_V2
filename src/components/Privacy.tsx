@@ -22,7 +22,7 @@ export default function Privacy({ onBack }: Props) {
       <ul>
         <li>
           <strong>Guest sessions:</strong> display name, votes, chat, and ceremony data for planning poker,
-          retrospectives, whiteboards, and standup notes. Session data is ephemeral and auto-deleted after idle
+          retrospectives, and whiteboards. Session data is ephemeral and auto-deleted after idle
           and maximum TTLs (typically 4–8 hours).
         </li>
         <li>
@@ -35,7 +35,7 @@ export default function Privacy({ onBack }: Props) {
         </li>
         <li>
           <strong>Local browser data:</strong> room identity, remembered accounts, cookie-consent choice,
-          subscription order reference, and standup timesheet drafts may be stored locally on your device.
+          and subscription order reference may be stored locally on your device.
         </li>
       </ul>
 

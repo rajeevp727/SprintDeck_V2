@@ -3,7 +3,7 @@
 ## Purpose
 
 SprintDeck Enterprise gives a distributed agile team one place to run its ceremonies — sprint
-planning, retrospectives, daily standup notes and a shared whiteboard — in real time, without
+planning, retrospectives and a shared whiteboard — in real time, without
 a per-seat licence for each of those tools separately.
 
 ## Users
@@ -21,7 +21,6 @@ a per-seat licence for each of those tools separately.
 - Planning poker: rooms, hidden votes, reveal, consensus, story queue
 - Retrospective boards: columns, notes, review of last sprint's actions
 - Whiteboard: shared canvas, live multiplayer, presenter write-control, share links
-- Daily scrum and timesheet capture, exportable for timesheet systems
 
 **Accounts and access**
 - Email + password with scrypt hashing and one-time password reset links

@@ -6,14 +6,13 @@ import ViewToggle, { useFeatureView } from './ViewToggle';
 interface Props {
   onPlanning: () => void;
   onRetro: () => void;
-  onTimesheet: () => void;
   onWhiteboard: () => void;
   onPrivacy: () => void;
   onTerms: () => void;
   onSecurity: () => void;
 }
 
-export default function Dashboard({ onPlanning, onRetro, onTimesheet, onWhiteboard, onPrivacy, onTerms, onSecurity }: Props) {
+export default function Dashboard({ onPlanning, onRetro, onWhiteboard, onPrivacy, onTerms, onSecurity }: Props) {
   const [view, setView] = useFeatureView();
   const ceremonies = [
     {
@@ -31,14 +30,6 @@ export default function Dashboard({ onPlanning, onRetro, onTimesheet, onWhiteboa
       desc: 'Review last sprint’s actions, then capture what went well, what to improve & next actions.',
       cta: 'Start or join →',
       onOpen: onRetro,
-    },
-    {
-      key: 'timesheet',
-      icon: '🗓️',
-      title: 'Daily Scrum & Timesheet',
-      desc: 'Log your daily standup & task hours once, then hand off to Keka / timesheets (copy or CSV).',
-      cta: 'Open →',
-      onOpen: onTimesheet,
     },
     {
       key: 'whiteboard',

@@ -112,7 +112,6 @@ Notes under table:
 - Retrospectives  
 - Whiteboard  
 - Team chat  
-- Standup / timesheet workflows (post-login)  
 
 *Say:* “Free covers plain poker; Enterprise unlocks the full ceremony suite.”
 

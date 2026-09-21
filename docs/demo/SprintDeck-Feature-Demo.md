@@ -40,7 +40,7 @@ Every Friday the bot **moves** last week’s “Updated this week” into **Feat
 
 ### Talking points
 - Pre-login is marketing only; full workspace unlocks after login or guest.
-- Timesheet and paid ceremony hosting require an account + plan where gated.
+- Paid ceremony hosting requires an account + plan where gated.
 
 ### Demo steps
 1. Open https://sprintdeck.in  
@@ -74,7 +74,6 @@ Every Friday the bot **moves** last week’s “Updated this week” into **Feat
 |------|--------|
 | Sprint Planning | Create / join poker room |
 | Sprint Retrospective | Start / join retro board |
-| Daily Scrum & Timesheet | Standup log + export |
 | Whiteboard | Create / join Miro-style canvas |
 
 Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · Security
@@ -111,18 +110,6 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 1. Dashboard → **Sprint Retrospective** → start  
 2. Add sticky notes in each column  
 3. Join from a second device to show live updates  
-
----
-
-## Daily Scrum & Timesheet
-
-- Log daily standup notes and task hours  
-- Copy / CSV handoff for Keka or other timesheets  
-
-### Demo steps
-1. Dashboard → **Daily Scrum & Timesheet**  
-2. Add today’s entries  
-3. Export / copy for timesheet tools  
 
 ---
 
@@ -186,8 +173,7 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 | 0–1 | Landing + brand |
 | 1–2 | Login + plan profile |
 | 2–5 | Planning poker (2 browsers) |
-| 5–7 | Retro board |
-| 7–8 | Timesheet |
+| 5–8 | Retro board |
 | 8–10 | Whiteboard multiplayer |
 | 10–12 | Plans + UPI QR story + Q&A |
 

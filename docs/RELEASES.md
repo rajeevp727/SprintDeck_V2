@@ -31,6 +31,9 @@ Dates are when the change reached production.
 
 ### 2.1.0 — 2026-09-21 — Accounts, sign-in and data model
 
+- **Daily Scrum & Timesheet withdrawn.** The module and its `/timesheet` route are gone; the
+  ceremonies are planning poker, retrospectives and the whiteboard.
+
 - **Google and Microsoft sign-in** work end to end. Both `id_token`s are verified server-side
   against provider JWKS.
 - **Accounts are scoped per identity provider.** The same address through two providers is two

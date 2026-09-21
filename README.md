@@ -55,7 +55,6 @@ SprintDeck V2 hosts four ceremony types from a single app:
 | **Planning Poker** | `/` | Create a room, invite the team by code/link, vote on stories with hidden Fibonacci cards, reveal & reach consensus. |
 | **Retrospective** | `/retro/NEW` or `/retro/CODE` | Miro-style board: review last sprint's action items, then add notes in columns. Export to `.txt`/`.csv`/`.pdf`. **Pro+**. |
 | **Whiteboard** | `/whiteboard` | Freeform canvas — pen, shapes, arrows, sticky notes, text. Undo/redo. **Pro+**. |
-| **Daily Scrum & Timesheet** | `/timesheet` | Self-contained weekly standup + timesheet capture; copy to Keka or download CSV/JSON. No backend. |
 
 Routing is a hand-rolled SPA router in `App.tsx` (no `react-router`). Room codes are
 kept in `localStorage`, not the URL — invite links use `?room=CODE` and the code is
@@ -218,7 +217,7 @@ A hand-rolled SPA router — no `react-router`. The route is a discriminated uni
 
 ```
 home | room | retro | retroJoin | retroStart | whiteboard |
-timesheet | auth | plan | privacy | terms | security
+auth | plan | privacy | terms | security
 ```
 
 - Room codes are kept in `localStorage` (`pp.identity` map + `pp.currentRoom`),
@@ -250,7 +249,7 @@ timesheet | auth | plan | privacy | terms | security
 ### Identity
 
 - **Email/password auth** is mandatory for all room and module access (planning poker,
-  retrospectives, whiteboards, timesheet). Users register/login with email + password or
+  retrospectives, whiteboards). Users register/login with email + password or
   sign in with **Google / Microsoft SSO**. JWT is HS256 (`JWT_SECRET`), short-lived
   (1 day) or "remember me" (28 days). `auth.ts` degrades cleanly to 503 if `JWT_SECRET`
   isn't set.

@@ -88,7 +88,7 @@ export default function Landing({ onSignIn }: Props) {
       )}
 
       <p className="landing-footnote">
-        Daily standup timesheet and full ceremony controls unlock after you log in.
+        Full ceremony controls unlock after you log in.
       </p>
     </div>
   );

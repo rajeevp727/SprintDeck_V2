@@ -41,7 +41,6 @@ const AuthScreen = lazy(() => import('./components/AuthScreen'));
 const Landing = lazy(() => import('./components/Landing'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const RetroStart = lazy(() => import('./components/RetroStart'));
-const StandupTimesheet = lazy(() => import('./components/StandupTimesheet'));
 const Whiteboard = lazy(() => import('./components/Whiteboard'));
 const ResetPasswordScreen = lazy(() => import('./components/ResetPasswordScreen'));
 const WhiteboardStart = lazy(() => import('./components/WhiteboardStart'));
@@ -73,7 +72,6 @@ type Route =
   | { kind: 'auth' }
   | { kind: 'plan' }
   | { kind: 'retroStart' }
-  | { kind: 'timesheet' }
   | { kind: 'home'; joinCode?: string }
   | { kind: 'whiteboard'; code: string }
   | { kind: 'whiteboardStart'; joinCode?: string; shareToken?: string }
@@ -100,8 +98,6 @@ const STATIC_ROUTES: Record<string, Route> = {
   '/plan/': { kind: 'plan' },
   '/retro-new': { kind: 'retroStart' },
   '/retro-new/': { kind: 'retroStart' },
-  '/timesheet': { kind: 'timesheet' },
-  '/timesheet/': { kind: 'timesheet' },
   '/whiteboard': { kind: 'whiteboardStart' },
   '/whiteboard/': { kind: 'whiteboardStart' },
 };
@@ -173,7 +169,6 @@ type PageProps = {
   onAuth: () => void;
   onStartPlanning: () => void;
   onRetroStart: () => void;
-  onTimesheet: () => void;
   onWhiteboardStart: () => void;
   onWhiteboardBoard: (code: string) => void;
 };
@@ -193,7 +188,6 @@ function renderExplicitRoute(props: PageProps): ReactNode | null {
   if (route.kind === 'resetPassword') return <ResetPasswordScreen token={route.token} onDone={props.onHome} />;
   if (route.kind === 'plan') return <Home onEnter={props.onRoom} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} onBack={props.onHome} />;
   if (route.kind === 'retroStart') return <RetroStart onEnter={props.onRetro} onBack={props.onHome} />;
-  if (route.kind === 'timesheet') return <StandupTimesheet onBack={props.onHome} />;
   if (route.kind === 'whiteboardStart') return <WhiteboardStart onEnter={props.onWhiteboardBoard} onBack={props.onHome} joinCode={route.joinCode} shareToken={route.shareToken} />;
   if (route.kind === 'whiteboard') return <Whiteboard code={route.code} onLeave={props.onHome} onMissingIdentity={props.onWhiteboardStart} />;
   return null;
@@ -210,7 +204,7 @@ function renderPage(props: PageProps): ReactNode {
     return <Home initialCode={joinCode} onEnter={props.onRoom} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} onSignIn={props.onAuth} />;
   }
   if (props.authenticated) {
-    return <Dashboard onPlanning={props.onStartPlanning} onRetro={props.onRetroStart} onTimesheet={props.onTimesheet} onWhiteboard={props.onWhiteboardStart} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} />;
+    return <Dashboard onPlanning={props.onStartPlanning} onRetro={props.onRetroStart} onWhiteboard={props.onWhiteboardStart} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} />;
   }
   return <Landing onSignIn={props.onAuth} />;
 }
@@ -320,9 +314,6 @@ export default function App() {
   function goRetroStart() {
     go('/retro-new', { kind: 'retroStart' });
   }
-  function goTimesheet() {
-    go('/timesheet', { kind: 'timesheet' });
-  }
   function goWhiteboard() {
     go('/whiteboard', { kind: 'whiteboardStart' });
   }
@@ -344,7 +335,6 @@ export default function App() {
     onAuth: goAuth,
     onStartPlanning: startPlanning,
     onRetroStart: goRetroStart,
-    onTimesheet: goTimesheet,
     onWhiteboardStart: goWhiteboard,
     onWhiteboardBoard: goWhiteboardBoard,
   });

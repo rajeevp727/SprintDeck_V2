@@ -20,8 +20,8 @@ export default function Terms({ onBack }: Props) {
 
       <h2>1. The Service</h2>
       <p>
-        SprintDeck provides real-time agile ceremonies: planning poker, retrospectives, shared whiteboards,
-        and standup timesheets. Optional paid subscriptions unlock integrations and advanced features.
+        SprintDeck provides real-time agile ceremonies: planning poker, retrospectives, and shared
+        whiteboards. Optional paid subscriptions unlock integrations and advanced features.
       </p>
 
       <h2>2. Accounts &amp; access</h2>

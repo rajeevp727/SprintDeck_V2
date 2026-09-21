@@ -13,7 +13,7 @@
 | **Live** | https://sprintdeck.in |
 | **Repo** | `rajeevp727/SprintDeck_V2` |
 | **Base branch** | `main` (auto-deploys to Azure Static Web Apps) |
-| **Positioning** | Paid, integrations-focused planning poker + retros, whiteboards, standups, auth, subscriptions |
+| **Positioning** | Paid, integrations-focused planning poker + retros, whiteboards, auth, subscriptions |
 
 ### What “good” looks like (Product Owner bar)
 
@@ -25,7 +25,7 @@
 
 - **Auth:** Email/password + Microsoft/Google SSO, password reset, profile, GDPR export/delete
 - **Subscriptions:** Paid tiers, payment confirmation, lifetime allowlist
-- **Collab:** Retros, shared whiteboards, standup timesheets, real-time sync
+- **Collab:** Retros, shared whiteboards, real-time sync
 - **Integrations:** Linear/Jira/Azure DevOps (mock/preview today; real adapters on roadmap)
 
 ---
