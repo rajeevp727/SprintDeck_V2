@@ -2467,10 +2467,15 @@ a.room-code:hover {
   margin-right: auto;
 }
 
+/* A column the height of the viewport, so the footer sits at the bottom of a
+   short page instead of floating under the last card. */
 .dash {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
   max-width: 900px;
   margin: 0 auto;
-  padding: 3rem 1.5rem 4rem;
+  padding: 1rem 1.5rem 1.25rem;
 }
 .dash-head {
   display: flex;
@@ -3062,7 +3067,8 @@ button.linkish {
   gap: 0.5rem;
   align-items: center;
   justify-content: center;
-  margin-top: 3rem;
+  margin-top: auto;
+  padding-top: 3rem;
   font-size: 0.85rem;
   color: var(--muted);
 }
