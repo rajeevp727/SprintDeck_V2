@@ -187,6 +187,7 @@ type PageProps = {
   onRetroStart: () => void;
   onWhiteboardStart: () => void;
   onWhiteboardBoard: (code: string) => void;
+  onChat: () => void;
   onResume: (room: ActiveRoom) => void;
 };
 
@@ -221,7 +222,7 @@ function renderPage(props: PageProps): ReactNode {
     return <Home initialCode={joinCode} onEnter={props.onRoom} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} onSignIn={props.onAuth} />;
   }
   if (props.authenticated) {
-    return <Dashboard onPlanning={props.onStartPlanning} onRetro={props.onRetroStart} onWhiteboard={props.onWhiteboardStart} onResume={props.onResume} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} />;
+    return <Dashboard onPlanning={props.onStartPlanning} onRetro={props.onRetroStart} onWhiteboard={props.onWhiteboardStart} onChat={props.onChat} onResume={props.onResume} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} />;
   }
   return <Landing onSignIn={props.onAuth} />;
 }
@@ -343,6 +344,12 @@ export default function App() {
   function goWhiteboardBoard(code: string) {
     go(`/whiteboard/${code}`, { kind: 'whiteboard', code });
   }
+  /** Chat lives in the planning room, so that is where this goes. */
+  function goChat() {
+    const current = getCurrentRoom();
+    if (current && getIdentity(current)) return goRoom(current);
+    startPlanning();
+  }
   /** Picks up a board that is already open on another of this account's devices. */
   function resumeRoom(room: ActiveRoom) {
     if (room.kind === 'poker') return goRoom(room.code);
@@ -367,6 +374,7 @@ export default function App() {
     onWhiteboardStart: goWhiteboard,
     onWhiteboardBoard: goWhiteboardBoard,
     onResume: resumeRoom,
+    onChat: goChat,
   });
 
   return (

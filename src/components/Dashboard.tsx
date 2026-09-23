@@ -11,13 +11,14 @@ interface Props {
   onPlanning: () => void;
   onRetro: () => void;
   onWhiteboard: () => void;
+  onChat: () => void;
   onResume: (room: ActiveRoom) => void;
   onPrivacy: () => void;
   onTerms: () => void;
   onSecurity: () => void;
 }
 
-export default function Dashboard({ onPlanning, onRetro, onWhiteboard, onResume, onPrivacy, onTerms, onSecurity }: Props) {
+export default function Dashboard({ onPlanning, onRetro, onWhiteboard, onChat, onResume, onPrivacy, onTerms, onSecurity }: Props) {
   const [view, setView] = useFeatureView();
   const [showHistory, setShowHistory] = useState(false);
   const ceremonies = [
@@ -36,6 +37,14 @@ export default function Dashboard({ onPlanning, onRetro, onWhiteboard, onResume,
       desc: 'Review last sprint’s actions, then capture what went well, what to improve & next actions.',
       cta: 'Start or join →',
       onOpen: onRetro,
+    },
+    {
+      key: 'chat',
+      icon: '💬',
+      title: 'Team Chat',
+      desc: 'A members-only back-channel with replies & reactions, inside your planning room.',
+      cta: 'Open →',
+      onOpen: onChat,
     },
     {
       key: 'whiteboard',
