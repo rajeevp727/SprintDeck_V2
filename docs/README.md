@@ -12,6 +12,7 @@ Start here and follow the document that matches what you need to do.
 | [SCOPE.md](SCOPE.md) | Know what the product does, what it deliberately does not do, and who it is for |
 | [RELEASES.md](RELEASES.md) | Check the current version, the versioning rules, and what shipped when |
 | [OPERATIONS.md](OPERATIONS.md) | Deploy, configure an environment, grant a plan, or work through an incident |
+| [OAUTH-SETUP.md](OAUTH-SETUP.md) | Set up Google and Microsoft sign-in, here or on another project |
 | [SECURITY.md](SECURITY.md) | Review the security posture, known gaps, or report a vulnerability |
 | [COMPLIANCE.md](COMPLIANCE.md) | Answer a data-protection question: what is held, why, and how rights are served |
 | [DPA.md](DPA.md) | Send a business customer a data processing addendum |
