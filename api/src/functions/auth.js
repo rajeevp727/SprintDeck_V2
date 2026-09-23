@@ -356,6 +356,7 @@ app.http('emailStatus', {
 const {
   configured: oauthConfigured,
   verifyProviderToken,
+  verifyTeamsToken,
   googleClientId,
   microsoftClientId,
   microsoftTenant,
@@ -376,6 +377,45 @@ app.http('oauthStatus', {
       microsoftClientId: microsoftClientId(),
       azureTenantId: microsoftTenant(),
     });
+  },
+});
+
+// POST /api/auth/teams  { token }
+// Signs in a tab running inside Microsoft Teams. The token comes from the
+// Teams SDK, so there is no popup and nothing for the person to click.
+app.http('teamsAuth', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'auth/teams',
+  handler: async (req) => {
+    if (!secret()) return bad('Auth is not configured', 503);
+    if (rateLimited(req, 'teamsauth', 20, 60_000)) return bad('Too many attempts — slow down', 429);
+    const { token } = await readBody(req);
+    if (!token || typeof token !== 'string') return bad('Missing token', 400);
+
+    let payload;
+    try {
+      payload = await verifyTeamsToken(token);
+    } catch (err) {
+      const reason = String(err?.code || err?.message || 'verification failed').slice(0, 120);
+      return bad(`Invalid token — ${reason}`, 401);
+    }
+
+    const email = String(payload.email || '').toLowerCase();
+    if (!emailRe.test(email)) return bad('Token does not contain a valid email', 400);
+
+    // A Teams sign-in is a Microsoft sign-in: same account, same plan, whether
+    // the person came through the browser or the tab.
+    const result = await users.findOrCreateOAuthUser({
+      email,
+      name: String(payload.name || email.split('@')[0] || '').trim().slice(0, 80),
+      provider: 'microsoft',
+      providerSub: payload.providerSub,
+    });
+    if (result.error) return bad('Could not create account — try again', 500);
+
+    const session = await tokenFor(result.user, true, req);
+    return ok({ ...session, user: users.publicUser(result.user) });
   },
 });
 

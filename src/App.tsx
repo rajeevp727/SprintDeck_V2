@@ -44,6 +44,7 @@ const RetroStart = lazy(() => import('./components/RetroStart'));
 const Whiteboard = lazy(() => import('./components/Whiteboard'));
 const ResetPasswordScreen = lazy(() => import('./components/ResetPasswordScreen'));
 const WhiteboardStart = lazy(() => import('./components/WhiteboardStart'));
+const TeamsConfig = lazy(() => import('./components/TeamsConfig'));
 import {
   getIdentity,
   saveIdentity,
@@ -64,6 +65,7 @@ import {
 } from './lib/subscription';
 import { getStatus } from './lib/verifier';
 import { useAuth, writeHandoff, type ActiveRoom } from './lib/auth';
+import { initTeams, looksLikeTeams } from './lib/teams';
 
 type Route =
   | { kind: 'room'; code: string }
@@ -75,6 +77,7 @@ type Route =
   | { kind: 'auth' }
   | { kind: 'plan' }
   | { kind: 'retroStart' }
+  | { kind: 'teamsConfig' }
   | { kind: 'home'; joinCode?: string }
   | { kind: 'whiteboard'; code: string }
   | { kind: 'whiteboardStart'; joinCode?: string; shareToken?: string }
@@ -101,6 +104,8 @@ const STATIC_ROUTES: Record<string, Route> = {
   '/plan': { kind: 'plan' },
   '/plan/': { kind: 'plan' },
   '/retro-new': { kind: 'retroStart' },
+  '/teams/config': { kind: 'teamsConfig' },
+  '/teams/config/': { kind: 'teamsConfig' },
   '/retro-new/': { kind: 'retroStart' },
   '/whiteboard': { kind: 'whiteboardStart' },
   '/whiteboard/': { kind: 'whiteboardStart' },
@@ -206,6 +211,7 @@ function renderExplicitRoute(props: PageProps): ReactNode | null {
   if (route.kind === 'resetPassword') return <ResetPasswordScreen token={route.token} onDone={props.onHome} />;
   if (route.kind === 'plan') return <Home onEnter={props.onRoom} onPrivacy={props.onPrivacy} onTerms={props.onTerms} onSecurity={props.onSecurity} onBack={props.onHome} />;
   if (route.kind === 'retroStart') return <RetroStart onEnter={props.onRetro} onBack={props.onHome} />;
+  if (route.kind === 'teamsConfig') return <TeamsConfig />;
   if (route.kind === 'whiteboardStart') return <WhiteboardStart onEnter={props.onWhiteboardBoard} onBack={props.onHome} joinCode={route.joinCode} shareToken={route.shareToken} />;
   if (route.kind === 'whiteboard') return <Whiteboard code={route.code} onLeave={props.onHome} onMissingIdentity={props.onWhiteboardStart} />;
   return null;
@@ -266,6 +272,11 @@ function usePaymentWatcher(setRoute: Dispatch<SetStateAction<Route>>) {
 export default function App() {
   const [route, setRoute] = useState<Route>(computeRoute);
   const { user, loading: authLoading } = useAuth();
+  const [inTeams, setInTeams] = useState(looksLikeTeams());
+
+  useEffect(() => {
+    initTeams().then(setInTeams);
+  }, []);
 
   usePaymentWatcher(setRoute);
 
@@ -380,8 +391,10 @@ export default function App() {
   return (
     <>
       <Suspense fallback={null}>{page}</Suspense>
-      <CookieConsent onPrivacy={goPrivacy} />
-      <StickyAd />
+      {/* Teams draws its own chrome and carries its own consent; ours would
+          only crowd a tab that is already inside a trusted client. */}
+      {!inTeams && <CookieConsent onPrivacy={goPrivacy} />}
+      {!inTeams && <StickyAd />}
       <ToastHost />
     </>
   );

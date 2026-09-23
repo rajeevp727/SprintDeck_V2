@@ -13,6 +13,7 @@ Start here and follow the document that matches what you need to do.
 | [RELEASES.md](RELEASES.md) | Check the current version, the versioning rules, and what shipped when |
 | [OPERATIONS.md](OPERATIONS.md) | Deploy, configure an environment, grant a plan, or work through an incident |
 | [OAUTH-SETUP.md](OAUTH-SETUP.md) | Set up Google and Microsoft sign-in, here or on another project |
+| [TEAMS-APP.md](TEAMS-APP.md) | Install or publish SprintDeck as a Microsoft Teams app |
 | [SECURITY.md](SECURITY.md) | Review the security posture, known gaps, or report a vulnerability |
 | [COMPLIANCE.md](COMPLIANCE.md) | Answer a data-protection question: what is held, why, and how rights are served |
 | [DPA.md](DPA.md) | Send a business customer a data processing addendum |

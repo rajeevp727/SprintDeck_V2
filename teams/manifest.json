@@ -1,0 +1,64 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "4d0a2dd2-0f6a-4811-97f2-d8e25b8dad9a",
+  "packageName": "in.sprintdeck.teams",
+  "developer": {
+    "name": "OmegaTechnologies",
+    "websiteUrl": "https://sprintdeck.in",
+    "privacyUrl": "https://sprintdeck.in/privacy",
+    "termsOfUseUrl": "https://sprintdeck.in/terms"
+  },
+  "name": {
+    "short": "SprintDeck",
+    "full": "SprintDeck - scrum ceremonies"
+  },
+  "description": {
+    "short": "Planning poker, retrospectives and a shared whiteboard.",
+    "full": "Run sprint planning, retrospectives and whiteboards with your team without leaving Teams. Estimate stories with hidden votes, capture what went well and what to improve, agree action items and carry them into the next sprint."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#4f7cff",
+  "staticTabs": [
+    {
+      "entityId": "sprintdeck-home",
+      "name": "SprintDeck",
+      "contentUrl": "https://sprintdeck.in/?teams=1",
+      "websiteUrl": "https://sprintdeck.in",
+      "scopes": [
+        "personal"
+      ]
+    }
+  ],
+  "configurableTabs": [
+    {
+      "configurationUrl": "https://sprintdeck.in/teams/config",
+      "canUpdateConfiguration": true,
+      "scopes": [
+        "team",
+        "groupChat"
+      ],
+      "context": [
+        "channelTab",
+        "privateChatTab",
+        "meetingSidePanel",
+        "meetingChatTab"
+      ]
+    }
+  ],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "validDomains": [
+    "sprintdeck.in"
+  ],
+  "webApplicationInfo": {
+    "id": "REPLACE_WITH_ENTRA_CLIENT_ID",
+    "resource": "api://sprintdeck.in/REPLACE_WITH_ENTRA_CLIENT_ID"
+  }
+}

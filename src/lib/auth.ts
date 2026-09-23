@@ -497,6 +497,27 @@ export async function checkName(name: string): Promise<NameCheck> {
 }
 
 // Resolve the current user from the stored token (validated server-side).
+/**
+ * Signs in a tab running inside Teams without asking: the SDK already knows who
+ * the person is. Returns null anywhere else, or when Teams declines to issue a
+ * token, and the ordinary sign-in screen takes over.
+ */
+export async function signInWithTeams(): Promise<AuthUser | null> {
+  const { teamsAuthToken } = await import('./teams');
+  const teamsToken = await teamsAuthToken();
+  if (!teamsToken) return null;
+  try {
+    const { token, user } = await post('/api/auth/teams', { token: teamsToken });
+    setToken(token);
+    cachedUser = user;
+    rememberAccount({ email: user.email, name: user.name });
+    notify();
+    return user;
+  } catch {
+    return null;
+  }
+}
+
 export async function refreshUser(): Promise<AuthUser | null> {
   const token = getToken();
   if (!token) {
@@ -533,7 +554,9 @@ export function useAuth(): {
   useEffect(() => {
     const rerender = () => bump((n) => n + 1);
     listeners.add(rerender);
-    refreshUser().finally(() => setLoading(false));
+    refreshUser()
+      .then((known) => (known ? null : signInWithTeams()))
+      .finally(() => setLoading(false));
     return () => {
       listeners.delete(rerender);
     };

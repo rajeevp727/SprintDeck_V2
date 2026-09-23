@@ -4534,6 +4534,19 @@ button.linkish {
   color: var(--muted);
 }
 
+.teams-config-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  width: 100%;
+  text-align: left;
+}
+.teams-config-option.chosen {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 /* Phones. The board is the screen that suffers most: one column, a header
    that keeps its controls reachable, and dialogs that use the whole width. */
 @media (max-width: 560px) {

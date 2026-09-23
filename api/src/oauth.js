@@ -103,6 +103,53 @@ async function verifyMicrosoftIdToken(idToken) {
   };
 }
 
+/**
+ * The token Teams hands a tab through getAuthToken(). It is an Entra token like
+ * any other, but its audience is the app ID URI exposed on the registration
+ * rather than the bare client id.
+ */
+function teamsAudiences() {
+  const clientId = microsoftClientId();
+  if (!clientId) return [];
+  const appIdUri = String(process.env.TEAMS_APP_ID_URI || '').trim();
+  return [clientId, appIdUri || `api://${appHost()}/${clientId}`];
+}
+
+function appHost() {
+  const url = String(process.env.APP_URL || 'https://sprintdeck.in');
+  try {
+    return new URL(url).host;
+  } catch {
+    return 'sprintdeck.in';
+  }
+}
+
+async function verifyTeamsToken(token) {
+  const audiences = teamsAudiences();
+  if (audiences.length === 0) throw new Error('Microsoft sign-in is not configured');
+
+  const jwks = jose.createRemoteJWKSet(
+    new URL(`https://login.microsoftonline.com/${microsoftTenant()}/discovery/v2.0/keys`),
+  );
+  const { payload } = await jose.jwtVerify(token, jwks, { audience: audiences });
+
+  if (!String(payload.iss || '').startsWith('https://login.microsoftonline.com/')) {
+    throw new Error('Invalid Microsoft token issuer');
+  }
+  // A Teams tab token is issued to a user, never to a daemon: scp proves a
+  // delegated token, which is the only kind that may stand in for a person.
+  if (!payload.scp && !payload.scope) throw new Error('Not a delegated Teams token');
+
+  const email = String(payload.preferred_username || payload.upn || payload.email || '').toLowerCase();
+  if (!email || !email.includes('@')) throw new Error('Teams account has no email');
+
+  return {
+    email,
+    name: String(payload.name || '').trim(),
+    providerSub: String(payload.oid || payload.sub || ''),
+  };
+}
+
 async function verifyProviderToken(provider, idToken) {
   if (provider === 'google') {
     return looksLikeJwt(idToken) ? verifyGoogleIdToken(idToken) : verifyGoogleAccessToken(idToken);
@@ -114,6 +161,8 @@ async function verifyProviderToken(provider, idToken) {
 module.exports = {
   configured,
   verifyProviderToken,
+  verifyTeamsToken,
+  teamsAudiences,
   googleClientId,
   microsoftClientId,
   microsoftTenant,
