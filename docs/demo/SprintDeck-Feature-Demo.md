@@ -1,6 +1,6 @@
 # SprintDeck Enterprise — Feature Demo Guide
 
-_Last updated: 2026-08-12_  
+_Last updated: 2026-09-25_  
 _Auto-refreshed every Friday when the product changed that week._  
 _Live app: https://sprintdeck.in · Developed by [OmegaTechnologies](https://omega-technologies.in)_
 
@@ -184,22 +184,11 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 > Every Friday, the previous **Updated this week** block is moved here, then that section is refreshed.
 
 <!-- FEATURES_HISTORY_START -->
-
 ### Seed — demo guide created (2026-08-12)
 - Full feature demo walkthrough added
 - Friday automation: promote last week → Features, refresh Updated this week
 
-<!-- FEATURES_HISTORY_END -->
-
----
-
-# Updated this week
-
-> Current week only. Next Friday this block is **promoted into Features → Feature history**, then replaced.
-
-<!-- UPDATED_THIS_WEEK_START -->
-
-### Week of 2026-08-12
+### Archived — Week of 2026-08-12 (moved 2026-09-25)
 **Areas touched:** Plans & billing, Auth / compliance, Landing / branding, Whiteboard
 
 **Highlights**
@@ -222,5 +211,60 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 - `9d1a12f` Add omegatechnologies developer credit in dashboard footer (#34)
 - `ecd5ebd` Restore 4 feature cards on landing page (#33)
 - `269862c` Fix password reset: send email and add reset page (#32)
+
+<!-- FEATURES_HISTORY_END -->
+
+---
+
+# Updated this week
+
+> Current week only. Next Friday this block is **promoted into Features → Feature history**, then replaced.
+
+<!-- UPDATED_THIS_WEEK_START -->
+
+### Week of 2026-09-25
+**Areas touched:** Planning Poker, Retrospective, Whiteboard, Team Chat, Daily Scrum & Timesheet, Plans & billing, Auth / compliance, Landing / branding
+
+**Highlights**
+- feat(teams): ship SprintDeck as a Microsoft Teams app
+- docs: add a reusable OAuth setup guide
+- feat(dashboard): show Team Chat alongside the other ceremonies
+- style: make the retro board and dashboard work at phone width
+- feat(retro): past retrospectives page and a summary email to the host
+- feat(retro): archive finished boards and hide notes until reveal
+- refactor(router): pull retro path resolution out of computeRoute
+- feat(retro): keep the board code out of the address bar
+- style(retro): square off the people modal close button
+- feat(auth): cap sign-ins at three devices and sync open rooms across them
+- style(retro): keep the board header on one line
+- fix(retro): keep the people modal open on a backdrop click
+
+**Commits**
+- `78a9ad9` feat(teams): ship SprintDeck as a Microsoft Teams app
+- `2bbb144` docs: add a reusable OAuth setup guide
+- `7f364df` feat(dashboard): show Team Chat alongside the other ceremonies
+- `4e72ffc` style: make the retro board and dashboard work at phone width
+- `0c0b8e7` feat(retro): past retrospectives page and a summary email to the host
+- `a46da24` feat(retro): archive finished boards and hide notes until reveal
+- `669abaf` refactor(router): pull retro path resolution out of computeRoute
+- `a38750d` feat(retro): keep the board code out of the address bar
+- `df08382` style(retro): square off the people modal close button
+- `e83f612` feat(auth): cap sign-ins at three devices and sync open rooms across them
+- `c41429b` style(retro): keep the board header on one line
+- `71bc01e` fix(retro): keep the people modal open on a backdrop click
+- `5ab0637` style(retro): close the people modal with an X
+- `7325cc6` style: solid destructive buttons and the real logo on the retro screens
+- `4e92f58` fix(retro): keep action items to the facilitator and show people in a modal
+- `5863e6b` style(dashboard): pin the footer to the bottom and tighten the top gap
+- `91f08ce` feat: withdraw the daily scrum and timesheet module
+- `ec1fc28` feat(retro): show the compose hint once, on first hover
+- `a37e414` style(retro): keep the default cursor on the compose hint
+- `e52f73c` style(retro): fold the compose hint into an info icon
+- `55bd5a6` style(retro): use a thumbs-up for carry-over likes
+- `8ddb88d` feat(retro): carry last retro's action items and let the team like them
+- `912d2a0` fix(retro): freeze discussion notes when voting stops
+- `721c497` fix(retro): allow move to action only after voting stops
+- `2645512` fix(retro): votes need a running clock, and the bar stays pinned when narrow
+- …and 43 more commits
 
 <!-- UPDATED_THIS_WEEK_END -->
