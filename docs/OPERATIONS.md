@@ -60,6 +60,16 @@ curl -s -o /dev/null -w '%{http_code}' https://sprintdeck.in/
 
 ### Grant or change a plan
 
+One address can hold an account per sign-in provider, and only the one the person actually
+signed in with matters. Find it first:
+
+```bash
+COSMOS_CONNECTION_STRING="..." node scripts/grant-plan.mjs --find someone@example.com
+```
+
+It lists every account on the address with its plan and how many devices are signed in; the
+live one is the account with devices above zero. Then:
+
 ```bash
 node scripts/grant-plan.mjs google:someone@example.com master --lifetime
 ```
