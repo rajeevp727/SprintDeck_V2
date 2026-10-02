@@ -1,6 +1,6 @@
 # SprintDeck Enterprise — Feature Demo Guide
 
-_Last updated: 2026-08-12_  
+_Last updated: 2026-10-02_  
 _Auto-refreshed every Friday when the product changed that week._  
 _Live app: https://sprintdeck.in · Developed by [OmegaTechnologies](https://omega-technologies.in)_
 
@@ -184,22 +184,11 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 > Every Friday, the previous **Updated this week** block is moved here, then that section is refreshed.
 
 <!-- FEATURES_HISTORY_START -->
-
 ### Seed — demo guide created (2026-08-12)
 - Full feature demo walkthrough added
 - Friday automation: promote last week → Features, refresh Updated this week
 
-<!-- FEATURES_HISTORY_END -->
-
----
-
-# Updated this week
-
-> Current week only. Next Friday this block is **promoted into Features → Feature history**, then replaced.
-
-<!-- UPDATED_THIS_WEEK_START -->
-
-### Week of 2026-08-12
+### Archived — Week of 2026-08-12 (moved 2026-10-02)
 **Areas touched:** Plans & billing, Auth / compliance, Landing / branding, Whiteboard
 
 **Highlights**
@@ -222,5 +211,28 @@ Footer: **SprintDeck - Developed by OmegaTechnologies** · Privacy · Terms · S
 - `9d1a12f` Add omegatechnologies developer credit in dashboard footer (#34)
 - `ecd5ebd` Restore 4 feature cards on landing page (#33)
 - `269862c` Fix password reset: send email and add reset page (#32)
+
+<!-- FEATURES_HISTORY_END -->
+
+---
+
+# Updated this week
+
+> Current week only. Next Friday this block is **promoted into Features → Feature history**, then replaced.
+
+<!-- UPDATED_THIS_WEEK_START -->
+
+### Week of 2026-10-02
+**Areas touched:** general maintenance
+
+**Highlights**
+- Revert "feat(api): report which store the API is connected to"
+- feat(api): report which store the API is connected to
+- feat(ops): find which account holds the plan before granting
+
+**Commits**
+- `154e32e` Revert "feat(api): report which store the API is connected to"
+- `fa3fad9` feat(api): report which store the API is connected to
+- `a1dd462` feat(ops): find which account holds the plan before granting
 
 <!-- UPDATED_THIS_WEEK_END -->
