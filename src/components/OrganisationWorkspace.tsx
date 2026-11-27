@@ -146,14 +146,13 @@ export default function OrganisationWorkspace() {
               <div className="workspace-section">
                 <h3>Teams</h3>
                 {details.teams.length ? <ul className="workspace-list">{details.teams.map((team) => <li key={team.id}><strong>{team.name}</strong><span>{team.timezone}</span></li>)}</ul> : <p className="workspace-empty">No teams yet. Create your first team.</p>}
-                {selected && ['owner', 'admin'].includes(details.members.find((m) => m.userId === details.organisation.id)?.role || '') ? null : null}
-                <form onSubmit={createTeam} className="workspace-form">
+                {['owner', 'admin'].includes(details.members.find((m) => m.userId === user?.id)?.role || '') && <form onSubmit={createTeam} className="workspace-form">
                   <label htmlFor="workspace-team-name">New team</label>
                   <input id="workspace-team-name" value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="e.g. Platform team" minLength={2} maxLength={80} required />
                   <label htmlFor="workspace-timezone">Team timezone</label>
                   <input id="workspace-timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} maxLength={80} />
                   <button className="ghost" disabled={busy}>Create team</button>
-                </form>
+                </form>}
               </div>
               <div className="workspace-section">
                 <h3>Members <span>{details.members.length}</span></h3>
