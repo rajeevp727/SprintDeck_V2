@@ -631,10 +631,27 @@ function updateCarryOverItem(board, participantId, itemId, patch) {
   if (Object.prototype.hasOwnProperty.call(patch, 'status')) {
     const status = String(patch.status);
     if (!actionStatuses.includes(status)) return false;
+    const previousStatus = item.status || (item.done ? 'done' : 'open');
+    if (previousStatus !== status) {
+      item.history = Array.isArray(item.history) ? item.history : [];
+      item.history.push({ from: previousStatus, to: status, changedBy: board.participants[participantId]?.name || 'Facilitator', at: Date.now() });
+    }
     item.status = status;
     item.done = status === 'done';
     item.completedAt = item.done ? (item.completedAt || Date.now()) : null;
   }
+  item.updatedAt = Date.now();
+  return true;
+}
+
+function addCarryOverComment(board, participantId, itemId, text) {
+  if (!board.participants[participantId] || board.phase === 'ended') return false;
+  const item = (board.carryOverItems || []).find((candidate) => candidate.id === itemId);
+  const message = String(text || '').trim().slice(0, 1000);
+  if (!item || !message) return false;
+  item.comments = Array.isArray(item.comments) ? item.comments : [];
+  if (item.comments.length >= 100) return false;
+  item.comments.push({ id: genId(), authorId: participantId, authorName: board.participants[participantId].name || 'Teammate', text: message, at: Date.now() });
   item.updatedAt = Date.now();
   return true;
 }
@@ -751,6 +768,7 @@ module.exports = {
   deleteNote,
   toggleCarryOverItem,
   updateCarryOverItem,
+  addCarryOverComment,
   openBoard,
   endBoard,
   actionItemsFromBoard,
