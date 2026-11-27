@@ -675,6 +675,8 @@ function actionItemsFromBoard(board) {
       dueDate: item.dueDate || null,
       priority: item.priority || 'medium',
       status: item.status || 'open',
+      comments: item.comments || [],
+      history: item.history || [],
       createdAt: item.createdAt || Date.now(),
       updatedAt: item.updatedAt || null,
     }));
@@ -688,6 +690,8 @@ function actionItemsFromBoard(board) {
         dueDate: null,
         priority: 'medium',
         status: 'open',
+        comments: [],
+        history: [],
         createdAt: note.createdAt || Date.now(),
       }))
     : [];
