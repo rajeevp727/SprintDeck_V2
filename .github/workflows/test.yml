@@ -1,6 +1,8 @@
 name: Tests
 
 on:
+  push:
+    branches: [CTO-business-coach]
   pull_request:
     branches: [main]
 
