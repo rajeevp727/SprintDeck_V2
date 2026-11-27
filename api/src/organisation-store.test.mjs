@@ -40,3 +40,27 @@ describe('organisation workspace lifecycle', () => {
     expect((await organisations.getForUser(other.id, created.organisation.id)).status).toBe(403);
   });
 });
+
+
+describe('team goals', () => {
+  it('creates goals and updates measurable progress', async () => {
+    const owner = user(`goal-owner-${Date.now()}`, `goal-owner-${Date.now()}@example.com`, 'Goal Owner');
+    const created = await organisations.create(owner, 'Goal Org');
+    const team = await organisations.createTeam(owner.id, created.organisation.id, 'Quality');
+    const goal = await organisations.addTeamGoal(owner.id, created.organisation.id, team.team.id, {
+      title: 'Reduce escaped defects', target: 10, current: 2, unit: 'defects', dueDate: '2026-12-31',
+    });
+    expect(goal.goal.status).toBe('active');
+    const updated = await organisations.updateTeamGoal(owner.id, created.organisation.id, team.team.id, goal.goal.id, { current: 10 });
+    expect(updated.goal.status).toBe('completed');
+  });
+
+  it('rejects invalid targets and non-lead updates', async () => {
+    const owner = user(`goal-owner2-${Date.now()}`, `goal-owner2-${Date.now()}@example.com`, 'Goal Owner');
+    const outsider = user(`goal-outsider-${Date.now()}`, `goal-outsider-${Date.now()}@example.com`, 'Outsider');
+    const created = await organisations.create(owner, 'Goal Org 2');
+    const team = await organisations.createTeam(owner.id, created.organisation.id, 'Reliability');
+    expect((await organisations.addTeamGoal(owner.id, created.organisation.id, team.team.id, { title: 'Bad target', target: 0 })).status).toBe(400);
+    expect((await organisations.updateTeamGoal(outsider.id, created.organisation.id, team.team.id, 'missing', { current: 1 })).status).toBe(403);
+  });
+});
