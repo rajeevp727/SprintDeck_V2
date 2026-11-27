@@ -92,6 +92,7 @@ A release is not complete until:
 
 Implemented on `CTO-business-coach`:
 - Retrospective action assignment, due date, priority, status, comments, status history and incomplete carry-forward.
+- Team goals/OKRs with target, progress, unit, due date and active/at-risk/completed lifecycle.
 - Organisation and team creation, membership invitations, role assignment and team membership assignment.
 - Active team context for new retrospectives.
 - Team-scoped retrospective analytics and a read-only Scrum Coach endpoint. Azure OpenAI requires explicit app settings; rule-based guidance is returned when the service is not configured.
