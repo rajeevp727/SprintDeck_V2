@@ -177,7 +177,8 @@ app.http('scrumCoachInsights', {
         actionCount: (archive.actionItems || []).length,
       })),
     };
-    const endpoint = (process.env.AZURE_OPENAI_ENDPOINT || '').replace(/\\/$/, '');
+    let endpoint = String(process.env.AZURE_OPENAI_ENDPOINT || '');
+    while (endpoint.endsWith('/')) endpoint = endpoint.slice(0, -1);
     const key = process.env.AZURE_OPENAI_API_KEY || '';
     const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || '';
     if (!endpoint || !key || !deployment) {
