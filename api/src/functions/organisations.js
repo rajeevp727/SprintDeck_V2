@@ -91,3 +91,14 @@ app.http('updateOrganisationMemberRole', {
     return result.error ? bad(result.error, result.status) : ok(result);
   },
 });
+
+
+app.http('updateOrganisationTeamMember', {
+  methods: ['PUT'], authLevel: 'anonymous', route: 'organisations/{orgId}/teams/{teamId}/members/{userId}',
+  handler: async (req) => {
+    const { user, error } = await caller(req);
+    if (error) return error;
+    const result = await store.setTeamMember(user.id, req.params.orgId, req.params.teamId, req.params.userId, (await body(req)).role);
+    return result.error ? bad(result.error, result.status) : ok(result);
+  },
+});
