@@ -123,6 +123,25 @@ async function createTeam(userId, orgId, name, timezone) {
   return { team };
 }
 
+async function setTeamMember(actorId, orgId, teamId, targetUserId, role) {
+  const org = await read(orgId);
+  if (!org) return { error: 'Organisation not found', status: 404 };
+  const actor = memberOf(org, actorId);
+  if (!actor) return { error: 'You are not a member of this organisation', status: 403 };
+  const team = org.teams.find((item) => item.id === teamId && !item.archivedAt);
+  if (!team) return { error: 'Team not found', status: 404 };
+  const currentTeamRole = (team.members || []).find((item) => item.userId === actorId)?.role;
+  if (!['owner', 'admin'].includes(actor.role) && currentTeamRole !== 'lead') return { error: 'Only organisation admins or this team’s lead can manage team membership', status: 403 };
+  if (!memberOf(org, targetUserId)) return { error: 'The person must join the organisation before being added to a team', status: 400 };
+  if (!['lead', 'member', 'stakeholder'].includes(role)) return { error: 'Invalid team role', status: 400 };
+  const target = (team.members || []).find((item) => item.userId === targetUserId);
+  if (target) target.role = role;
+  else team.members.push({ userId: targetUserId, role, joinedAt: Date.now() });
+  audit(org, actorId, 'team.member_assigned', 'team', teamId);
+  await write(org);
+  return { team };
+}
+
 async function invite(userId, orgId, inviteEmail, role) {
   const org = await read(orgId);
   if (!org) return { error: 'Organisation not found', status: 404 };
@@ -180,4 +199,4 @@ async function getForUser(userId, orgId) {
   return { organisation: summary(org), members: org.members.filter((m) => m.status === 'active').map(({ userId: memberId, email: memberEmail, name, role, status, joinedAt }) => ({ userId: memberId, email: memberEmail, name, role, status, joinedAt })), teams: org.teams.filter((team) => !team.archivedAt) };
 }
 
-module.exports = { listForUser, create, getForUser, createTeam, invite, acceptInvite, setMemberRole, memberOf };
+module.exports = { listForUser, create, getForUser, createTeam, invite, acceptInvite, setMemberRole, setTeamMember, memberOf };
