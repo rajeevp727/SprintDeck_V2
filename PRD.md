@@ -55,11 +55,12 @@ It should integrate with Jira, Linear and Azure DevOps where technically support
 ### 5.2 Retrospectives
 - Facilitate notes, grouping, voting and review.
 - Convert selected discussion outcomes into action items.
-- Each action item should support an owner, due date, status, comments and completion history.
+- Each action item supports participant owner, due date, priority, status, comments and status/completion history.
+- Unfinished actions carry forward with their metadata; completed actions remain in archived sprint metrics but are not re-opened.
 - Carry incomplete actions into the next retrospective.
 - Show team-level action completion trends without turning them into individual performance scores.
 
-### 5.3 Organisation and teams (planned)
+### 5.3 Organisation and teams (initial implementation on `CTO-business-coach`)
 - An organisation can contain multiple teams.
 - Users can belong to one or more organisations/teams.
 - Roles: organisation owner/admin, team lead or Scrum Master, member and read-only stakeholder.
@@ -67,7 +68,7 @@ It should integrate with Jira, Linear and Azure DevOps where technically support
 - Organisation-level billing and plan entitlements.
 - Every organisation-scoped API operation must authorise membership server-side; never trust a client-supplied tenant ID.
 
-### 5.4 Sprint intelligence (planned)
+### 5.4 Sprint intelligence (initial implementation)
 - Cross-sprint estimation trends, consensus and spread.
 - Ceremony participation and attendance trends.
 - Retrospective action completion and carry-forward.
@@ -102,14 +103,14 @@ Current plan labels and displayed prices are maintained in the application; vali
 | P0 | Auth, membership and entitlement audit | Negative and cross-account access tests pass |
 | P0 | Linear integration verification | Real issue lookup and confirmed write-back pass against a test workspace |
 | P0 | Payment lifecycle audit | Correct account activation, duplicate handling, expiry and support paths verified |
-| P1 | Organisation and team management | Multiple teams can be securely managed within an organisation |
-| P1 | Retrospective action ownership | **In progress on `CTO-business-coach`** — participant owner, due date, priority, status and incomplete carry-forward implemented; comments and durable member identity remain open |
-| P1 | Cross-sprint team analytics | Team trends are reliable and privacy-aware |
+| P1 | Organisation and team management | **Initial implementation on `CTO-business-coach`** — org/team creation, membership, invitations, role assignment and active team context; email delivery, removals, billing and migration remain open |
+| P1 | Retrospective action ownership | **Initial implementation on `CTO-business-coach`** — owner, due date, priority, status, comments, status history and incomplete carry-forward; owners are still board participants, not durable workspace identities |
+| P1 | Cross-sprint team analytics | **Initial retrospective metrics implemented** — Poker analytics and deeper trends remain open |
 | P2 | Microsoft Teams notifications | Users can launch/join ceremonies from notifications |
 | P2 | Jira and Azure DevOps | Provider integrations pass security and end-to-end tests |
 | P3 | Enterprise controls | SSO policy, audit logs, retention and security review complete |
 
-Detailed execution plan: `docs/CTO-IMPLEMENTATION-PLAN.md`.
+Detailed execution plan: `docs/CTO-IMPLEMENTATION-PLAN.md`.\n\n### 5.6 Onboarding and Scrum Coach\n- Dashboard onboarding checklist guides organisation setup, invitation, first planning session and first retrospective.\n- Scrum Coach is read-only and never mutates records. Configure `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT` and optionally `AZURE_OPENAI_API_VERSION` to enable generated suggestions. Without these settings it provides rule-based prompts and clearly identifies them as such.
 
 ## 8. Success metrics
 
