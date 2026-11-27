@@ -66,6 +66,9 @@ export const retroApi = {
   reviewToggle: (code: string, participantId: string, itemId: string) =>
     request<{ board: RetroBoard }>(`/api/retro/${code}/review/${itemId}`, 'POST', { participantId }),
 
+  commentReviewItem: (code: string, participantId: string, itemId: string, text: string) =>
+    request<{ board: RetroBoard }>(`/api/retro/${code}/review/${itemId}/comments`, 'POST', { participantId, text }),
+
   updateReviewItem: (
     code: string,
     participantId: string,
