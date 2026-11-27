@@ -43,6 +43,7 @@ describe('organisation workspace lifecycle', () => {
 
 
 describe('team goals', () => {
+  const user = (id, email, name) => ({ id, email, name });
   it('creates goals and updates measurable progress', async () => {
     const owner = user(`goal-owner-${Date.now()}`, `goal-owner-${Date.now()}@example.com`, 'Goal Owner');
     const created = await organisations.create(owner, 'Goal Org');
