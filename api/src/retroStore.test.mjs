@@ -521,3 +521,27 @@ describe('action ownership and follow-through', () => {
     expect(board.carryOverItems[0].completedAt).toBeNull();
   });
 });
+
+
+describe('action-item discussion and audit history', () => {
+  it('stores comments and records status transitions for the next sprint', () => {
+    const board = boardWith();
+    board.carryOverItems = [{ id: 'tracked', text: 'Add monitoring', done: false, status: 'open', likes: [] }];
+    expect(store.addCarryOverComment(board, 'member', 'tracked', 'I can take this')).toBe(true);
+    expect(store.updateCarryOverItem(board, 'chair', 'tracked', { status: 'in-progress' })).toBe(true);
+    expect(store.toggleCarryOverItem(board, 'tracked', 'chair')).toBe(true);
+    const item = store.actionItemsFromBoard(board)[0];
+    expect(item.comments).toHaveLength(1);
+    expect(item.comments[0].text).toBe('I can take this');
+    expect(item.history.map((entry) => entry.to)).toEqual(['in-progress', 'done']);
+  });
+
+  it('rejects comments from strangers, empty comments and comments on ended boards', () => {
+    const board = boardWith();
+    board.carryOverItems = [{ id: 'tracked', text: 'Add monitoring', done: false, likes: [] }];
+    expect(store.addCarryOverComment(board, 'ghost', 'tracked', 'No access')).toBe(false);
+    expect(store.addCarryOverComment(board, 'member', 'tracked', '  ')).toBe(false);
+    board.phase = 'ended';
+    expect(store.addCarryOverComment(board, 'member', 'tracked', 'Too late')).toBe(false);
+  });
+});
