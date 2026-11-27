@@ -30,6 +30,12 @@ export interface RetroCarryItem {
   id: string;
   text: string;
   done: boolean;
+  status?: 'open' | 'in-progress' | 'blocked' | 'done';
+  ownerId?: string | null;
+  ownerName?: string | null;
+  dueDate?: string | null;
+  priority?: 'low' | 'medium' | 'high';
+  completedAt?: number | null;
   likeCount?: number;
   likedByMe?: boolean;
 }
