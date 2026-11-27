@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '../lib/auth';
 import { organisationApi, type OrganisationDetails, type OrganisationRole, type OrganisationSummary } from '../lib/organisationApi';
 
@@ -15,13 +15,14 @@ export default function OrganisationWorkspace() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<OrganisationRole>('member');
   const [inviteToken, setInviteToken] = useState('');
+  const [teamMemberUser, setTeamMemberUser] = useState('');
+  const [teamMemberRole, setTeamMemberRole] = useState<'lead' | 'member' | 'stakeholder'>('member');
   const [acceptOrgId, setAcceptOrgId] = useState('');
   const [acceptToken, setAcceptToken] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  const selected = useMemo(() => organisations.find((org) => org.id === selectedId) || null, [organisations, selectedId]);
 
   async function refresh(preferredId = selectedId) {
     const result = await organisationApi.list();
@@ -71,6 +72,15 @@ export default function OrganisationWorkspace() {
       setTeamName('');
       await refresh(selectedId);
       setNotice('Team created.');
+    });
+  }
+
+  async function assignTeamMember(teamId: string) {
+    if (!selectedId || !teamMemberUser) return;
+    await run(async () => {
+      await organisationApi.setTeamMember(selectedId, teamId, teamMemberUser, teamMemberRole);
+      await refresh(selectedId);
+      setNotice('Team membership updated.');
     });
   }
 
@@ -145,7 +155,23 @@ export default function OrganisationWorkspace() {
             <div className="workspace-grid">
               <div className="workspace-section">
                 <h3>Teams</h3>
-                {details.teams.length ? <ul className="workspace-list">{details.teams.map((team) => <li key={team.id}><strong>{team.name}</strong><span>{team.timezone}</span></li>)}</ul> : <p className="workspace-empty">No teams yet. Create your first team.</p>}
+                {details.teams.length ? <ul className="workspace-list">{details.teams.map((team) => (
+                  <li key={team.id} className="workspace-team-item">
+                    <div><strong>{team.name}</strong><small>{team.timezone} · {(team.members || []).length} team member(s)</small></div>
+                    {['owner', 'admin'].includes(details.members.find((m) => m.userId === user?.id)?.role || '') || (team.members || []).some((m) => m.userId === user?.id && m.role === 'lead') ? (
+                      <div className="workspace-team-assign">
+                        <select aria-label={`Member to add to ${team.name}`} value={teamMemberUser} onChange={(e) => setTeamMemberUser(e.target.value)}>
+                          <option value="">Select org member</option>
+                          {details.members.filter((member) => !(team.members || []).some((existing) => existing.userId === member.userId)).map((member) => <option key={member.userId} value={member.userId}>{member.name || member.email}</option>)}
+                        </select>
+                        <select aria-label="Team role" value={teamMemberRole} onChange={(e) => setTeamMemberRole(e.target.value as 'lead' | 'member' | 'stakeholder')}>
+                          <option value="member">Member</option><option value="lead">Lead</option><option value="stakeholder">Stakeholder</option>
+                        </select>
+                        <button type="button" className="ghost" disabled={busy || !teamMemberUser} onClick={() => assignTeamMember(team.id)}>Add</button>
+                      </div>
+                    ) : null}
+                  </li>
+                ))}</ul> : <p className="workspace-empty">No teams yet. Create your first team.</p>}
                 {['owner', 'admin'].includes(details.members.find((m) => m.userId === user?.id)?.role || '') && <form onSubmit={createTeam} className="workspace-form">
                   <label htmlFor="workspace-team-name">New team</label>
                   <input id="workspace-team-name" value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="e.g. Platform team" minLength={2} maxLength={80} required />
