@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '../lib/auth';
-import { organisationApi, saveActiveWorkspace, type OrganisationDetails, type OrganisationRole, type OrganisationSummary } from '../lib/organisationApi';
+import { organisationApi, saveActiveWorkspace, type OrganisationDetails, type OrganisationRole, type OrganisationSummary, type WorkspaceAnalytics } from '../lib/organisationApi';
 
 const roles: OrganisationRole[] = ['admin', 'team-lead', 'member', 'stakeholder'];
 
@@ -9,6 +9,8 @@ export default function OrganisationWorkspace() {
   const [organisations, setOrganisations] = useState<OrganisationSummary[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [details, setDetails] = useState<OrganisationDetails | null>(null);
+  const [analytics, setAnalytics] = useState<WorkspaceAnalytics | null>(null);
+  const [analyticsTeamId, setAnalyticsTeamId] = useState('');
   const [name, setName] = useState('');
   const [teamName, setTeamName] = useState('');
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
@@ -23,6 +25,15 @@ export default function OrganisationWorkspace() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
+
+  useEffect(() => {
+    if (!selectedId) { setAnalytics(null); return; }
+    let active = true;
+    organisationApi.analytics(selectedId, analyticsTeamId || undefined)
+      .then((result) => { if (active) setAnalytics(result); })
+      .catch((err) => { if (active) setError(err.message); });
+    return () => { active = false; };
+  }, [selectedId, analyticsTeamId]);
 
   async function refresh(preferredId = selectedId) {
     const result = await organisationApi.list();
@@ -151,6 +162,30 @@ export default function OrganisationWorkspace() {
           <select id="workspace-select" className="workspace-select" value={selectedId} onChange={(e) => run(async () => { setSelectedId(e.target.value); setDetails(await organisationApi.get(e.target.value)); })}>
             {organisations.map((org) => <option key={org.id} value={org.id}>{org.name}</option>)}
           </select>
+          {details && (
+            <div className="workspace-analytics">
+              <div className="workspace-analytics-head">
+                <div><h3>Sprint health</h3><p>Retrospective follow-through and team learning</p></div>
+                <select aria-label="Analytics scope" value={analyticsTeamId} onChange={(e) => setAnalyticsTeamId(e.target.value)}>
+                  <option value="">All teams</option>
+                  {details.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+                </select>
+              </div>
+              {analytics ? (
+                <>
+                  <div className="workspace-metrics">
+                    <div><strong>{analytics.retrospectiveCount}</strong><span>Retrospectives</span></div>
+                    <div><strong>{analytics.actionCount}</strong><span>Actions tracked</span></div>
+                    <div><strong>{analytics.completedActions}</strong><span>Completed</span></div>
+                    <div><strong>{analytics.overdueActions}</strong><span>Overdue</span></div>
+                    <div><strong>{analytics.completionRate == null ? '—' : `${analytics.completionRate}%`}</strong><span>Completion rate</span></div>
+                  </div>
+                  {analytics.sprints.length > 0 ? <ul className="workspace-sprint-list">{analytics.sprints.slice(0, 6).map((sprint) => <li key={sprint.id}><div><strong>{sprint.name}</strong><small>{new Date(sprint.endedAt).toLocaleDateString()} · {sprint.participantCount} participants · {sprint.noteCount} notes</small></div><span>{sprint.completionRate == null ? 'No actions' : `${sprint.completionRate}% actions done`}</span></li>)}</ul> : <p className="workspace-empty">End a retrospective while this team is selected to start building its sprint history.</p>}
+                  <p className="workspace-analytics-caveat">{analytics.caveat}</p>
+                </>
+              ) : <p className="workspace-empty">Loading sprint health…</p>}
+            </div>
+          )}
           {details && (
             <div className="workspace-grid">
               <div className="workspace-section">
