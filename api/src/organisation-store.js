@@ -171,7 +171,8 @@ async function updateTeamGoal(actorId, orgId, teamId, goalId, patch = {}) {
   if (!org) return { error: 'Organisation not found', status: 404 };
   const actor = memberOf(org, actorId);
   const team = org.teams.find((item) => item.id === teamId && !item.archivedAt);
-  if (!actor || !team) return { error: 'Team not found or access denied', status: 404 };
+  if (!actor) return { error: 'You are not a member of this organisation', status: 403 };
+  if (!team) return { error: 'Team not found', status: 404 };
   const teamRole = (team.members || []).find((item) => item.userId === actorId)?.role;
   if (!['owner', 'admin'].includes(actor.role) && teamRole !== 'lead') return { error: 'Only a team lead or organisation admin can update goals', status: 403 };
   const goal = (team.goals || []).find((item) => item.id === goalId);
