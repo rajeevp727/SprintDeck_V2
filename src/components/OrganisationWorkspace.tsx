@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '../lib/auth';
-import { organisationApi, saveActiveWorkspace, type OrganisationDetails, type OrganisationRole, type OrganisationSummary, type WorkspaceAnalytics } from '../lib/organisationApi';
+import { organisationApi, saveActiveWorkspace, type OrganisationDetails, type OrganisationRole, type OrganisationSummary, type WorkspaceAnalytics, type ScrumCoachResult } from '../lib/organisationApi';
 
 const roles: OrganisationRole[] = ['admin', 'team-lead', 'member', 'stakeholder'];
 
@@ -11,6 +11,8 @@ export default function OrganisationWorkspace() {
   const [details, setDetails] = useState<OrganisationDetails | null>(null);
   const [analytics, setAnalytics] = useState<WorkspaceAnalytics | null>(null);
   const [analyticsTeamId, setAnalyticsTeamId] = useState('');
+  const [coach, setCoach] = useState<ScrumCoachResult | null>(null);
+  const [coachBusy, setCoachBusy] = useState(false);
   const [name, setName] = useState('');
   const [teamName, setTeamName] = useState('');
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
@@ -34,6 +36,14 @@ export default function OrganisationWorkspace() {
       .catch((err) => { if (active) setError(err.message); });
     return () => { active = false; };
   }, [selectedId, analyticsTeamId]);
+
+  async function generateCoachInsights() {
+    if (!selectedId) return;
+    setCoachBusy(true); setError('');
+    try { setCoach(await organisationApi.scrumCoach(selectedId, analyticsTeamId || undefined)); }
+    catch (err) { setError((err as Error).message); }
+    finally { setCoachBusy(false); }
+  }
 
   async function refresh(preferredId = selectedId) {
     const result = await organisationApi.list();
@@ -182,6 +192,18 @@ export default function OrganisationWorkspace() {
                   </div>
                   {analytics.sprints.length > 0 ? <ul className="workspace-sprint-list">{analytics.sprints.slice(0, 6).map((sprint) => <li key={sprint.id}><div><strong>{sprint.name}</strong><small>{new Date(sprint.endedAt).toLocaleDateString()} · {sprint.participantCount} participants · {sprint.noteCount} notes</small></div><span>{sprint.completionRate == null ? 'No actions' : `${sprint.completionRate}% actions done`}</span></li>)}</ul> : <p className="workspace-empty">End a retrospective while this team is selected to start building its sprint history.</p>}
                   <p className="workspace-analytics-caveat">{analytics.caveat}</p>
+                  <div className="workspace-coach">
+                    <div><strong>Scrum Coach</strong><small>Read-only team improvement guidance</small></div>
+                    <button type="button" className="ghost" disabled={coachBusy} onClick={generateCoachInsights}>{coachBusy ? 'Thinking…' : 'Generate insights'}</button>
+                    {coach && (
+                      <div className="workspace-coach-result">
+                        {coach.summary && <p>{coach.summary}</p>}
+                        {coach.suggestions.map((suggestion, index) => <p key={index}>• {suggestion}</p>)}
+                        {coach.message && <small>{coach.message}</small>}
+                        {!coach.configured && <small>Configure AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY and AZURE_OPENAI_DEPLOYMENT to enable generated AI guidance.</small>}
+                      </div>
+                    )}
+                  </div>
                 </>
               ) : <p className="workspace-empty">Loading sprint health…</p>}
             </div>
