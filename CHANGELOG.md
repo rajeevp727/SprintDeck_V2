@@ -55,3 +55,18 @@ Notes / not done
 - Preserved unfinished carried-over commitments when ending a retrospective; completed commitments are excluded from the next carry-forward ledger.
 - Kept the existing Linear, Jira and Azure DevOps integration code unchanged and out of this delivery.
 - Added API-store tests for facilitator-only updates, validation, status lifecycle and cross-sprint carry-forward. Tests have not yet been executed in this environment.
+
+
+## 2026-11-27 — Organisation workspaces, sprint health and onboarding
+
+- Added Cosmos-backed organisation workspace storage with organisation owner/admin/team-lead/member/stakeholder roles.
+- Added organisation creation/list/detail, team creation, organisation invitations and invitation acceptance. Invitation tokens are random, stored as SHA-256 hashes, expire after seven days and are single-use; email delivery is not yet configured, so tokens are shared manually.
+- Added team membership assignment with team lead and organisation admin checks.
+- Added authenticated organisation/team APIs. Access is derived from the signed-in account and checked server-side; client-supplied organisation IDs alone do not grant access.
+- Added dashboard workspace management, member role controls, team assignment and active team selection for new retrospectives.
+- Retrospectives now record organisation/team context; completed archives feed organisation/team retrospective metrics (participation, notes, actions, completion and overdue counts).
+- Added a read-only Scrum Coach endpoint. Azure OpenAI can be enabled through `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT` and optional `AZURE_OPENAI_API_VERSION`. Without those settings it returns clearly labelled rule-based prompts.
+- Added first-sprint onboarding checklist and guided entry points.
+- Added tests for organisation invitation/role boundaries and retrospective action carry-forward, comments, status history and team-scoped archives.
+- Added branch-push validation to the test workflow. The first run failed during dependency installation; the workflow now uses lockfile-based installs and a rerun is pending.
+- No Linear/Jira/Azure DevOps integration work was performed. No production deployment or merge to `main` was performed.
