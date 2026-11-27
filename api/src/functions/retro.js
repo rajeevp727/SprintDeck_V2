@@ -295,6 +295,22 @@ app.http('updateRetroReviewItem', {
   },
 });
 
+app.http('commentRetroReviewItem', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'retro/{code}/review/{itemId}/comments',
+  handler: async (req) => {
+    const { participantId, text } = await readBody(req);
+    const { board, error } = await requireParticipant(req.params.code, participantId);
+    if (error) return error;
+    if (!store.addCarryOverComment(board, participantId, req.params.itemId, text)) {
+      return bad('Could not add this comment', 400);
+    }
+    await store.saveBoard(board);
+    return ok({ board: store.publicView(board, participantId) });
+  },
+});
+
 app.http('toggleRetroReviewItem', {
   methods: ['POST'],
   authLevel: 'anonymous',
