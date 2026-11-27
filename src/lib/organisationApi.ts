@@ -17,6 +17,7 @@ export const organisationApi = {
   create: (name: string) => request<{ organisation: OrganisationSummary }>('/api/organisations', 'POST', { name }),
   get: (id: string) => request<OrganisationDetails>(`/api/organisations/${id}`, 'GET'),
   createTeam: (id: string, name: string, timezone: string) => request<{ team: OrganisationSummary['teams'][number] }>(`/api/organisations/${id}/teams`, 'POST', { name, timezone }),
+  setTeamMember: (orgId: string, teamId: string, userId: string, role: 'lead' | 'member' | 'stakeholder') => request<{ team: OrganisationSummary['teams'][number] }>(`/api/organisations/${orgId}/teams/${teamId}/members/${encodeURIComponent(userId)}`, 'PUT', { role }),
   invite: (id: string, email: string, role: OrganisationRole) => request<{ invitation: { id: string; email: string; role: OrganisationRole; expiresAt: number; token: string } }>(`/api/organisations/${id}/invitations`, 'POST', { email, role }),
   accept: (id: string, token: string) => request<{ organisation: OrganisationSummary }>(`/api/organisations/${id}/invitations/accept`, 'POST', { token }),
   setRole: (id: string, userId: string, role: OrganisationRole) => request<{ member: OrganisationMember }>(`/api/organisations/${id}/members/${encodeURIComponent(userId)}`, 'PATCH', { role }),
