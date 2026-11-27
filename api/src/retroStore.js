@@ -157,6 +157,10 @@ function snapshotOf(board) {
     carryOverItems: (board.carryOverItems || []).map((it) => ({
       text: it.text,
       done: !!it.done,
+      status: it.status || (it.done ? 'done' : 'open'),
+      ownerName: it.ownerName || null,
+      dueDate: it.dueDate || null,
+      priority: it.priority || 'medium',
       likeCount: Array.isArray(it.likes) ? it.likes.length : 0,
     })),
     participants: Object.values(names),
@@ -322,7 +326,7 @@ async function createBoard(name, facilitatorName, desiredCode, roomCode, ownerKe
     phase: 'review', 
     // Write privately, reveal together: nobody anchors on the first note in.
     notesHidden: false,
-    carryOverItems: carry.map((it) => ({ id: it.id, text: it.text, done: false, likes: [] })),
+    carryOverItems: carry.map((it) => ({ ...it, done: it.status === 'done' || !!it.done, status: it.status || (it.done ? 'done' : 'open'), priority: it.priority || 'medium', ownerId: it.ownerId || null, ownerName: it.ownerName || null, dueDate: it.dueDate || null, likes: [] })),
     columns: defaultColumns(),
     votingClosed: false,
     votingEndsAt: null,
@@ -576,6 +580,41 @@ function toggleCarryOverItem(board, itemId) {
   const item = (board.carryOverItems || []).find((i) => i.id === itemId);
   if (!item) return false;
   item.done = !item.done;
+  item.status = item.done ? 'done' : 'open';
+  item.completedAt = item.done ? Date.now() : null;
+  return true;
+}
+
+const actionStatuses = ['open', 'in-progress', 'blocked', 'done'];
+
+function updateCarryOverItem(board, participantId, itemId, patch) {
+  if (!isFacilitator(board, participantId) || board.phase === 'ended') return false;
+  const item = (board.carryOverItems || []).find((i) => i.id === itemId);
+  if (!item || !patch || typeof patch !== 'object') return false;
+  if (Object.prototype.hasOwnProperty.call(patch, 'ownerId')) {
+    const ownerId = patch.ownerId == null || patch.ownerId === '' ? null : String(patch.ownerId);
+    if (ownerId && !board.participants[ownerId]) return false;
+    item.ownerId = ownerId;
+    item.ownerName = ownerId ? board.participants[ownerId].name : null;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'dueDate')) {
+    const dueDate = patch.dueDate == null || patch.dueDate === '' ? null : String(patch.dueDate);
+    if (dueDate && !/^\\d{4}-\\d{2}-\\d{2}$/.test(dueDate)) return false;
+    item.dueDate = dueDate;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'priority')) {
+    const priority = String(patch.priority);
+    if (!['low', 'medium', 'high'].includes(priority)) return false;
+    item.priority = priority;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'status')) {
+    const status = String(patch.status);
+    if (!actionStatuses.includes(status)) return false;
+    item.status = status;
+    item.done = status === 'done';
+    item.completedAt = item.done ? (item.completedAt || Date.now()) : null;
+  }
+  item.updatedAt = Date.now();
   return true;
 }
 
@@ -590,7 +629,7 @@ function endBoard(board) {
 function actionItemsFromBoard(board) {
   const col = board.columns.find((c) => /action items/i.test(c.title));
   if (!col) return [];
-  return board.notes.filter((n) => n.columnId === col.id).map((n) => ({ id: n.id, text: n.text }));
+  return board.notes.filter((n) => n.columnId === col.id).map((n) => ({ id: n.id, text: n.text, ownerId: null, ownerName: null, dueDate: null, priority: 'medium', status: 'open', createdAt: n.createdAt || Date.now() }));
 }
 
 function votingIsOver(board) {
@@ -618,7 +657,7 @@ function publicView(board, viewerId) {
     carryOverItems: (board.carryOverItems || []).map((item) => {
       const likes = Array.isArray(item.likes) ? item.likes : [];
       const { likes: _likes, ...rest } = item;
-      return { ...rest, likeCount: likes.length, likedByMe: !!viewerId && likes.includes(viewerId) };
+      return { ...rest, status: rest.status || (rest.done ? 'done' : 'open'), priority: rest.priority || 'medium', likeCount: likes.length, likedByMe: !!viewerId && likes.includes(viewerId) };
     }),
     columns,
     notesHidden: !!board.notesHidden,
@@ -666,6 +705,7 @@ module.exports = {
   updateNote,
   deleteNote,
   toggleCarryOverItem,
+  updateCarryOverItem,
   openBoard,
   endBoard,
   actionItemsFromBoard,
