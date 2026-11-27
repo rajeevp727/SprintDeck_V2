@@ -4769,3 +4769,22 @@ button.linkish {
 .retro-action-discussion details { color: var(--muted); font-size: .75rem; }
 .retro-action-discussion details p { margin-top: .3rem; }
 .workspace-team-item { align-items: flex-start !important; flex-direction: column; }
+
+.onboarding-panel { margin: 1.25rem 0; padding: 1.2rem; border: 1px solid var(--line); border-radius: var(--radius-lg, 16px); background: var(--panel); }
+.onboarding-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.onboarding-head h2 { margin: .1rem 0 .25rem; }
+.onboarding-head p { margin: 0; color: var(--muted); font-size: .85rem; }
+.onboarding-progress { height: 7px; margin-top: 1rem; overflow: hidden; border-radius: 999px; background: var(--bg); }
+.onboarding-progress span { display: block; height: 100%; background: var(--accent); transition: width .2s ease; }
+.onboarding-progress-label { margin: .35rem 0; color: var(--muted); font-size: .72rem; }
+.onboarding-steps { display: grid; gap: .5rem; padding: 0; margin: .8rem 0 0; list-style: none; }
+.onboarding-steps li { display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding: .65rem 0; border-bottom: 1px solid var(--line); }
+.onboarding-steps li:last-child { border-bottom: 0; }
+.onboarding-steps label { display: flex; align-items: flex-start; gap: .6rem; min-width: 0; cursor: pointer; }
+.onboarding-steps input { margin-top: .2rem; accent-color: var(--accent); }
+.onboarding-steps strong, .onboarding-steps small { display: block; }
+.onboarding-steps strong { font-size: .85rem; }
+.onboarding-steps small { margin-top: .15rem; color: var(--muted); font-size: .75rem; }
+.onboarding-steps .complete strong { text-decoration: line-through; color: var(--muted); }
+.onboarding-reopen { margin: 1rem 0; }
+@media (max-width: 600px) { .onboarding-steps li { align-items: flex-start; flex-direction: column; } }
