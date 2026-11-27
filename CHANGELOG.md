@@ -45,3 +45,13 @@ Removed
 Notes / not done
 - **Real read/write is not wired** — connecting loads sample tickets; push-back is simulated.
 - **T1 (real Linear)** blocked: needs a Linear OAuth app + org re-enabling API keys.
+
+
+## 2026-11-27 — CTO business-coach branch: retrospective action follow-through
+
+- Added facilitator-managed action ownership, due date, priority and status controls to the retrospective review step.
+- Added a server-side update endpoint with facilitator checks and validation for assignees, due dates, priorities and statuses.
+- Kept the existing completion checkbox in sync with the explicit action status.
+- Preserved unfinished carried-over commitments when ending a retrospective; completed commitments are excluded from the next carry-forward ledger.
+- Kept the existing Linear, Jira and Azure DevOps integration code unchanged and out of this delivery.
+- Added API-store tests for facilitator-only updates, validation, status lifecycle and cross-sprint carry-forward. Tests have not yet been executed in this environment.
