@@ -146,7 +146,7 @@ function snapshotOf(board) {
     name: board.name,
     organisationId: board.organisationId || null,
     teamId: board.teamId || null,
-    actionItems: actionItemsFromBoard(board),
+    actionItems: allActionItemsFromBoard(board),
     endedAt: Date.now(),
     createdAt: board.createdAt || null,
     columns: (board.columns || []).map((c) => ({ id: c.id, title: c.title, color: c.color || null })),
@@ -670,9 +670,8 @@ function endBoard(board) {
   board.phase = 'ended';
 }
 
-function actionItemsFromBoard(board) {
+function allActionItemsFromBoard(board) {
   const carried = (board.carryOverItems || [])
-    .filter((item) => (item.status || (item.done ? 'done' : 'open')) !== 'done')
     .map((item) => ({
       id: item.id,
       text: item.text,
@@ -702,6 +701,10 @@ function actionItemsFromBoard(board) {
       }))
     : [];
   return [...carried, ...created];
+}
+
+function actionItemsFromBoard(board) {
+  return allActionItemsFromBoard(board).filter((item) => item.status !== 'done' && !item.done);
 }
 
 function votingIsOver(board) {
