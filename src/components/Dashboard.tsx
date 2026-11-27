@@ -6,6 +6,7 @@ import ResumeRooms from './ResumeRooms';
 import RetroHistory from './RetroHistory';
 import ViewToggle, { useFeatureView } from './ViewToggle';
 import type { ActiveRoom } from '../lib/auth';
+import OrganisationWorkspace from './OrganisationWorkspace';
 
 interface Props {
   onPlanning: () => void;
@@ -69,6 +70,8 @@ export default function Dashboard({ onPlanning, onRetro, onWhiteboard, onChat, o
       </header>
 
       <ResumeRooms onResume={onResume} />
+
+      <OrganisationWorkspace />
 
       <div className="dash-lead-row">
         <p className="dash-lead">Choose a ceremony to run with your team.</p>
