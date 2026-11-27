@@ -265,6 +265,22 @@ app.http('voteRetroNote', {
   },
 });
 
+app.http('updateRetroReviewItem', {
+  methods: ['PATCH'],
+  authLevel: 'anonymous',
+  route: 'retro/{code}/review/{itemId}',
+  handler: async (req) => {
+    const { participantId, ...patch } = await readBody(req);
+    const { board, error } = await requireFacilitator(req.params.code, participantId);
+    if (error) return error;
+    if (!store.updateCarryOverItem(board, participantId, req.params.itemId, patch)) {
+      return bad('Could not update this action item', 400);
+    }
+    await store.saveBoard(board);
+    return ok({ board: store.publicView(board, participantId) });
+  },
+});
+
 app.http('toggleRetroReviewItem', {
   methods: ['POST'],
   authLevel: 'anonymous',
