@@ -29,6 +29,9 @@ function ActionDetails({ item, board, editable, onUpdate }: {
         <span>Owner</span>
         <select value={item.ownerId || ''} disabled={!editable} onChange={(e) => onUpdate({ ownerId: e.target.value || null })}>
           <option value="">Unassigned</option>
+          {item.ownerId && !board.participants.some((person) => person.id === item.ownerId) && (
+            <option value={item.ownerId}>{item.ownerName || 'Previous assignee'} (previous sprint)</option>
+          )}
           {board.participants.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
         </select>
       </label>
