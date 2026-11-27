@@ -457,3 +457,51 @@ describe('votes need a running clock', () => {
     expect(store.toggleNoteVote(board, 'chair', 'n1')).toBe(false);
   });
 });
+
+
+describe('action ownership and follow-through', () => {
+  function actionBoard() {
+    const board = boardWith();
+    board.phase = 'review';
+    board.carryOverItems = [{ id: 'action-1', text: 'Improve deployment checks', done: false, likes: [] }];
+    return board;
+  }
+
+  it('allows only the facilitator to assign and update an action', () => {
+    const board = actionBoard();
+    expect(store.updateCarryOverItem(board, 'member', 'action-1', { status: 'in-progress' })).toBe(false);
+    expect(store.updateCarryOverItem(board, 'chair', 'action-1', {
+      ownerId: 'member',
+      dueDate: '2026-12-15',
+      priority: 'high',
+      status: 'in-progress',
+    })).toBe(true);
+
+    expect(store.publicView(board, 'chair').carryOverItems[0]).toMatchObject({
+      ownerId: 'member',
+      ownerName: 'Teammate',
+      dueDate: '2026-12-15',
+      priority: 'high',
+      status: 'in-progress',
+      done: false,
+    });
+  });
+
+  it('rejects invalid dates, priorities, statuses and unknown owners', () => {
+    const board = actionBoard();
+    expect(store.updateCarryOverItem(board, 'chair', 'action-1', { dueDate: '15-12-2026' })).toBe(false);
+    expect(store.updateCarryOverItem(board, 'chair', 'action-1', { priority: 'urgent' })).toBe(false);
+    expect(store.updateCarryOverItem(board, 'chair', 'action-1', { status: 'cancelled' })).toBe(false);
+    expect(store.updateCarryOverItem(board, 'chair', 'action-1', { ownerId: 'ghost' })).toBe(false);
+  });
+
+  it('keeps the legacy checkbox in sync with the explicit status', () => {
+    const board = actionBoard();
+    expect(store.updateCarryOverItem(board, 'chair', 'action-1', { status: 'done' })).toBe(true);
+    expect(board.carryOverItems[0].done).toBe(true);
+    expect(board.carryOverItems[0].completedAt).toBeGreaterThan(0);
+    expect(store.toggleCarryOverItem(board, 'action-1')).toBe(true);
+    expect(board.carryOverItems[0].status).toBe('open');
+    expect(board.carryOverItems[0].completedAt).toBeNull();
+  });
+});
