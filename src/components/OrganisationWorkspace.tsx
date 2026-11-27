@@ -21,6 +21,11 @@ export default function OrganisationWorkspace() {
   const [inviteToken, setInviteToken] = useState('');
   const [teamMemberUser, setTeamMemberUser] = useState('');
   const [teamMemberRole, setTeamMemberRole] = useState<'lead' | 'member' | 'stakeholder'>('member');
+  const [goalTeamId, setGoalTeamId] = useState('');
+  const [goalTitle, setGoalTitle] = useState('');
+  const [goalTarget, setGoalTarget] = useState('');
+  const [goalUnit, setGoalUnit] = useState('');
+  const [goalDueDate, setGoalDueDate] = useState('');
   const [acceptOrgId, setAcceptOrgId] = useState('');
   const [acceptToken, setAcceptToken] = useState('');
   const [busy, setBusy] = useState(false);
@@ -102,6 +107,26 @@ export default function OrganisationWorkspace() {
       await organisationApi.setTeamMember(selectedId, teamId, teamMemberUser, teamMemberRole);
       await refresh(selectedId);
       setNotice('Team membership updated.');
+    });
+  }
+
+  async function createGoal(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedId || !goalTeamId) return;
+    await run(async () => {
+      await organisationApi.createGoal(selectedId, goalTeamId, { title: goalTitle, target: Number(goalTarget), current: 0, unit: goalUnit, dueDate: goalDueDate || undefined });
+      setGoalTitle(''); setGoalTarget(''); setGoalUnit(''); setGoalDueDate('');
+      await refresh(selectedId);
+      setNotice('Team goal created.');
+    });
+  }
+
+  async function incrementGoal(teamId: string, goalId: string, current: number) {
+    if (!selectedId) return;
+    await run(async () => {
+      await organisationApi.updateGoal(selectedId, teamId, goalId, { current: current + 1 });
+      await refresh(selectedId);
+      setNotice('Goal progress updated.');
     });
   }
 
@@ -229,6 +254,34 @@ export default function OrganisationWorkspace() {
                     ) : null}
                   </li>
                 ))}</ul> : <p className="workspace-empty">No teams yet. Create your first team.</p>}
+                {details.teams.some((team) => (team.goals || []).length > 0) && (
+                  <div className="workspace-goals">
+                    <h4>Team goals & OKRs</h4>
+                    {details.teams.map((team) => (team.goals || []).map((goal) => (
+                      <div className="workspace-goal" key={goal.id}>
+                        <div><strong>{goal.title}</strong><small>{goal.current} / {goal.target} {goal.unit || ''} · {goal.status}{goal.dueDate ? ` · due ${goal.dueDate}` : ''}</small></div>
+                        <div className="workspace-goal-progress"><span style={{ width: `${Math.min(100, Math.round((goal.current / goal.target) * 100))}%` }} /></div>
+                        {['owner', 'admin'].includes(details.members.find((m) => m.userId === user?.id)?.role || '') || (team.members || []).some((member) => member.userId === user?.id && member.role === 'lead') ? <button type="button" className="ghost" disabled={busy || goal.status === 'completed'} onClick={() => incrementGoal(team.id, goal.id, goal.current)}>Update progress +1</button> : null}
+                      </div>
+                    )))}
+                  </div>
+                )}
+                {['owner', 'admin'].includes(details.members.find((m) => m.userId === user?.id)?.role || '') && <form onSubmit={createGoal} className="workspace-form">
+                  <h4>Create a team goal</h4>
+                  <label htmlFor="workspace-goal-team">Team</label>
+                  <select id="workspace-goal-team" value={goalTeamId} onChange={(e) => setGoalTeamId(e.target.value)} required>
+                    <option value="">Select team</option>{details.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+                  </select>
+                  <label htmlFor="workspace-goal-title">Goal</label>
+                  <input id="workspace-goal-title" value={goalTitle} onChange={(e) => setGoalTitle(e.target.value)} placeholder="e.g. Reduce escaped defects" minLength={3} maxLength={120} required />
+                  <div className="workspace-inline">
+                    <label>Target<input type="number" min="1" step="any" value={goalTarget} onChange={(e) => setGoalTarget(e.target.value)} required /></label>
+                    <label>Unit<input value={goalUnit} onChange={(e) => setGoalUnit(e.target.value)} placeholder="e.g. defects" maxLength={30} /></label>
+                  </div>
+                  <label htmlFor="workspace-goal-date">Due date</label>
+                  <input id="workspace-goal-date" type="date" value={goalDueDate} onChange={(e) => setGoalDueDate(e.target.value)} />
+                  <button className="ghost" disabled={busy || !details.teams.length}>Create goal</button>
+                </form>}
                 {['owner', 'admin'].includes(details.members.find((m) => m.userId === user?.id)?.role || '') && <form onSubmit={createTeam} className="workspace-form">
                   <label htmlFor="workspace-team-name">New team</label>
                   <input id="workspace-team-name" value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="e.g. Platform team" minLength={2} maxLength={80} required />
