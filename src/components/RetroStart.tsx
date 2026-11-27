@@ -4,6 +4,7 @@ import { saveIdentity } from '../lib/storage';
 import { useSubscription } from '../lib/subscription';
 import { useProfileNamePrefill } from '../lib/useProfileName';
 import { useAuth } from '../lib/auth';
+import { getActiveWorkspace } from '../lib/organisationApi';
 import AdBanner from './AdBanner';
 import BrandLogo from './BrandLogo';
 
@@ -27,7 +28,7 @@ export default function RetroStart({ onEnter, onBack }: Props) {
     setBusy(true);
     setError('');
     try {
-      const res = await retroApi.createBoard(title, name, '', '');
+      const res = await retroApi.createBoard(title, name, '', '', getActiveWorkspace());
       saveIdentity(res.board.code, res.participantId, name.trim());
       onEnter(res.board.code);
     } catch (err) {
