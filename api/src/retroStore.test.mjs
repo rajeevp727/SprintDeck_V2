@@ -469,6 +469,7 @@ describe('action ownership and follow-through', () => {
   function actionBoard() {
     const board = boardWith();
     board.phase = 'review';
+    board.participants.member.name = 'Teammate';
     board.carryOverItems = [{ id: 'action-1', text: 'Improve deployment checks', done: false, likes: [] }];
     return board;
   }
