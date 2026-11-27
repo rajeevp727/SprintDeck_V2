@@ -100,7 +100,7 @@ Implemented on `CTO-business-coach`:
 - Branch-push validation workflow.
 
 Still open before a commercial pilot:
-- Execute and pass the full lint, unit, coverage and production build pipeline.
+- **CI passed on this branch:** lint, 132 unit tests across 11 files, coverage thresholds and Vite production build. Staging end-to-end and live Cosmos/Azure OpenAI validation remain open.
 - Invitation email delivery and member removal/team archive workflows.
 - Stable workspace-member identity for retrospective action assignees.
 - Poker estimation history linked to team context and broader sprint analytics.
