@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useAuth } from '../lib/auth';
 import { organisationApi, type OrganisationDetails, type OrganisationRole, type OrganisationSummary } from '../lib/organisationApi';
 
 const roles: OrganisationRole[] = ['admin', 'team-lead', 'member', 'stakeholder'];
 
 export default function OrganisationWorkspace() {
+  const { user } = useAuth();
   const [organisations, setOrganisations] = useState<OrganisationSummary[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [details, setDetails] = useState<OrganisationDetails | null>(null);
@@ -160,14 +162,14 @@ export default function OrganisationWorkspace() {
                     <li key={member.userId}>
                       <div><strong>{member.name || member.email}</strong><small>{member.email}</small></div>
                       {member.role === 'owner' ? <span className="workspace-role">Owner</span> : (
-                        <select aria-label={`Role for ${member.email}`} value={member.role} disabled={busy || details.members[0]?.userId !== member.userId && !details.members.some((m) => m.role === 'owner' && m.userId === details.members[0]?.userId)} onChange={(e) => changeRole(member.userId, e.target.value as OrganisationRole)}>
+                        <select aria-label={`Role for ${member.email}`} value={member.role} disabled={busy || details.members.find((m) => m.userId === user?.id)?.role !== 'owner'} onChange={(e) => changeRole(member.userId, e.target.value as OrganisationRole)}>
                           {roles.map((role) => <option key={role} value={role}>{role}</option>)}
                         </select>
                       )}
                     </li>
                   ))}
                 </ul>
-                <form onSubmit={invite} className="workspace-form">
+                {['owner', 'admin'].includes(details.members.find((m) => m.userId === user?.id)?.role || '') && <form onSubmit={invite} className="workspace-form">
                   <label htmlFor="workspace-invite-email">Invite by email</label>
                   <input id="workspace-invite-email" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="colleague@company.com" required />
                   <label htmlFor="workspace-invite-role">Organisation role</label>
