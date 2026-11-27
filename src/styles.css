@@ -4623,3 +4623,43 @@ button.linkish {
     padding: 1.5rem 1.25rem;
   }
 }
+
+
+/* Retrospective action ownership and follow-through */
+.retro-action-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin: 12px 0 4px 28px;
+}
+.retro-action-details label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted, #777);
+  font-size: 12px;
+}
+.retro-action-details select,
+.retro-action-details input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  padding: 7px 9px;
+  color: inherit;
+  background: var(--surface, #fff);
+  font: inherit;
+}
+.retro-action-details select:disabled,
+.retro-action-details input:disabled {
+  opacity: .8;
+  cursor: not-allowed;
+}
+.retro-review-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+@media (max-width: 560px) {
+  .retro-action-details { margin-left: 0; }
+}
