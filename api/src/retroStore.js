@@ -626,7 +626,7 @@ function updateCarryOverItem(board, participantId, itemId, patch) {
   }
   if (Object.prototype.hasOwnProperty.call(patch, 'dueDate')) {
     const dueDate = patch.dueDate == null || patch.dueDate === '' ? null : String(patch.dueDate);
-    if (dueDate && !/^\\d{4}-\\d{2}-\\d{2}$/.test(dueDate)) return false;
+    if (dueDate) { const parts = dueDate.split('-').map(Number); if (dueDate.length !== 10 || parts.length !== 3 || parts.some((part) => !Number.isInteger(part))) return false; const parsed = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])); if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== dueDate) return false; }
     item.dueDate = dueDate;
   }
   if (Object.prototype.hasOwnProperty.call(patch, 'priority')) {
