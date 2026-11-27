@@ -147,7 +147,8 @@ async function addTeamGoal(actorId, orgId, teamId, input = {}) {
   if (!org) return { error: 'Organisation not found', status: 404 };
   const actor = memberOf(org, actorId);
   const team = org.teams.find((item) => item.id === teamId && !item.archivedAt);
-  if (!actor || !team) return { error: 'Team not found or access denied', status: 404 };
+  if (!actor) return { error: 'You are not a member of this organisation', status: 403 };
+  if (!team) return { error: 'Team not found', status: 404 };
   const teamRole = (team.members || []).find((item) => item.userId === actorId)?.role;
   if (!['owner', 'admin'].includes(actor.role) && teamRole !== 'lead') return { error: 'Only a team lead or organisation admin can manage goals', status: 403 };
   const title = clean(input.title, 120);
@@ -197,7 +198,8 @@ async function invite(userId, orgId, inviteEmail, role) {
   const actor = memberOf(org, userId);
   if (!actor || !['owner', 'admin'].includes(actor.role)) return { error: 'Only organisation owners and admins can invite members', status: 403 };
   const targetEmail = email(inviteEmail);
-  if (!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(targetEmail)) return { error: 'Enter a valid email address', status: 400 };
+  const at = targetEmail.indexOf('@');
+  if (at <= 0 || at !== targetEmail.lastIndexOf('@') || targetEmail.indexOf('.', at) < at + 2 || targetEmail.endsWith('.') || /\\s/.test(targetEmail)) return { error: 'Enter a valid email address', status: 400 };
   if (org.members.some((member) => member.email === targetEmail && member.status === 'active')) return { error: 'This person is already a member', status: 409 };
   if (!['admin', 'team-lead', 'member', 'stakeholder'].includes(role)) return { error: 'Invalid organisation role', status: 400 };
   if (actor.role !== 'owner' && role === 'admin') return { error: 'Only the owner can invite an organisation admin', status: 403 };
