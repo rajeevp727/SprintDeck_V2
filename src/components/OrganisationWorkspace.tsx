@@ -260,7 +260,7 @@ export default function OrganisationWorkspace() {
                   </select>
                   <button className="ghost" disabled={busy}>Create invitation</button>
                   {inviteToken && <div className="workspace-token"><small>One-time invitation token</small><code>{inviteToken}</code><button type="button" className="ghost" onClick={() => navigator.clipboard?.writeText(inviteToken)}>Copy token</button></div>}
-                </form>
+                </form>}
               </div>
             </div>
           )}
