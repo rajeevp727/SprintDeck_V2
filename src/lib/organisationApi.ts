@@ -12,10 +12,17 @@ export interface OrganisationDetails {
   members: OrganisationMember[];
   teams: OrganisationSummary['teams'];
 }
+export interface WorkspaceAnalytics {
+  retrospectiveCount: number; participantCount: number; noteCount: number; actionCount: number;
+  completedActions: number; openActions: number; overdueActions: number; completionRate: number | null;
+  caveat: string;
+  sprints: Array<{ id: string; name: string; endedAt: number; participantCount: number; noteCount: number; actionCount: number; completedActions: number; completionRate: number | null }>;
+}
 export const organisationApi = {
   list: () => request<{ organisations: OrganisationSummary[] }>('/api/organisations', 'GET'),
   create: (name: string) => request<{ organisation: OrganisationSummary }>('/api/organisations', 'POST', { name }),
   get: (id: string) => request<OrganisationDetails>(`/api/organisations/${id}`, 'GET'),
+  analytics: (id: string, teamId?: string) => request<WorkspaceAnalytics>(`/api/organisations/${id}/analytics${teamId ? `?teamId=${encodeURIComponent(teamId)}` : ''}`, 'GET'),
   createTeam: (id: string, name: string, timezone: string) => request<{ team: OrganisationSummary['teams'][number] }>(`/api/organisations/${id}/teams`, 'POST', { name, timezone }),
   setTeamMember: (orgId: string, teamId: string, userId: string, role: 'lead' | 'member' | 'stakeholder') => request<{ team: OrganisationSummary['teams'][number] }>(`/api/organisations/${orgId}/teams/${teamId}/members/${encodeURIComponent(userId)}`, 'PUT', { role }),
   invite: (id: string, email: string, role: OrganisationRole) => request<{ invitation: { id: string; email: string; role: OrganisationRole; expiresAt: number; token: string } }>(`/api/organisations/${id}/invitations`, 'POST', { email, role }),
