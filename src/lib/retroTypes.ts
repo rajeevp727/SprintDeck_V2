@@ -36,6 +36,8 @@ export interface RetroCarryItem {
   dueDate?: string | null;
   priority?: 'low' | 'medium' | 'high';
   completedAt?: number | null;
+  comments?: Array<{ id: string; authorId: string; authorName: string; text: string; at: number }>;
+  history?: Array<{ from: string; to: string; changedBy: string; at: number }>;
   likeCount?: number;
   likedByMe?: boolean;
 }
