@@ -199,7 +199,7 @@ async function invite(userId, orgId, inviteEmail, role) {
   if (!actor || !['owner', 'admin'].includes(actor.role)) return { error: 'Only organisation owners and admins can invite members', status: 403 };
   const targetEmail = email(inviteEmail);
   const at = targetEmail.indexOf('@');
-  if (at <= 0 || at !== targetEmail.lastIndexOf('@') || targetEmail.indexOf('.', at) < at + 2 || targetEmail.endsWith('.') || /\\s/.test(targetEmail)) return { error: 'Enter a valid email address', status: 400 };
+  if (at <= 0 || at !== targetEmail.lastIndexOf('@') || targetEmail.indexOf('.', at) < at + 2 || targetEmail.endsWith('.') || [...targetEmail].some((char) => char.charCodeAt(0) <= 32)) return { error: 'Enter a valid email address', status: 400 };
   if (org.members.some((member) => member.email === targetEmail && member.status === 'active')) return { error: 'This person is already a member', status: 409 };
   if (!['admin', 'team-lead', 'member', 'stakeholder'].includes(role)) return { error: 'Invalid organisation role', status: 400 };
   if (actor.role !== 'owner' && role === 'admin') return { error: 'Only the owner can invite an organisation admin', status: 403 };
