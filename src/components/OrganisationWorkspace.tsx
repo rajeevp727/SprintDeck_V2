@@ -312,7 +312,7 @@ export default function OrganisationWorkspace() {
                     {roles.map((role) => <option key={role} value={role}>{role}</option>)}
                   </select>
                   <button className="ghost" disabled={busy}>Create invitation</button>
-                  {inviteToken && <div className="workspace-token"><small>One-time invitation token</small><code>{inviteToken}</code><button type="button" className="ghost" onClick={() => navigator.clipboard?.writeText(inviteToken)}>Copy token</button></div>}
+                  {inviteToken && <div className="workspace-token"><small>Organisation ID (share with invitee)</small><code>{details.organisation.id}</code><small>One-time invitation token</small><code>{inviteToken}</code><button type="button" className="ghost" onClick={() => navigator.clipboard?.writeText(inviteToken)}>Copy token</button></div>}
                 </form>}
               </div>
             </div>
