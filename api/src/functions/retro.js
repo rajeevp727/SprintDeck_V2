@@ -35,6 +35,17 @@ async function requireFacilitator(code, participantId) {
   return { board };
 }
 
+async function requireAccountFacilitator(req, code, participantId) {
+  const result = await requireFacilitator(code, participantId);
+  if (result.error) return result;
+  const plan = await entitlement.planForRequest(req);
+  const ownerId = String(result.board.ownerKey || '').replace(/^ACCT:/i, '').trim().toUpperCase();
+  if (!plan.accountId || !ownerId || String(plan.accountId).trim().toUpperCase() !== ownerId) {
+    return { error: bad('Only the signed-in retrospective owner can manage action items', 403) };
+  }
+  return result;
+}
+
 async function requireParticipant(code, participantId) {
   const board = await store.loadBoard(code);
   if (!board) return { error: bad('Board not found', 404) };
@@ -285,7 +296,7 @@ app.http('updateRetroReviewItem', {
   route: 'retro/{code}/review/{itemId}',
   handler: async (req) => {
     const { participantId, ...patch } = await readBody(req);
-    const { board, error } = await requireFacilitator(req.params.code, participantId);
+    const { board, error } = await requireAccountFacilitator(req, req.params.code, participantId);
     if (error) return error;
     if (!store.updateCarryOverItem(board, participantId, req.params.itemId, patch)) {
       return bad('Could not update this action item', 400);
@@ -317,7 +328,7 @@ app.http('toggleRetroReviewItem', {
   route: 'retro/{code}/review/{itemId}',
   handler: async (req) => {
     const { participantId } = await readBody(req);
-    const { board, error } = await requireFacilitator(req.params.code, participantId);
+    const { board, error } = await requireAccountFacilitator(req, req.params.code, participantId);
     if (error) return error;
 
     if (!store.toggleCarryOverItem(board, req.params.itemId, participantId)) {
