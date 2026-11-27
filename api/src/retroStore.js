@@ -144,6 +144,9 @@ function snapshotOf(board) {
   return {
     code: board.code,
     name: board.name,
+    organisationId: board.organisationId || null,
+    teamId: board.teamId || null,
+    actionItems: actionItemsFromBoard(board),
     endedAt: Date.now(),
     createdAt: board.createdAt || null,
     columns: (board.columns || []).map((c) => ({ id: c.id, title: c.title, color: c.color || null })),
@@ -206,6 +209,22 @@ async function listArchives(ownerKey) {
     .filter((a) => a && a.type === 'retro-archive' && a.code === key)
     .sort((a, b) => b.endedAt - a.endedAt)
     .slice(0, maxArchives);
+}
+
+async function listOrganisationArchives(organisationId, teamId) {
+  const c = getLedgerContainer();
+  if (c) {
+    const query = teamId
+      ? "SELECT * FROM c WHERE c.type = 'retro-archive' AND c.organisationId = @orgId AND c.teamId = @teamId ORDER BY c.endedAt DESC"
+      : "SELECT * FROM c WHERE c.type = 'retro-archive' AND c.organisationId = @orgId ORDER BY c.endedAt DESC";
+    const parameters = [{ name: '@orgId', value: organisationId }];
+    if (teamId) parameters.push({ name: '@teamId', value: teamId });
+    const { resources } = await (await c).items.query({ query, parameters }).fetchAll();
+    return resources;
+  }
+  return [...ledgerMemory.values()]
+    .filter((archive) => archive && archive.type === 'retro-archive' && archive.organisationId === organisationId && (!teamId || archive.teamId === teamId))
+    .sort((a, b) => b.endedAt - a.endedAt);
 }
 
 async function getArchive(ownerKey, id) {
@@ -298,7 +317,7 @@ async function deleteBoard(code) {
   realtime.notifyGroup('retro:' + norm);
 }
 
-async function createBoard(name, facilitatorName, desiredCode, roomCode, ownerKey) {
+async function createBoard(name, facilitatorName, desiredCode, roomCode, ownerKey, workspace = {}) {
   let code;
   const wanted = normalize(desiredCode);
   if (wanted) {
@@ -735,6 +754,7 @@ module.exports = {
   actionItemsFromBoard,
   archiveBoard,
   listArchives,
+  listOrganisationArchives,
   getArchive,
   ledgerKeyFor,
   toggleCarryOverLike,
