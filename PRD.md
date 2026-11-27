@@ -28,7 +28,7 @@ The product's long-term value should come from connecting these workflows and he
 - Project management integration: Linear issue lookup by supplied identifiers and estimate write-back are implemented in the API path when a real Linear issue is attached.
 - Important Linear limitation: the separate estimation-view import endpoint currently loads a hard-coded sample dataset with mock issue IDs. Mock IDs are not written back. Do not market that sample import as a live Linear backlog integration.
 - Jira and Azure DevOps: visible in the product connection experience, but documented as preview/scaffolded; not ready to be represented as working production integrations.
-- Retrospectives: boards, notes, voting, review/action-item ledger operations and exports exist. A persistent cross-sprint action ownership workflow needs further product validation and development.
+- Retrospectives: boards, notes, voting, review/action-item ledger operations and exports exist. The current branch adds facilitator-managed action owner, due date, priority and status fields, preserves unfinished commitments when a retrospective ends, and drops completed commitments from the next sprint's carry-forward list. Assignment is currently to a participant in the active retrospective; stable organisation-member assignment remains dependent on the future workspace/membership model.
 - Whiteboard: shared board operations exist. Validate collaboration consistency, retention and performance at realistic usage before positioning it as a Miro replacement.
 - Team chat: available as a paid capability in the current product.
 - Accounts: email/password and Google/Microsoft sign-in code exists. Account identity is distinct from per-room participant identity. Organisation membership and multi-team administration are not yet established as product capabilities.
@@ -103,7 +103,7 @@ Current plan labels and displayed prices are maintained in the application; vali
 | P0 | Linear integration verification | Real issue lookup and confirmed write-back pass against a test workspace |
 | P0 | Payment lifecycle audit | Correct account activation, duplicate handling, expiry and support paths verified |
 | P1 | Organisation and team management | Multiple teams can be securely managed within an organisation |
-| P1 | Retrospective action ownership | Actions have owner, due date, status and carry-forward |
+| P1 | Retrospective action ownership | **In progress on `CTO-business-coach`** — participant owner, due date, priority, status and incomplete carry-forward implemented; comments and durable member identity remain open |
 | P1 | Cross-sprint team analytics | Team trends are reliable and privacy-aware |
 | P2 | Microsoft Teams notifications | Users can launch/join ceremonies from notifications |
 | P2 | Jira and Azure DevOps | Provider integrations pass security and end-to-end tests |
