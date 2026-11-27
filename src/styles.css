@@ -4788,3 +4788,11 @@ button.linkish {
 .onboarding-steps .complete strong { text-decoration: line-through; color: var(--muted); }
 .onboarding-reopen { margin: 1rem 0; }
 @media (max-width: 600px) { .onboarding-steps li { align-items: flex-start; flex-direction: column; } }
+
+.workspace-coach { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .6rem; margin-top: .9rem; padding-top: .8rem; border-top: 1px solid var(--line); }
+.workspace-coach > div:first-child strong, .workspace-coach > div:first-child small { display: block; }
+.workspace-coach > div:first-child strong { font-size: .9rem; }
+.workspace-coach > div:first-child small { color: var(--muted); font-size: .72rem; }
+.workspace-coach-result { grid-column: 1 / -1; padding: .75rem; border-radius: 9px; background: var(--bg); }
+.workspace-coach-result p { margin: .25rem 0; font-size: .82rem; line-height: 1.45; }
+.workspace-coach-result small { display: block; margin-top: .45rem; color: var(--muted); font-size: .7rem; }
