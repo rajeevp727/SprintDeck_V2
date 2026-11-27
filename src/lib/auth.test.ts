@@ -6,6 +6,8 @@ import {
   getToken,
   logout,
   loginWithOAuth,
+  getGoogleAuthUrl,
+  getMicrosoftAuthUrl,
   getEmailStatus,
   checkName,
   forgotPassword,
@@ -173,5 +175,41 @@ describe('refreshUser', () => {
       json: async () => ({ user: { id: '1', email: 'a@b.com', name: 'A' } }),
     } as Response);
     await expect(refreshUser()).resolves.toEqual({ id: '1', email: 'a@b.com', name: 'A' });
+  });
+});
+
+
+describe('provider authorization URLs', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('does not build a Google URL without a client ID', () => {
+    vi.stubEnv('VITE_GOOGLE_CLIENT_ID', '');
+    expect(getGoogleAuthUrl('nonce', 'state')).toBe('');
+  });
+
+  it('builds a Google ID-token URL with the supplied nonce and state', () => {
+    vi.stubEnv('VITE_GOOGLE_CLIENT_ID', 'google-client');
+    vi.stubEnv('VITE_OAUTH_REDIRECT_ORIGIN', 'https://sprintdeck.test');
+    const url = new URL(getGoogleAuthUrl('nonce-1', 'state-1'));
+    expect(url.origin).toBe('https://accounts.google.com');
+    expect(url.searchParams.get('client_id')).toBe('google-client');
+    expect(url.searchParams.get('redirect_uri')).toBe('https://sprintdeck.test/auth/google/callback');
+    expect(url.searchParams.get('nonce')).toBe('nonce-1');
+    expect(url.searchParams.get('state')).toBe('state-1');
+  });
+
+  it('builds a Microsoft URL using the Azure client and tenant fallback', () => {
+    vi.stubEnv('VITE_MICROSOFT_CLIENT_ID', '');
+    vi.stubEnv('VITE_AZURE_CLIENT_ID', 'azure-client');
+    vi.stubEnv('VITE_AZURE_TENANT_ID', 'tenant-id');
+    vi.stubEnv('VITE_OAUTH_REDIRECT_ORIGIN', 'https://sprintdeck.test');
+    const url = new URL(getMicrosoftAuthUrl('nonce-2', 'state-2'));
+    expect(url.hostname).toBe('login.microsoftonline.com');
+    expect(url.pathname).toContain('/tenant-id/');
+    expect(url.searchParams.get('client_id')).toBe('azure-client');
+    expect(url.searchParams.get('nonce')).toBe('nonce-2');
+    expect(url.searchParams.get('state')).toBe('state-2');
   });
 });
