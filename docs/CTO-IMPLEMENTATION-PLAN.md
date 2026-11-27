@@ -56,14 +56,14 @@ Core pillars:
 ### P2 — Adoption and distribution
 - Custom decks, anonymous voting option, configurable timer and moderator controls.
 - Teams notifications and deep links.
-- Better onboarding, sample workspace and guided first ceremony.
+- **Initial onboarding checklist delivered** for workspace creation, invitation, Planning Poker and retrospective. A seeded sample workspace and automatic ceremony-completion detection remain open.
 - Jira and Azure DevOps only after provider-specific integration tests and secure credential storage.
 - Workspace export, audit log and configurable retention.
 
 ### P3 — Enterprise readiness
 - SSO enforcement, MFA policy, granular RBAC, audit trail, data processing documentation, support/SLA and security review.
 
-## Proposed organisation data model (design only; not implemented yet)
+## Organisation data model (initial implementation)
 
 - Organisation: id, name, slug, plan, createdAt, status.
 - Membership: id, organisationId, userId, role, status, invitedBy, joinedAt.
@@ -73,7 +73,7 @@ Core pillars:
 - Ceremony: existing poker/retro/whiteboard entity plus organisationId/teamId/createdBy where appropriate.
 - AuditEvent: organisationId, actorUserId, action, resourceType, resourceId, timestamp, metadata with secrets and sensitive payloads excluded.
 
-Before implementation, decide tenant partitioning and migration strategy for existing standalone accounts/rooms. All tenant-scoped API reads and writes must derive organisation access from the authenticated identity, not trust a client-supplied organisation ID.
+The initial organisation container uses organisation ID as its partition key and stores members, teams, invitations and a bounded audit-event list in the organisation document. Existing standalone rooms and accounts are not migrated. Retrospectives can opt into an organisation/team when created; only these new linked archives appear in workspace analytics. Every implemented organisation-scoped API derives the caller from the authenticated session and checks membership server-side. Further tenant partitioning, account migration and data export/restore validation remain required.
 
 ## Acceptance gates
 
@@ -86,3 +86,25 @@ A release is not complete until:
 - No secrets or personal payment/bank data are exposed in logs.
 - Documentation and changelog are updated.
 - The change is reviewed on this branch; main remains untouched.
+
+
+## Delivery update — 2026-11-27
+
+Implemented on `CTO-business-coach`:
+- Retrospective action assignment, due date, priority, status, comments, status history and incomplete carry-forward.
+- Organisation and team creation, membership invitations, role assignment and team membership assignment.
+- Active team context for new retrospectives.
+- Team-scoped retrospective analytics and a read-only Scrum Coach endpoint. Azure OpenAI requires explicit app settings; rule-based guidance is returned when the service is not configured.
+- First-sprint onboarding checklist.
+- Branch-push validation workflow.
+
+Still open before a commercial pilot:
+- Execute and pass the full lint, unit, coverage and production build pipeline.
+- Invitation email delivery and member removal/team archive workflows.
+- Stable workspace-member identity for retrospective action assignees.
+- Poker estimation history linked to team context and broader sprint analytics.
+- Organisation billing/entitlements, payment lifecycle audit and production security review.
+- AI provider configuration and end-to-end validation.
+- Customer pilots and pricing validation.
+
+Linear, Jira and Azure DevOps integrations remain explicitly deferred. No production deployment or merge to `main` is authorised by this workstream.
