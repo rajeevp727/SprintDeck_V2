@@ -110,7 +110,7 @@ Current plan labels and displayed prices are maintained in the application; vali
 | P2 | Jira and Azure DevOps | Provider integrations pass security and end-to-end tests |
 | P3 | Enterprise controls | SSO policy, audit logs, retention and security review complete |
 
-Detailed execution plan: `docs/CTO-IMPLEMENTATION-PLAN.md`.\n\n### 5.6 Onboarding and Scrum Coach\n- Dashboard onboarding checklist guides organisation setup, invitation, first planning session and first retrospective.\n- Scrum Coach is read-only and never mutates records. Configure `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT` and optionally `AZURE_OPENAI_API_VERSION` to enable generated suggestions. Without these settings it provides rule-based prompts and clearly identifies them as such.
+Detailed execution plan: `docs/CTO-IMPLEMENTATION-PLAN.md`.\n\n### 5.5.1 Team goals and OKRs\n- Team leads and organisation admins can create measurable team goals and update progress.\n- Goal progress is team-level context, not an individual performance score.\n\n### 5.6 Onboarding and Scrum Coach\n- Dashboard onboarding checklist guides organisation setup, invitation, first planning session and first retrospective.\n- Scrum Coach is read-only and never mutates records. Configure `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT` and optionally `AZURE_OPENAI_API_VERSION` to enable generated suggestions. Without these settings it provides rule-based prompts and clearly identifies them as such.
 
 ## 8. Success metrics
 
