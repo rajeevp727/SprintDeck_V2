@@ -102,3 +102,48 @@ app.http('updateOrganisationTeamMember', {
     return result.error ? bad(result.error, result.status) : ok(result);
   },
 });
+
+
+app.http('organisationAnalytics', {
+  methods: ['GET'], authLevel: 'anonymous', route: 'organisations/{orgId}/analytics',
+  handler: async (req) => {
+    const { user, error } = await caller(req);
+    if (error) return error;
+    const details = await store.getForUser(user.id, req.params.orgId);
+    if (details.error) return bad(details.error, details.status);
+    const teamId = req.query.get('teamId') || '';
+    if (teamId && !details.teams.some((team) => team.id === teamId)) return bad('Team not found', 404);
+    const archives = await require('../retroStore').listOrganisationArchives(req.params.orgId, teamId || undefined);
+    const actions = archives.flatMap((archive) => archive.actionItems || []);
+    const completed = actions.filter((item) => item.status === 'done' || item.done).length;
+    const now = Date.now();
+    const overdue = actions.filter((item) => item.status !== 'done' && !item.done && item.dueDate && Date.parse(item.dueDate + 'T23:59:59Z') < now).length;
+    const bySprint = archives.map((archive) => {
+      const sprintActions = archive.actionItems || [];
+      const done = sprintActions.filter((item) => item.status === 'done' || item.done).length;
+      return {
+        id: archive.id,
+        name: archive.name,
+        endedAt: archive.endedAt,
+        participantCount: (archive.participants || []).length,
+        noteCount: (archive.notes || []).length,
+        actionCount: sprintActions.length,
+        completedActions: done,
+        completionRate: sprintActions.length ? Math.round((done / sprintActions.length) * 100) : null,
+      };
+    });
+    return ok({
+      scope: teamId ? 'team' : 'organisation',
+      retrospectiveCount: archives.length,
+      participantCount: archives.reduce((sum, archive) => sum + (archive.participants || []).length, 0),
+      noteCount: archives.reduce((sum, archive) => sum + (archive.notes || []).length, 0),
+      actionCount: actions.length,
+      completedActions: completed,
+      openActions: actions.length - completed,
+      overdueActions: overdue,
+      completionRate: actions.length ? Math.round((completed / actions.length) * 100) : null,
+      sprints: bySprint,
+      caveat: 'Metrics include only retrospectives created after a team was selected as the active workspace. They are team-level workflow signals, not individual performance scores.',
+    });
+  },
+});
