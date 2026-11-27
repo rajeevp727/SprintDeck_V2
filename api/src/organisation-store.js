@@ -142,6 +142,55 @@ async function setTeamMember(actorId, orgId, teamId, targetUserId, role) {
   return { team };
 }
 
+async function addTeamGoal(actorId, orgId, teamId, input = {}) {
+  const org = await read(orgId);
+  if (!org) return { error: 'Organisation not found', status: 404 };
+  const actor = memberOf(org, actorId);
+  const team = org.teams.find((item) => item.id === teamId && !item.archivedAt);
+  if (!actor || !team) return { error: 'Team not found or access denied', status: 404 };
+  const teamRole = (team.members || []).find((item) => item.userId === actorId)?.role;
+  if (!['owner', 'admin'].includes(actor.role) && teamRole !== 'lead') return { error: 'Only a team lead or organisation admin can manage goals', status: 403 };
+  const title = clean(input.title, 120);
+  const target = Number(input.target);
+  const current = Number(input.current || 0);
+  if (title.length < 3) return { error: 'Goal title must be at least 3 characters', status: 400 };
+  if (!Number.isFinite(target) || target <= 0 || !Number.isFinite(current) || current < 0) return { error: 'Enter a valid target and current value', status: 400 };
+  const goal = { id: id(), title, description: clean(input.description, 500), target, current, unit: clean(input.unit, 30), dueDate: input.dueDate ? String(input.dueDate) : null, status: current >= target ? 'completed' : 'active', createdBy: actorId, createdAt: Date.now(), updatedAt: Date.now() };
+  if (goal.dueDate && (!/^\\d{4}-\\d{2}-\\d{2}$/.test(goal.dueDate) || Number.isNaN(Date.parse(goal.dueDate)))) return { error: 'Enter a valid due date', status: 400 };
+  team.goals = Array.isArray(team.goals) ? team.goals : [];
+  if (team.goals.length >= 50) return { error: 'This team has reached its goal limit', status: 409 };
+  team.goals.push(goal);
+  audit(org, actorId, 'team.goal_created', 'goal', goal.id);
+  await write(org);
+  return { goal };
+}
+
+async function updateTeamGoal(actorId, orgId, teamId, goalId, patch = {}) {
+  const org = await read(orgId);
+  if (!org) return { error: 'Organisation not found', status: 404 };
+  const actor = memberOf(org, actorId);
+  const team = org.teams.find((item) => item.id === teamId && !item.archivedAt);
+  if (!actor || !team) return { error: 'Team not found or access denied', status: 404 };
+  const teamRole = (team.members || []).find((item) => item.userId === actorId)?.role;
+  if (!['owner', 'admin'].includes(actor.role) && teamRole !== 'lead') return { error: 'Only a team lead or organisation admin can update goals', status: 403 };
+  const goal = (team.goals || []).find((item) => item.id === goalId);
+  if (!goal) return { error: 'Goal not found', status: 404 };
+  if (Object.prototype.hasOwnProperty.call(patch, 'current')) {
+    const current = Number(patch.current);
+    if (!Number.isFinite(current) || current < 0) return { error: 'Current progress must be zero or more', status: 400 };
+    goal.current = current;
+    goal.status = current >= goal.target ? 'completed' : 'active';
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'status')) {
+    if (!['active', 'at-risk', 'completed'].includes(patch.status)) return { error: 'Invalid goal status', status: 400 };
+    goal.status = patch.status;
+  }
+  goal.updatedAt = Date.now();
+  audit(org, actorId, 'team.goal_updated', 'goal', goal.id);
+  await write(org);
+  return { goal };
+}
+
 async function invite(userId, orgId, inviteEmail, role) {
   const org = await read(orgId);
   if (!org) return { error: 'Organisation not found', status: 404 };
@@ -200,4 +249,4 @@ async function getForUser(userId, orgId) {
   return { organisation: summary(org), members: org.members.filter((m) => m.status === 'active').map(({ userId: memberId, email: memberEmail, name, role, status, joinedAt }) => ({ userId: memberId, email: memberEmail, name, role, status, joinedAt })), teams: org.teams.filter((team) => !team.archivedAt) };
 }
 
-module.exports = { listForUser, create, getForUser, createTeam, invite, acceptInvite, setMemberRole, setTeamMember, memberOf };
+module.exports = { listForUser, create, getForUser, createTeam, invite, acceptInvite, setMemberRole, setTeamMember, addTeamGoal, updateTeamGoal, memberOf };
