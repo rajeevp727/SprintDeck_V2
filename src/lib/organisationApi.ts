@@ -18,11 +18,17 @@ export interface WorkspaceAnalytics {
   caveat: string;
   sprints: Array<{ id: string; name: string; endedAt: number; participantCount: number; noteCount: number; actionCount: number; completedActions: number; completionRate: number | null }>;
 }
+export interface ScrumCoachResult {
+  configured: boolean; readOnly: boolean; message?: string; summary?: string;
+  suggestions: string[];
+  metrics: { retrospectives: number; actionItems: number; completedActions: number; openActions: number; overdueActions: number; completionRate: number | null };
+}
 export const organisationApi = {
   list: () => request<{ organisations: OrganisationSummary[] }>('/api/organisations', 'GET'),
   create: (name: string) => request<{ organisation: OrganisationSummary }>('/api/organisations', 'POST', { name }),
   get: (id: string) => request<OrganisationDetails>(`/api/organisations/${id}`, 'GET'),
   analytics: (id: string, teamId?: string) => request<WorkspaceAnalytics>(`/api/organisations/${id}/analytics${teamId ? `?teamId=${encodeURIComponent(teamId)}` : ''}`, 'GET'),
+  scrumCoach: (id: string, teamId?: string) => request<ScrumCoachResult>(`/api/organisations/${id}/scrum-coach`, 'POST', { teamId }),
   createTeam: (id: string, name: string, timezone: string) => request<{ team: OrganisationSummary['teams'][number] }>(`/api/organisations/${id}/teams`, 'POST', { name, timezone }),
   setTeamMember: (orgId: string, teamId: string, userId: string, role: 'lead' | 'member' | 'stakeholder') => request<{ team: OrganisationSummary['teams'][number] }>(`/api/organisations/${orgId}/teams/${teamId}/members/${encodeURIComponent(userId)}`, 'PUT', { role }),
   invite: (id: string, email: string, role: OrganisationRole) => request<{ invitation: { id: string; email: string; role: OrganisationRole; expiresAt: number; token: string } }>(`/api/organisations/${id}/invitations`, 'POST', { email, role }),
