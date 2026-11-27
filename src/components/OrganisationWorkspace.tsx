@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '../lib/auth';
-import { organisationApi, type OrganisationDetails, type OrganisationRole, type OrganisationSummary } from '../lib/organisationApi';
+import { organisationApi, saveActiveWorkspace, type OrganisationDetails, type OrganisationRole, type OrganisationSummary } from '../lib/organisationApi';
 
 const roles: OrganisationRole[] = ['admin', 'team-lead', 'member', 'stakeholder'];
 
@@ -157,7 +157,7 @@ export default function OrganisationWorkspace() {
                 <h3>Teams</h3>
                 {details.teams.length ? <ul className="workspace-list">{details.teams.map((team) => (
                   <li key={team.id} className="workspace-team-item">
-                    <div><strong>{team.name}</strong><small>{team.timezone} · {(team.members || []).length} team member(s)</small></div>
+                    <div><strong>{team.name}</strong><small>{team.timezone} · {(team.members || []).length} team member(s)</small><button type="button" className="ghost workspace-activate" onClick={() => { saveActiveWorkspace({ organisationId: selectedId, teamId: team.id }); setNotice(`${details.organisation.name} / ${team.name} is now the active ceremony workspace.`); }}>Use for ceremonies</button></div>
                     {['owner', 'admin'].includes(details.members.find((m) => m.userId === user?.id)?.role || '') || (team.members || []).some((m) => m.userId === user?.id && m.role === 'lead') ? (
                       <div className="workspace-team-assign">
                         <select aria-label={`Member to add to ${team.name}`} value={teamMemberUser} onChange={(e) => setTeamMemberUser(e.target.value)}>
