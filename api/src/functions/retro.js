@@ -6,6 +6,7 @@ const entitlement = require('../entitlement');
 const pokerStore = require('../store'); 
 const { rateLimited } = require('../ratelimit');
 const users = require('../users-store');
+const organisations = require('../organisation-store');
 const { sendRetroSummaryEmail } = require('../email');
 
 const noCache = { 'Cache-Control': 'no-store' };
@@ -49,16 +50,29 @@ app.http('createRetro', {
   route: 'retro',
   handler: async (req) => {
     if (rateLimited(req, 'retrocreate', 15, 60_000)) return bad('Too many requests — slow down', 429);
-    const { name, facilitatorName, code, roomCode } = await readBody(req);
+    const { name, facilitatorName, code, roomCode, organisationId, teamId } = await readBody(req);
     const { allowed } = await entitlement.checkTier(req, 'pro');
     if (!allowed) return bad('A Pro subscription is required to start a retrospective', 403);
 
+    const accountId = entitlement.accountIdFromRequest(req);
+    let workspace = {};
+    if (organisationId || teamId) {
+      if (!organisationId || !teamId || !accountId) return bad('Choose a valid organisation and team', 400);
+      const details = await organisations.getForUser(accountId, organisationId);
+      if (details.error) return bad(details.error, details.status);
+      const team = details.teams.find((item) => item.id === teamId);
+      if (!team || !(team.members || []).some((member) => member.userId === accountId)) {
+        return bad('You must be a member of the selected team to host its retrospective', 403);
+      }
+      workspace = { organisationId, teamId };
+    }
     const result = await store.createBoard(
       name,
       facilitatorName,
       code,
       roomCode,
-      entitlement.accountIdFromRequest(req),
+      accountId,
+      workspace,
     );
     if (result.error === 'invalid') {
       return bad('Board code must be 3–24 letters, numbers or dashes');
