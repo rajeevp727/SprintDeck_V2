@@ -530,10 +530,11 @@ describe('action-item discussion and audit history', () => {
     expect(store.addCarryOverComment(board, 'member', 'tracked', 'I can take this')).toBe(true);
     expect(store.updateCarryOverItem(board, 'chair', 'tracked', { status: 'in-progress' })).toBe(true);
     expect(store.toggleCarryOverItem(board, 'tracked', 'chair')).toBe(true);
-    const item = store.actionItemsFromBoard(board)[0];
+    const item = board.carryOverItems[0];
     expect(item.comments).toHaveLength(1);
     expect(item.comments[0].text).toBe('I can take this');
     expect(item.history.map((entry) => entry.to)).toEqual(['in-progress', 'done']);
+    expect(store.actionItemsFromBoard(board)).toHaveLength(0);
   });
 
   it('rejects comments from strangers, empty comments and comments on ended boards', () => {
