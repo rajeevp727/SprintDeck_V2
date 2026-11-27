@@ -627,9 +627,33 @@ function endBoard(board) {
 }
 
 function actionItemsFromBoard(board) {
-  const col = board.columns.find((c) => /action items/i.test(c.title));
-  if (!col) return [];
-  return board.notes.filter((n) => n.columnId === col.id).map((n) => ({ id: n.id, text: n.text, ownerId: null, ownerName: null, dueDate: null, priority: 'medium', status: 'open', createdAt: n.createdAt || Date.now() }));
+  const carried = (board.carryOverItems || [])
+    .filter((item) => (item.status || (item.done ? 'done' : 'open')) !== 'done')
+    .map((item) => ({
+      id: item.id,
+      text: item.text,
+      ownerId: item.ownerId || null,
+      ownerName: item.ownerName || null,
+      dueDate: item.dueDate || null,
+      priority: item.priority || 'medium',
+      status: item.status || 'open',
+      createdAt: item.createdAt || Date.now(),
+      updatedAt: item.updatedAt || null,
+    }));
+  const col = actionColumn(board);
+  const created = col
+    ? board.notes.filter((note) => note.columnId === col.id).map((note) => ({
+        id: note.id,
+        text: note.text,
+        ownerId: null,
+        ownerName: null,
+        dueDate: null,
+        priority: 'medium',
+        status: 'open',
+        createdAt: note.createdAt || Date.now(),
+      }))
+    : [];
+  return [...carried, ...created];
 }
 
 function votingIsOver(board) {
