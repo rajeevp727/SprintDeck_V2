@@ -4760,3 +4760,12 @@ button.linkish {
   .workspace-team-assign { grid-template-columns: 1fr 1fr; }
   .workspace-team-assign select:first-child { grid-column: 1 / -1; }
 }
+
+.retro-action-discussion { grid-column: 1 / -1; display: grid; gap: .4rem; padding-top: .5rem; border-top: 1px solid var(--line); }
+.retro-action-discussion > span { color: var(--muted); font-size: .75rem; font-weight: 600; }
+.retro-action-discussion p { margin: 0; font-size: .78rem; line-height: 1.4; }
+.retro-action-discussion form { display: flex; gap: .4rem; }
+.retro-action-discussion form button { white-space: nowrap; }
+.retro-action-discussion details { color: var(--muted); font-size: .75rem; }
+.retro-action-discussion details p { margin-top: .3rem; }
+.workspace-team-item { align-items: flex-start !important; flex-direction: column; }
