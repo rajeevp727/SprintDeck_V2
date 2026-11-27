@@ -320,7 +320,7 @@ app.http('toggleRetroReviewItem', {
     const { board, error } = await requireFacilitator(req.params.code, participantId);
     if (error) return error;
 
-    if (!store.toggleCarryOverItem(board, req.params.itemId)) {
+    if (!store.toggleCarryOverItem(board, req.params.itemId, participantId)) {
       return bad('Could not update this item', 404);
     }
     await store.saveBoard(board);
