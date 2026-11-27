@@ -597,12 +597,18 @@ function toggleCarryOverLike(board, participantId, itemId) {
   return true;
 }
 
-function toggleCarryOverItem(board, itemId) {
+function toggleCarryOverItem(board, itemId, participantId = '') {
   const item = (board.carryOverItems || []).find((i) => i.id === itemId);
   if (!item) return false;
+  const previousStatus = item.status || (item.done ? 'done' : 'open');
   item.done = !item.done;
   item.status = item.done ? 'done' : 'open';
   item.completedAt = item.done ? Date.now() : null;
+  if (previousStatus !== item.status) {
+    item.history = Array.isArray(item.history) ? item.history : [];
+    item.history.push({ from: previousStatus, to: item.status, changedBy: board.participants[participantId]?.name || 'Facilitator', at: Date.now() });
+  }
+  item.updatedAt = Date.now();
   return true;
 }
 
