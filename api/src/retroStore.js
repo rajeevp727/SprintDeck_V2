@@ -337,6 +337,8 @@ async function createBoard(name, facilitatorName, desiredCode, roomCode, ownerKe
     name: (name || '').trim().slice(0, maxNameLen) || 'Sprint Retrospective',
     facilitatorId: pid,
     roomCode: normalize(roomCode) || null, 
+    organisationId: workspace.organisationId || null,
+    teamId: workspace.teamId || null,
     ledgerKey: ledgerKey || null,
     // Archives belong to the host's account even when the board follows a room.
     ownerKey: ownerKey ? 'ACCT:' + normalize(ownerKey) : null,
