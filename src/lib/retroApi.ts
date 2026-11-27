@@ -66,6 +66,13 @@ export const retroApi = {
   reviewToggle: (code: string, participantId: string, itemId: string) =>
     request<{ board: RetroBoard }>(`/api/retro/${code}/review/${itemId}`, 'POST', { participantId }),
 
+  updateReviewItem: (
+    code: string,
+    participantId: string,
+    itemId: string,
+    patch: { ownerId?: string | null; dueDate?: string | null; priority?: 'low' | 'medium' | 'high'; status?: 'open' | 'in-progress' | 'blocked' | 'done' },
+  ) => request<{ board: RetroBoard }>(`/api/retro/${code}/review/${itemId}`, 'PATCH', { participantId, ...patch }),
+
   reviewLike: (code: string, participantId: string, itemId: string) =>
     request<{ board: RetroBoard }>(`/api/retro/${code}/review/${itemId}/like`, 'POST', {
       participantId,
