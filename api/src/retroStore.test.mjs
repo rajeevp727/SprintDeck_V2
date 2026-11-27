@@ -496,6 +496,21 @@ describe('action ownership and follow-through', () => {
     expect(store.updateCarryOverItem(board, 'chair', 'action-1', { ownerId: 'ghost' })).toBe(false);
   });
 
+  it('carries unfinished commitments forward and drops completed ones', () => {
+    const board = actionBoard();
+    board.carryOverItems = [
+      { id: 'keep', text: 'Keep this action', status: 'in-progress', done: false, ownerId: 'member', ownerName: 'Teammate', dueDate: '2026-12-15', priority: 'high' },
+      { id: 'drop', text: 'Already done', status: 'done', done: true },
+    ];
+    store.addNote(board, 'chair', 'action', 'New commitment');
+
+    expect(store.actionItemsFromBoard(board)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'keep', ownerId: 'member', dueDate: '2026-12-15', priority: 'high', status: 'in-progress' }),
+      expect.objectContaining({ text: 'New commitment', status: 'open' }),
+    ]));
+    expect(store.actionItemsFromBoard(board).some((item) => item.id === 'drop')).toBe(false);
+  });
+
   it('keeps the legacy checkbox in sync with the explicit status', () => {
     const board = actionBoard();
     expect(store.updateCarryOverItem(board, 'chair', 'action-1', { status: 'done' })).toBe(true);
