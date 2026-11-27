@@ -216,3 +216,24 @@ app.http('scrumCoachInsights', {
     }
   },
 });
+
+
+app.http('createTeamGoal', {
+  methods: ['POST'], authLevel: 'anonymous', route: 'organisations/{orgId}/teams/{teamId}/goals',
+  handler: async (req) => {
+    const { user, error } = await caller(req);
+    if (error) return error;
+    const result = await store.addTeamGoal(user.id, req.params.orgId, req.params.teamId, await body(req));
+    return result.error ? bad(result.error, result.status) : ok(result);
+  },
+});
+
+app.http('updateTeamGoal', {
+  methods: ['PATCH'], authLevel: 'anonymous', route: 'organisations/{orgId}/teams/{teamId}/goals/{goalId}',
+  handler: async (req) => {
+    const { user, error } = await caller(req);
+    if (error) return error;
+    const result = await store.updateTeamGoal(user.id, req.params.orgId, req.params.teamId, req.params.goalId, await body(req));
+    return result.error ? bad(result.error, result.status) : ok(result);
+  },
+});
