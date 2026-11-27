@@ -39,14 +39,37 @@ Use this checklist for staging and production-readiness reviews. Record environm
 - [ ] Test concurrent edits and reconnect behaviour.
 - [ ] Verify retention and deletion policy.
 
-## E. Whiteboard and chat
+## E. Organisation workspaces, teams and goals
+- [ ] Create an organisation; verify creator becomes owner.
+- [ ] Create multiple teams and switch the active team context.
+- [ ] Invite a user; reject invalid email, duplicate active member, expired token and token reuse.
+- [ ] Accept an invitation only from the invited email account.
+- [ ] Verify non-members cannot read organisation data or create teams.
+- [ ] Verify only owner can grant organisation admin; admins cannot self-promote.
+- [ ] Verify team leads can manage only their team membership and goals.
+- [ ] Verify users cannot join a team unless they are organisation members.
+- [ ] Create a measurable team goal; update progress and verify completed state.
+- [ ] Verify one organisation cannot read another organisation's analytics or members.
+- [ ] Verify invitation tokens are hashed at rest and never returned after acceptance.
+
+## F. Team analytics and Scrum Coach
+- [ ] Create and end a retrospective with an active organisation/team selected.
+- [ ] Verify archived sprint and action metrics appear only in that team scope.
+- [ ] Verify completed actions remain in historical metrics and unfinished actions carry forward.
+- [ ] Verify overdue actions are calculated against due dates.
+- [ ] Verify Scrum Coach is read-only and does not mutate any board or action record.
+- [ ] With Azure OpenAI unconfigured, verify the UI identifies rule-based prompts as non-AI.
+- [ ] With Azure OpenAI configured, verify generated suggestions use aggregate metrics only and never expose keys.
+- [ ] Verify the UI does not rank individuals or use story points as individual productivity scores.
+
+## G. Whiteboard and chat
 - [ ] Create, join, edit, delete and clear board elements.
 - [ ] Verify writer permissions and share-link permissions.
 - [ ] Test simultaneous users, reconnect and persistence.
 - [ ] Verify chat membership, message persistence and access after leaving.
 - [ ] Verify paid entitlement is enforced by the server, not only hidden in the UI.
 
-## F. Subscription and payment
+## H. Subscription and payment
 - [ ] Create an order for every plan and verify the server-calculated amount.
 - [ ] Reject tampered tier/amount and unauthenticated account ownership claims.
 - [ ] Confirm a real credit alert activates only the intended order/account.
@@ -58,7 +81,7 @@ Use this checklist for staging and production-readiness reviews. Record environm
 - [ ] Verify all paid API endpoints enforce current server-side entitlement.
 - [ ] Confirm customer support has a reconciliation and refund procedure.
 
-## G. Release quality
+## I. Release quality
 - [ ] `npm run build`
 - [ ] `npm run lint`
 - [ ] `npm test`
