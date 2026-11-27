@@ -156,7 +156,7 @@ async function addTeamGoal(actorId, orgId, teamId, input = {}) {
   if (title.length < 3) return { error: 'Goal title must be at least 3 characters', status: 400 };
   if (!Number.isFinite(target) || target <= 0 || !Number.isFinite(current) || current < 0) return { error: 'Enter a valid target and current value', status: 400 };
   const goal = { id: id(), title, description: clean(input.description, 500), target, current, unit: clean(input.unit, 30), dueDate: input.dueDate ? String(input.dueDate) : null, status: current >= target ? 'completed' : 'active', createdBy: actorId, createdAt: Date.now(), updatedAt: Date.now() };
-  if (goal.dueDate && (!/^\\d{4}-\\d{2}-\\d{2}$/.test(goal.dueDate) || Number.isNaN(Date.parse(goal.dueDate)))) return { error: 'Enter a valid due date', status: 400 };
+  if (goal.dueDate) { const parts = goal.dueDate.split('-').map(Number); const parsed = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])); if (goal.dueDate.length !== 10 || parts.length !== 3 || parsed.toISOString().slice(0, 10) !== goal.dueDate) return { error: 'Enter a valid due date', status: 400 }; }
   team.goals = Array.isArray(team.goals) ? team.goals : [];
   if (team.goals.length >= 50) return { error: 'This team has reached its goal limit', status: 409 };
   team.goals.push(goal);
