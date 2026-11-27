@@ -22,3 +22,14 @@ export const organisationApi = {
   accept: (id: string, token: string) => request<{ organisation: OrganisationSummary }>(`/api/organisations/${id}/invitations/accept`, 'POST', { token }),
   setRole: (id: string, userId: string, role: OrganisationRole) => request<{ member: OrganisationMember }>(`/api/organisations/${id}/members/${encodeURIComponent(userId)}`, 'PATCH', { role }),
 };
+
+const activeWorkspaceKey = 'sprintdeck.activeWorkspace';
+export function saveActiveWorkspace(value: { organisationId: string; teamId: string }) {
+  localStorage.setItem(activeWorkspaceKey, JSON.stringify(value));
+}
+export function getActiveWorkspace(): { organisationId: string; teamId: string } | null {
+  try {
+    const value = JSON.parse(localStorage.getItem(activeWorkspaceKey) || 'null');
+    return value && typeof value.organisationId === 'string' && typeof value.teamId === 'string' ? value : null;
+  } catch { return null; }
+}
