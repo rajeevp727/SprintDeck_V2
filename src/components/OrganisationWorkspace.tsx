@@ -266,7 +266,7 @@ export default function OrganisationWorkspace() {
                     )))}
                   </div>
                 )}
-                {['owner', 'admin'].includes(details.members.find((m) => m.userId === user?.id)?.role || '') && <form onSubmit={createGoal} className="workspace-form">
+                {(['owner', 'admin'].includes(details.members.find((m) => m.userId === user?.id)?.role || '') || details.teams.some((team) => (team.members || []).some((member) => member.userId === user?.id && member.role === 'lead'))) && <form onSubmit={createGoal} className="workspace-form">
                   <h4>Create a team goal</h4>
                   <label htmlFor="workspace-goal-team">Team</label>
                   <select id="workspace-goal-team" value={goalTeamId} onChange={(e) => setGoalTeamId(e.target.value)} required>
