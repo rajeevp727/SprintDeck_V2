@@ -157,6 +157,9 @@ describe('archiving a finished board', () => {
     const board = boardWith();
     board.ownerKey = 'ACCT:GOOGLE:HOST@EXAMPLE.COM';
     board.name = 'Sprint 7 Retrospective';
+    board.organisationId = 'org-test';
+    board.teamId = 'team-test';
+    board.carryOverItems = [{ id: 'done-action', text: 'Finished task', done: true, status: 'done', likes: [] }];
     store.addNote(board, 'member', 'well', 'shipping was smooth');
     store.startVoting(board, 'chair', 2);
     store.toggleNoteVote(board, 'other', board.notes[0].id);
@@ -164,6 +167,8 @@ describe('archiving a finished board', () => {
     const saved = await store.archiveBoard(board);
     expect(saved.boardCode).toBe('TEST');
     expect(saved.notes[0]).toMatchObject({ text: 'shipping was smooth', voteCount: 1 });
+    expect(saved.actionItems).toEqual([expect.objectContaining({ id: 'done-action', status: 'done' })]);
+    expect(await store.listOrganisationArchives('org-test', 'team-test')).toEqual([expect.objectContaining({ teamId: 'team-test' })]);
 
     const listed = await store.listArchives('ACCT:GOOGLE:HOST@EXAMPLE.COM');
     expect(listed.map((a) => a.name)).toContain('Sprint 7 Retrospective');
