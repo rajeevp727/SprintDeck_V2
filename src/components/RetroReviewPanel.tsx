@@ -1,3 +1,4 @@
+import { useState, type FormEvent } from 'react';
 import type { RetroBoard as RetroBoardType, RetroCarryItem } from '../lib/retroTypes';
 
 type ActionPatch = {
@@ -13,15 +14,24 @@ interface ReviewProps {
   onToggle: (itemId: string) => void;
   onLike: (itemId: string) => void;
   onUpdate: (itemId: string, patch: ActionPatch) => void;
+  onComment: (itemId: string, text: string) => void;
   onOpen: () => void;
 }
 
-function ActionDetails({ item, board, editable, onUpdate }: {
+function ActionDetails({ item, board, editable, onUpdate, onComment }: {
   item: RetroCarryItem;
   board: RetroBoardType;
   editable: boolean;
   onUpdate: (patch: ActionPatch) => void;
+  onComment: (text: string) => void;
 }) {
+  const [comment, setComment] = useState('');
+  function submitComment(event: FormEvent) {
+    event.preventDefault();
+    if (!comment.trim()) return;
+    onComment(comment.trim());
+    setComment('');
+  }
   const status = item.status || (item.done ? 'done' : 'open');
   return (
     <div className="retro-action-details">
@@ -56,11 +66,20 @@ function ActionDetails({ item, board, editable, onUpdate }: {
           <option value="done">Done</option>
         </select>
       </label>
+      <div className="retro-action-discussion">
+        <span>Comments ({item.comments?.length || 0})</span>
+        {(item.comments || []).map((entry) => <p key={entry.id}><strong>{entry.authorName}</strong> {entry.text}</p>)}
+        <form onSubmit={submitComment}>
+          <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Add an update or blocker…" maxLength={1000} />
+          <button type="submit" className="ghost" disabled={!comment.trim()}>Comment</button>
+        </form>
+        {(item.history || []).length > 0 && <details><summary>Status history</summary>{item.history?.map((entry, index) => <p key={index}>{entry.changedBy}: {entry.from} → {entry.to}</p>)}</details>}
+      </div>
     </div>
   );
 }
 
-export default function ReviewPanel({ board, isFacilitator, onToggle, onLike, onUpdate, onOpen }: ReviewProps) {
+export default function ReviewPanel({ board, isFacilitator, onToggle, onLike, onUpdate, onComment, onOpen }: ReviewProps) {
   const items = board.carryOverItems;
   return (
     <div className="retro-review">
@@ -94,7 +113,7 @@ export default function ReviewPanel({ board, isFacilitator, onToggle, onLike, on
                   <span>{it.likeCount ?? 0}</span>
                 </button>
               </div>
-              <ActionDetails item={it} board={board} editable={isFacilitator} onUpdate={(patch) => onUpdate(it.id, patch)} />
+              <ActionDetails item={it} board={board} editable={isFacilitator} onUpdate={(patch) => onUpdate(it.id, patch)} onComment={(text) => onComment(it.id, text)} />
             </li>
           ))}
         </ul>
