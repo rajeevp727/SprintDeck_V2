@@ -151,6 +151,7 @@ async function invite(userId, orgId, inviteEmail, role) {
   if (!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(targetEmail)) return { error: 'Enter a valid email address', status: 400 };
   if (org.members.some((member) => member.email === targetEmail && member.status === 'active')) return { error: 'This person is already a member', status: 409 };
   if (!['admin', 'team-lead', 'member', 'stakeholder'].includes(role)) return { error: 'Invalid organisation role', status: 400 };
+  if (actor.role !== 'owner' && role === 'admin') return { error: 'Only the owner can invite an organisation admin', status: 403 };
   const token = crypto.randomBytes(32).toString('hex');
   const invitation = { id: id(), email: targetEmail, role, tokenHash: hash(token), invitedBy: userId, createdAt: Date.now(), expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, acceptedAt: null };
   org.invitations = (org.invitations || []).filter((item) => item.email !== targetEmail || item.acceptedAt || item.expiresAt < Date.now());
