@@ -69,5 +69,5 @@ Notes / not done
 - Added team goals/OKRs with measurable targets, progress, units, due dates and completion status; team leads and organisation admins can manage them.
 - Added first-sprint onboarding checklist and guided entry points.
 - Added tests for organisation invitation/role boundaries and retrospective action carry-forward, comments, status history and team-scoped archives.
-- Added branch-push validation to the test workflow. The first run failed during dependency installation; the workflow now uses lockfile-based installs and a rerun is pending.
+- Added branch-push validation to the test workflow. Latest CI run passed: lint, 132 tests across 11 files, coverage thresholds (40.6% statements / 36.3% branches) and Vite production build.
 - No Linear/Jira/Azure DevOps integration work was performed. No production deployment or merge to `main` was performed.
