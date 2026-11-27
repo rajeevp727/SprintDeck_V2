@@ -78,6 +78,7 @@ describe("last sprint's action items", () => {
   function reviewBoard() {
     const board = boardWith();
     board.phase = 'review';
+    board.participants.member.name = 'Teammate';
     board.carryOverItems = [{ id: 'c1', text: 'write the runbook', done: false, likes: [] }];
     return board;
   }
