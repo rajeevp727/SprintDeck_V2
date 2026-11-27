@@ -66,7 +66,7 @@ Notes / not done
 - Added dashboard workspace management, member role controls, team assignment and active team selection for new retrospectives.
 - Retrospectives now record organisation/team context; completed archives feed organisation/team retrospective metrics (participation, notes, actions, completion and overdue counts).
 - Added a read-only Scrum Coach endpoint. Azure OpenAI can be enabled through `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT` and optional `AZURE_OPENAI_API_VERSION`. Without those settings it returns clearly labelled rule-based prompts.
-- Added first-sprint onboarding checklist and guided entry points.
+- Added team goals/OKRs with measurable targets, progress, units, due dates and completion status; team leads and organisation admins can manage them.\n- Added first-sprint onboarding checklist and guided entry points.
 - Added tests for organisation invitation/role boundaries and retrospective action carry-forward, comments, status history and team-scoped archives.
 - Added branch-push validation to the test workflow. The first run failed during dependency installation; the workflow now uses lockfile-based installs and a rerun is pending.
 - No Linear/Jira/Azure DevOps integration work was performed. No production deployment or merge to `main` was performed.
