@@ -7,6 +7,7 @@ import RetroHistory from './RetroHistory';
 import ViewToggle, { useFeatureView } from './ViewToggle';
 import type { ActiveRoom } from '../lib/auth';
 import OrganisationWorkspace from './OrganisationWorkspace';
+import OnboardingGuide from './OnboardingGuide';
 
 interface Props {
   onPlanning: () => void;
@@ -71,6 +72,7 @@ export default function Dashboard({ onPlanning, onRetro, onWhiteboard, onChat, o
 
       <ResumeRooms onResume={onResume} />
 
+      <OnboardingGuide onPlanning={onPlanning} onRetro={onRetro} />
       <OrganisationWorkspace />
 
       <div className="dash-lead-row">
